@@ -3,6 +3,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js'
 import './style.css'
 import { createSpace } from './world/space.js'
 import { createIslands } from './world/islands.js'
@@ -25,6 +26,8 @@ renderer.shadowMap.type = THREE.VSMShadowMap
 document.getElementById('app').appendChild(renderer.domElement)
 
 const scene = new THREE.Scene()
+// Brume violette : les îles lointaines se fondent dans la nébuleuse.
+scene.fog = new THREE.Fog(0x2b1f4f, 70, 280)
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1500)
 
 // Éclairage : ciel bleuté, soleil chaud et contre-jour violet.
@@ -46,6 +49,15 @@ scene.add(rim)
 // Cible multi-échantillonnée : garde l'anticrénelage malgré le post-traitement.
 const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, { type: THREE.HalfFloatType, samples: 4 }))
 composer.addPass(new RenderPass(scene, camera))
+// Occlusion ambiante : ombres de contact au pied des objets et dans les recoins (désactivée sur mobile).
+const params = new URLSearchParams(location.search)
+const lowEnd = matchMedia('(pointer: coarse)').matches || params.has('lite')
+if (!lowEnd && !params.has('noao')) {
+  const ao = new GTAOPass(scene, camera, window.innerWidth, window.innerHeight)
+  ao.updateGtaoMaterial({ radius: 1.2, distanceExponent: 1.5, thickness: 1.5, scale: 1.2 })
+  ao.blendIntensity = 0.85
+  composer.addPass(ao)
+}
 const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.55, 0.6, 0.85)
 composer.addPass(bloom)
 composer.addPass(new OutputPass())
@@ -124,7 +136,7 @@ if (new URLSearchParams(location.search).has('debug')) {
     scene,
     games,
     teleport(x, z) {
-      player.teleport(new THREE.Vector3(x, 0, z))
+      player.teleport(new THREE.Vector3(x, world.groundAt(x, z, Infinity, true) ?? 0, z))
       cameraTarget.copy(player.position)
       camera.position.copy(player.position).add(cameraOffset)
     },

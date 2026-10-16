@@ -5,6 +5,21 @@ import * as P from '../props.js'
 
 // Le Passé : royaume médiéval fantastique.
 
+// Relief de l'île principale : prairies à plusieurs lobes, château sur un plateau,
+// terrasse de la montagne et autel du cristal (à atteindre en sautant).
+export const mainShape = {
+  lobes: [
+    [0, 2, 15, 0], [12, 2, 10, 0], [-13, 5, 10, 0], [2, 14, 10, 0], [11, 11, 7, 0], [-11, 14, 7, 0], [-11, -10, 8, 0],
+    [0, -13, 8.5, 2.4],
+    [14, -11, 7.5, 1.2],
+    [-14, -6, 4, 1],
+  ],
+  ramps: [
+    [0, -1.2, 0, 0, -5.4, 2.4, 3.4],
+    [10.5, -2.5, 0, 12.8, -5.6, 1.2, 2.6],
+  ],
+}
+
 export function decorateMain(ctx) {
   const { group, addCollider, animated } = ctx
   const stone = mat(0x9a948a)
@@ -77,8 +92,8 @@ export function decorateMain(ctx) {
   P.place(ctx, 'trophy', -17.5, 13, { height: 1.4, r: 0.6 })
   P.place(ctx, 'horse', 8.5, 3.5, { height: 2, rotY: -1.2, r: 0.9 })
   // Falaises en bordure d'île.
-  P.cliff(ctx, -19, -10, { height: 5, rotY: 0.4 })
-  P.cliff(ctx, 19, 12, { height: 3.5, small: true, rotY: 2 })
+  P.cliff(ctx, -16.5, -12, { height: 5, rotY: 0.4 })
+  P.cliff(ctx, 15.5, 13.5, { height: 3.5, small: true, rotY: 2 })
   P.cliff(ctx, -8, 19.5, { height: 3, small: true, rotY: 1 })
 
   // Village médiéval autour du château.
@@ -94,7 +109,7 @@ export function decorateMain(ctx) {
   P.flowers(ctx, -5, 13, { r: 2.2 })
   P.flowers(ctx, 13, 12, { r: 1.8 })
   P.rocks(ctx, -19, 10, { count: 4 })
-  P.rocks(ctx, 15, 17, { count: 3 })
+  P.rocks(ctx, 12, 15, { count: 3 })
   P.mushroom(ctx, -16, 15, { scale: 1.2 })
   P.mushroom(ctx, -14.5, 16.5, { scale: 0.7, cap: 0xb04ad6 })
 
@@ -106,8 +121,9 @@ export function decorateMain(ctx) {
 export const satellites = {
   // Parcours de pierres flottantes jusqu'au coffre.
   ruins: {
-    offset: [-8, -45],
+    offset: [-32, -34],
     r: 14,
+    shape: { lobes: [[0, 2, 11, 0], [6, -8, 8, 0], [-5, -8, 6, 0], [-8, 4, 6, 0], [7, -1, 4, 1]] },
     build(ctx) {
       P.arch(ctx, 1, 4, { rotY: 0.2 })
       P.place(ctx, 'columnBroken', -6, 6, { height: 2.6, r: 0.7 })
@@ -119,10 +135,10 @@ export const satellites = {
       P.place(ctx, 'stairs', 0, -7, { height: 1, rotY: Math.PI, r: 0 })
       P.standingStones(ctx, 3, -4, { r: 3 })
       P.crystals(ctx, -10, 7, { color: 0x9b6bff, glow: true })
-      P.crystals(ctx, 10, 7, { color: 0x58d0ff, size: 0.8 })
-      P.rocks(ctx, -11, -3, { count: 4 })
+      P.crystals(ctx, 8, 6, { color: 0x58d0ff, size: 0.8 })
+      P.rocks(ctx, -8, -3, { count: 4 })
       P.pine(ctx, 9, 8, { height: 3.5, big: true })
-      P.tree(ctx, -8, 11, { leaves: 0x4c8a30 })
+      P.tree(ctx, -6, 10, { leaves: 0x4c8a30 })
       // Coffre au trésor sur la dernière pierre.
       P.place(ctx, 'chest', 11, -7.8, { height: 0.9, y: 6, rotY: Math.PI })
       return {
@@ -142,6 +158,7 @@ export const satellites = {
   camp: {
     offset: [-45, 10],
     r: 13,
+    shape: { lobes: [[0, 0, 10, 0], [-6, -6, 7, 0], [5, 6, 6, 0], [-7, 6, 5, 0], [-9, -5, 4, 1.8]] },
     build(ctx) {
       P.campfire(ctx, 0, 0)
       P.tent(ctx, -5, -5, { color: 0xc0392b, rotY: 0.8 })
@@ -151,14 +168,14 @@ export const satellites = {
       P.crate(ctx, 5, 3.4, { size: 0.7, rotY: 0.5 })
       P.place(ctx, 'barrel', 3, 5.5, { height: 1, r: 0.5 })
       P.place(ctx, 'horse', 9.5, 4.5, { height: 2, rotY: 2.2, r: 0.9 })
-      P.place(ctx, 'cannon', 9.5, -6, { height: 1.2, rotY: -0.8, r: 0.8 })
+      P.place(ctx, 'cannon', 7.5, -5.5, { height: 1.2, rotY: -0.8, r: 0.8 })
       P.place(ctx, 'arenaBanner', -2, -10.5, { height: 2.4, r: 0.4 })
       P.banner(ctx, 6, -5, { color: 0xf1c40f })
       P.lantern(ctx, 2, -3.5)
       P.mushroom(ctx, -9, 8, { scale: 1.4 })
       // Tour de guet (Kenney).
       P.place(ctx, 'tower', -10.5, -4.5, { width: 3.2, rotY: 0.8, r: 1.7, top: 20 })
-      for (const [px, pz] of [[-11, 2], [3, 10], [-3, 11], [8, 8], [-4, -11]]) P.tree(ctx, px, pz, { pine: px % 2 === 0, leaves: 0x356e25 })
+      for (const [px, pz] of [[-10, 3], [3, 10], [-4, 9.5], [8, 8], [-4, -11]]) P.tree(ctx, px, pz, { pine: px % 2 === 0, leaves: 0x356e25 })
       return {
         type: 'collect',
         start: [8, -2],
@@ -173,19 +190,20 @@ export const satellites = {
   lake: {
     offset: [5, 42],
     r: 14,
+    shape: { lobes: [[0, 0, 11, 0], [0, -7, 7, 0], [-6, 6, 7, 0], [7, 5, 6, 0], [11, -8, 3.5, 1.2]] },
     build(ctx) {
       P.pond(ctx, 0, 1, { r: 4.5 })
       const boat = P.place(ctx, 'boat', 1, 1.5, { height: 0.6, y: 0.02, rotY: 0.7 })
       ctx.animated.push((dt, t) => { boat.position.y = 0.02 + Math.sin(t * 1.5) * 0.05; boat.rotation.z = Math.sin(t * 1.2) * 0.04 })
-      P.place(ctx, 'shipwreck', 10.5, -8.5, { width: 4.5, rotY: 0.9, r: 1.8 })
+      P.place(ctx, 'shipwreck', 11, -8, { width: 4.5, rotY: 0.9, r: 1.8 })
       P.windmill(ctx, -9, 7, { rotY: 0.8 })
-      P.flowers(ctx, 8, 9, { r: 2 })
+      P.flowers(ctx, 6, 8, { r: 2 })
       P.flowers(ctx, -4, 11, { r: 1.5 })
-      P.rocks(ctx, 11, -3, { count: 3, size: 0.8 })
+      P.rocks(ctx, 9, -2, { count: 3, size: 0.8 })
       P.tree(ctx, 11, 6)
-      P.pine(ctx, -12, -2, { height: 3.6, big: true })
-      P.pine(ctx, -11.5, 1.5, { height: 2.6 })
-      for (const [bx, bz, c] of [[6, -7, 0xc0392b], [-7, -7, 0x2f4e8c]]) P.banner(ctx, bx, bz, { color: c })
+      P.pine(ctx, -9.5, -1.5, { height: 3.6, big: true })
+      P.pine(ctx, -9, 3, { height: 2.6 })
+      for (const [bx, bz, c] of [[6, -7, 0xc0392b], [-6, -6, 0x2f4e8c]]) P.banner(ctx, bx, bz, { color: c })
       return {
         type: 'race',
         start: [-1, -9],

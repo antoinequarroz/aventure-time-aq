@@ -121,7 +121,7 @@ export function createPlayer(scene, world) {
       position.y = ground
       velocity.y = 0
       grounded = true
-      if (ground === 0) safePoint.copy(position)
+      if (world.groundAt(position.x, position.z, position.y, true) === ground) safePoint.copy(position)
     } else if (ground === null || position.y > ground + 0.05) {
       grounded = false
     }
@@ -140,6 +140,8 @@ export function createPlayer(scene, world) {
         position.z = c.z + (dz / d) * min
       }
     }
+    // Flancs des terrasses.
+    world.pushOut(position)
 
     // Orientation, animation et petits effets.
     if (moving) {
@@ -180,7 +182,7 @@ export function createPlayer(scene, world) {
       model.position.copy(target)
       position.copy(target)
       velocity.set(0, 0, 0)
-      if (target.y === 0) safePoint.copy(target)
+      safePoint.copy(target)
     },
     setCheckpoint(point) {
       checkpoint = point.clone()

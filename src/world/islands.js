@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { islands as content } from '../content.js'
 import { jitter, mat, mesh, textTexture } from './helpers.js'
 import { model } from './models.js'
+import { buildTerrain, createGround, edgeAlong, settle, shapeRadius } from './terrain.js'
 import * as past from './eras/past.js'
 import * as present from './eras/present.js'
 import * as future from './eras/future.js'
@@ -22,36 +23,44 @@ export function createIslands(scene) {
   const interactables = []
   const animated = []
   const islandsInfo = []
-  const surfaces = []
   const games = []
   const fadeables = []
+  const ground = createGround()
+  const surfaces = ground.surfaces
+  const warn = (child, p) => console.warn(`Décor dans le vide à (${p.x.toFixed(1)}, ${p.z.toFixed(1)})`, child)
 
   for (const era of content) {
     const theme = THEMES[era.id]
     const module = ERAS[era.id]
+    const lunar = era.id === 'future'
+    const stairs = { wood: 'stone', metal: 'metal', energy: 'energy' }[theme.bridge]
 
-    const makeCtx = (center, radius) => {
+    const makeCtx = (center, shape) => {
       const group = new THREE.Group()
       group.position.copy(center)
       scene.add(group)
-      return {
+      const ctx = {
         group,
         theme,
         center,
-        radius,
+        radius: shapeRadius(shape),
         animated,
-        addCollider: (x, z, r, top = 6) => colliders.push({ x: center.x + x, z: center.z + z, r, top }),
+        // Hauteur du terrain en coordonnées locales.
+        heightAt: (x, z) => ground.heightAt(center.x + x, center.z + z, Infinity, true) ?? 0,
+        addCollider: (x, z, r, top = 6) => colliders.push({ x: center.x + x, z: center.z + z, r, top: top + ctx.heightAt(x, z) }),
         // Objet qui devient transparent quand il cache le joueur à la caméra.
         addFadeable: (object) => fadeables.push(object),
       }
+      buildTerrain(ctx, shape, ground, { lunar, stairs })
+      ctx.decorFrom = group.children.length
+      return ctx
     }
 
     // Île principale.
-    const main = makeCtx(theme.center, ISLAND_RADIUS)
-    buildBase(main, era.id, ISLAND_RADIUS)
+    const mainShape = module.mainShape ?? { lobes: [[0, 0, ISLAND_RADIUS, 0]] }
+    const main = makeCtx(theme.center, mainShape)
     module.decorateMain(main)
-    surfaces.push({ type: 'circle', x: theme.center.x, z: theme.center.z, r: ISLAND_RADIUS, h: 0 })
-    islandsInfo.push({ id: era.id, era: era.id, name: era.name, tagline: era.tagline, center: theme.center, radius: ISLAND_RADIUS, gravity: theme.gravity })
+    islandsInfo.push({ id: era.id, era: era.id, name: era.name, tagline: era.tagline, center: theme.center, radius: main.radius, gravity: theme.gravity })
 
     for (const sign of era.signs) {
       buildSign(main, sign)
@@ -65,27 +74,34 @@ export function createIslands(scene) {
         links: sign.links,
       })
     }
+    settle(main.group, main.decorFrom, ground, warn)
 
     // Petites îles thématiques, reliées par des passerelles.
     for (const sat of era.satellites ?? []) {
       const layout = module.satellites[sat.id]
       const center = new THREE.Vector3(theme.center.x + layout.offset[0], 0, theme.center.z + layout.offset[1])
-      const ctx = makeCtx(center, layout.r)
-      buildBase(ctx, `${era.id}-${sat.id}`, layout.r)
-      surfaces.push({ type: 'circle', x: center.x, z: center.z, r: layout.r, h: 0 })
-      islandsInfo.push({ id: sat.id, era: era.id, name: sat.name, tagline: sat.tagline, center, radius: layout.r, gravity: theme.gravity })
+      const shape = layout.shape ?? { lobes: [[0, 0, layout.r, 0]] }
+      const ctx = makeCtx(center, shape)
+      islandsInfo.push({ id: sat.id, era: era.id, name: sat.name, tagline: sat.tagline, center, radius: ctx.radius, gravity: theme.gravity })
 
       const game = layout.build(ctx)
-      buildBridge(scene, theme, theme.center, ISLAND_RADIUS, center, layout.r, surfaces, animated)
+      const dir = new THREE.Vector3().subVectors(center, theme.center).setY(0).normalize()
+      const from = theme.center.clone().addScaledVector(dir, edgeAlong(mainShape, dir) - 1.2)
+      const to = center.clone().addScaledVector(dir, -(edgeAlong(shape, dir.clone().negate()) - 1.2))
+      buildBridge(scene, theme, from, to, surfaces, animated)
 
       // Plateformes de parcours.
       for (const [px, pz, py, pr] of game.platforms ?? []) {
-        buildPlatform(ctx, px, pz, py, pr, game.platformStyle)
-        surfaces.push({ type: 'circle', x: center.x + px, z: center.z + pz, r: pr, h: py })
-        if (Math.hypot(px, pz) < layout.r) ctx.addCollider(px, pz, pr * 0.9, py)
+        const base = ctx.heightAt(px, pz)
+        buildPlatform(ctx, px, pz, py, pr, game.platformStyle, base)
+        surfaces.push({ type: 'circle', x: center.x + px, z: center.z + pz, r: pr, h: py, platform: true, solid: false })
+        if (base > 0 || Math.hypot(px, pz) < ctx.radius) colliders.push({ x: center.x + px, z: center.z + pz, r: pr * 0.9, top: py })
       }
 
-      const toWorld = ([x, z, y = 0]) => new THREE.Vector3(center.x + x, y, center.z + z)
+      buildStartPad(ctx, game.start, theme.accent, animated)
+      settle(ctx.group, ctx.decorFrom, ground, warn)
+
+      const toWorld = ([x, z, y = 0]) => new THREE.Vector3(center.x + x, y + ctx.heightAt(x, z), center.z + z)
       const def = {
         ...game,
         id: `${era.id}-${sat.id}`,
@@ -95,10 +111,9 @@ export function createIslands(scene) {
         accent: theme.accent,
         start: toWorld(game.start),
         items: game.items?.map(toWorld),
-        rings: game.rings?.map(toWorld),
-        goal: game.goal && toWorld(game.goal),
+        rings: game.rings?.map(([x, z, y = 1.6]) => toWorld([x, z, y])),
+        goal: game.goal && new THREE.Vector3(center.x + game.goal[0], game.goal[2], center.z + game.goal[1]),
       }
-      buildStartPad(ctx, game.start, theme.accent, animated)
       interactables.push({ type: 'game', x: def.start.x, z: def.start.z, r: 2.2, title: def.title, game: def })
       games.push(def)
     }
@@ -136,110 +151,11 @@ export function createIslands(scene) {
     islands: islandsInfo,
     games,
     spawn: new THREE.Vector3(THEMES.past.center.x, 0, 4),
-    // Hauteur du sol sous (x, z) : la plus haute surface sous les pieds, ou null (le vide).
-    groundAt(x, z, y) {
-      let best = null
-      for (const s of surfaces) {
-        if (s.h > y + 0.3 || (best !== null && s.h <= best)) continue
-        if (s.type === 'circle') {
-          const dx = x - s.x
-          const dz = z - s.z
-          if (dx * dx + dz * dz <= s.r * s.r) best = s.h
-        } else {
-          const abx = s.bx - s.ax
-          const abz = s.bz - s.az
-          const t = ((x - s.ax) * abx + (z - s.az) * abz) / (abx * abx + abz * abz)
-          if (t < 0 || t > 1) continue
-          const px = s.ax + abx * t
-          const pz = s.az + abz * t
-          if ((x - px) ** 2 + (z - pz) ** 2 <= (s.w / 2) ** 2) best = s.h
-        }
-      }
-      return best
-    },
+    groundAt: ground.heightAt,
+    pushOut: ground.pushOut,
     update(dt, t) {
       for (const fn of animated) fn(dt, t)
     },
-  }
-}
-
-function buildBase({ group, theme }, id, radius) {
-  const seed = id.length * 7 + radius
-  // Dessus de l'île avec de légères variations de couleur.
-  const top = jitter(new THREE.CylinderGeometry(radius, radius - 0.6, 1.2, Math.round(radius * 1.8), 4), 0.15, seed)
-  const colors = []
-  const base = new THREE.Color(theme.top)
-  const c = new THREE.Color()
-  const pos = top.attributes.position
-  for (let i = 0; i < pos.count; i++) {
-    const n = Math.sin(pos.getX(i) * 0.35 + seed) * Math.cos(pos.getZ(i) * 0.3)
-    c.copy(base).offsetHSL(0, 0, n * 0.05 + (pos.getY(i) < 0 ? -0.08 : 0))
-    colors.push(c.r, c.g, c.b)
-  }
-  top.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
-  const topMesh = mesh(top, mat(0xffffff, { vertexColors: true }), { y: -0.6 })
-  topMesh.castShadow = false
-  // Couche de terre sous l'herbe, puis la roche.
-  const dirt = mesh(jitter(new THREE.CylinderGeometry(radius - 0.4, radius - 1.6, 2.4, Math.round(radius * 1.1), 1), 0.35, seed + 3), mat(theme.dirt), { y: -2.3 })
-  const depth = radius * 0.9
-  const rock = jitter(new THREE.ConeGeometry(radius - 1.5, depth, 14, 3), radius * 0.07, seed + 13)
-  rock.rotateX(Math.PI)
-  const rockMesh = mesh(rock, mat(theme.rock), { y: -3.4 - depth / 2 })
-  group.add(topMesh, dirt, rockMesh)
-
-  // Strate de roche plus claire et stalactites sous l'île.
-  const strata = mesh(jitter(new THREE.CylinderGeometry(radius - 1.4, radius - 2.8, 1.6, Math.round(radius * 0.9), 1), 0.4, seed + 5), mat(new THREE.Color(theme.rock).offsetHSL(0, 0, 0.08)), { y: -4.1 })
-  group.add(strata)
-  const rnd = (() => { let s = seed * 97 + 1; return () => ((s = (s * 16807) % 2147483647) / 2147483647) })()
-  const spikes = Math.round(radius * 0.7)
-  for (let i = 0; i < spikes; i++) {
-    const a = rnd() * Math.PI * 2
-    const d = (0.35 + rnd() * 0.5) * (radius - 2)
-    const len = 2 + rnd() * radius * 0.35
-    const spike = jitter(new THREE.ConeGeometry(0.6 + rnd() * 1.4, len, 5), 0.15, i + seed)
-    spike.rotateX(Math.PI)
-    const yTop = -4.5 - (d / radius) * 0.4 * depth * 0.6
-    group.add(mesh(spike, mat(i % 3 ? theme.rock : theme.dirt), { x: Math.cos(a) * d, y: yTop - len / 2, z: Math.sin(a) * d, shadow: false }))
-  }
-
-  // Lianes et racines qui pendent du bord (pas sur la lune).
-  if (!id.startsWith('future')) {
-    const vines = Math.round(radius * 1.2)
-    const vineMat = mat(new THREE.Color(theme.top).offsetHSL(0, 0, -0.12))
-    const rootMat = mat(new THREE.Color(theme.dirt).offsetHSL(0, 0, -0.08))
-    for (let i = 0; i < vines; i++) {
-      const a = (i / vines) * Math.PI * 2 + rnd() * 0.2
-      const len = 0.8 + rnd() * 2.5
-      const vine = new THREE.ConeGeometry(0.12 + rnd() * 0.1, len, 4)
-      vine.rotateX(Math.PI)
-      const rr = radius - 0.25 - rnd() * 0.4
-      group.add(mesh(vine, i % 4 ? vineMat : rootMat, { x: Math.cos(a) * rr, y: -1.1 - len / 2, z: Math.sin(a) * rr, shadow: false }))
-    }
-  }
-
-  // Touffes d'herbe (ou cailloux sur la lune) en instances.
-  const lunar = id.startsWith('future')
-  const tuftGeo = lunar ? new THREE.DodecahedronGeometry(0.18, 0) : new THREE.ConeGeometry(0.08, 0.45, 3)
-  const tufts = new THREE.InstancedMesh(tuftGeo, mat(0xffffff), Math.round((lunar ? 0.3 : 1) * radius * radius))
-  const m = new THREE.Matrix4()
-  const tuftColor = new THREE.Color()
-  for (let i = 0; i < tufts.count; i++) {
-    const a = Math.random() * Math.PI * 2
-    const r = Math.sqrt(Math.random()) * (radius - 1)
-    m.makeRotationY(Math.random() * Math.PI)
-    m.setPosition(Math.cos(a) * r, lunar ? 0.05 : 0.2, Math.sin(a) * r)
-    tufts.setMatrixAt(i, m)
-    tufts.setColorAt(i, tuftColor.set(theme.top).offsetHSL(0, lunar ? -0.05 : 0.05, (Math.random() - 0.6) * 0.15))
-  }
-  tufts.receiveShadow = true
-  group.add(tufts)
-
-  // Petits rochers flottants autour de l'île.
-  const count = Math.round(radius / 4)
-  for (let i = 0; i < count; i++) {
-    const a = (i / count) * Math.PI * 2 + seed
-    const g = jitter(new THREE.IcosahedronGeometry(0.6 + (i % 3) * 0.5, 0), 0.3, i + 3)
-    group.add(mesh(g, mat(theme.rock), { x: Math.cos(a) * (radius + 5), y: -4 - (i % 3) * 3, z: Math.sin(a) * (radius + 5) }))
   }
 }
 
@@ -259,10 +175,8 @@ function buildSign({ group, theme }, sign) {
 }
 
 // Passerelle entre deux îles, de bord à bord, dans le style de l'époque.
-function buildBridge(scene, theme, a, ra, b, rb, surfaces, animated) {
-  const dir = new THREE.Vector3().subVectors(b, a).setY(0).normalize()
-  const start = a.clone().addScaledVector(dir, ra - 1.5)
-  const end = b.clone().addScaledVector(dir, -(rb - 1.5))
+function buildBridge(scene, theme, start, end, surfaces, animated) {
+  const dir = new THREE.Vector3().subVectors(end, start).setY(0).normalize()
   const length = start.distanceTo(end)
   const width = 3
   surfaces.push({ type: 'bridge', ax: start.x, az: start.z, bx: end.x, bz: end.z, w: width, h: 0 })
@@ -307,14 +221,19 @@ function buildBridge(scene, theme, a, ra, b, rb, surfaces, animated) {
 }
 
 // Plateforme de parcours, style selon l'époque.
-function buildPlatform({ group }, x, z, y, r, style) {
+function buildPlatform(ctx, x, z, y, r, style, base = 0) {
+  // Les plateformes sont à hauteur absolue : on les garde hors du calage sur le terrain.
+  const group = new THREE.Group()
+  group.userData.terrain = true
+  ctx.group.add(group)
   if (style === 'rooftop') {
-    if (y < 1.5) {
-      group.add(mesh(new THREE.BoxGeometry(r * 1.6, y, r * 1.6), mat(0xa0703f), { x, y: y / 2, z }))
+    const hgt = y - base
+    if (hgt < 1.5) {
+      group.add(mesh(new THREE.BoxGeometry(r * 1.6, hgt, r * 1.6), mat(0xa0703f), { x, y: base + hgt / 2, z }))
     } else {
       const hue = Math.abs((x * 0.13 + z * 0.07) % 1)
-      group.add(mesh(new THREE.BoxGeometry(r * 1.7, y, r * 1.7), mat(new THREE.Color().setHSL(hue, 0.35, 0.55)), { x, y: y / 2, z }))
-      for (let wy = 0.8; wy < y - 0.4; wy += 1) {
+      group.add(mesh(new THREE.BoxGeometry(r * 1.7, hgt, r * 1.7), mat(new THREE.Color().setHSL(hue, 0.35, 0.55)), { x, y: base + hgt / 2, z }))
+      for (let wy = base + 0.8; wy < y - 0.4; wy += 1) {
         group.add(mesh(new THREE.BoxGeometry(r * 1.72, 0.35, r * 1.2), mat(0xfff2a8, { emissive: 0xffd76a, emissiveIntensity: 0.5 }), { x, y: wy, z, shadow: false }))
       }
       group.add(mesh(new THREE.BoxGeometry(r * 1.8, 0.15, r * 1.8), mat(0x555a66), { x, y: y + 0.05, z }))

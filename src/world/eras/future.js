@@ -5,6 +5,16 @@ import * as P from '../props.js'
 
 // Le Futur : base lunaire, faible gravité.
 
+// Relief : plaine lunaire découpée, observatoire en hauteur, pont d'atterrissage surélevé.
+export const mainShape = {
+  lobes: [
+    [0, 0, 14, 0], [0, -13, 9, 0], [10, -10, 7, 0], [-13, 2, 8, 0], [13, 3, 8, 0], [3, 14, 8, 0], [-10, 12, 7, 0], [11, 11, 6, 0],
+    [-12, -8, 5.5, 1.6],
+    [12, -4, 5, 1],
+  ],
+  ramps: [[-5.5, -3, 0, -8.8, -5.6, 1.6, 2.6]],
+}
+
 function crater({ group }, cx, cz, r) {
   const ring = mesh(new THREE.TorusGeometry(r, 0.35, 6, 18), mat(0x9a9ca6), { x: cx, z: cz, shadow: false })
   ring.rotation.x = Math.PI / 2
@@ -15,7 +25,7 @@ function crater({ group }, cx, cz, r) {
 
 export function decorateMain(ctx) {
   const { group, addCollider, animated } = ctx
-  for (const [cx, cz, r] of [[-12, 6, 2.5], [6, 4, 1.6], [13, 13, 2], [-4, -15, 1.8], [-15, -12, 1.4]]) crater(ctx, cx, cz, r)
+  for (const [cx, cz, r] of [[-12, 6, 2.5], [6, 4, 1.6], [11, 11, 2], [-4, -15, 1.8], [-15, -10, 1.2]]) crater(ctx, cx, cz, r)
 
   // Base lunaire.
   const dome = mesh(new THREE.SphereGeometry(4, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat(0xdfe6f0, { metalness: 0.3, roughness: 0.4 }), { z: -14 })
@@ -89,12 +99,12 @@ export function decorateMain(ctx) {
   P.antenna(ctx, -17, -8, { h: 6 })
   P.antenna(ctx, 15, 9, { h: 4 })
   P.holoRing(ctx, -8, 10)
-  P.alienPlant(ctx, -17, 9)
+  P.alienPlant(ctx, -15, 8)
   P.alienPlant(ctx, -9, 16, { color: 0xff7de9 })
-  P.crystals(ctx, 17, -12, { color: 0xb48cff, glow: true })
+  P.crystals(ctx, 15, -11, { color: 0xb48cff, glow: true })
   P.rover(ctx, 9, 9, { drive: true })
-  P.place(ctx, 'sciCrate', -12, -17, { height: 1.4, rotY: 0.5, r: 0.8 })
-  P.place(ctx, 'sciCrate', -10.6, -17.6, { height: 1, rotY: 1.2, r: 0.6 })
+  P.place(ctx, 'sciCrate', -6, -19, { height: 1.4, rotY: 0.5, r: 0.8 })
+  P.place(ctx, 'sciCrate', -4.4, -19.6, { height: 1, rotY: 1.2, r: 0.6 })
   P.place(ctx, 'cyborg', 6.5, -8, { height: 2, rotY: 0.4, r: 0.5 })
   P.cliff(ctx, 18, 4, { height: 4, lunar: true, rotY: 1 })
   P.cliff(ctx, -14, 15, { height: 3, lunar: true, small: true })
@@ -106,12 +116,13 @@ export const satellites = {
   asteroids: {
     offset: [-12, -44],
     r: 12,
+    shape: { lobes: [[0, 2, 9, 0], [5, -5, 6, 0], [-5, -4, 5, 0]] },
     build(ctx) {
       P.crystals(ctx, -6, 4, { color: 0x58d0ff })
       P.antenna(ctx, 5, 5)
       crater(ctx, 4, -2, 2)
-      P.alienPlant(ctx, -9, 3)
-      P.cliff(ctx, -9, -9, { height: 3.5, lunar: true })
+      P.alienPlant(ctx, -7, 3)
+      P.cliff(ctx, -6, -7, { height: 3.5, lunar: true })
       // Balise d'arrivée.
       const beacon = mesh(new THREE.CylinderGeometry(0.15, 0.3, 2, 8), mat(0xdddddd), { x: 7, y: 10.5 + 1, z: -1 })
       const light = mesh(new THREE.SphereGeometry(0.35, 12, 8), mat(0xb48cff, { emissive: 0xb48cff, emissiveIntensity: 3 }), { x: 7, y: 10.5 + 2.2, z: -1, shadow: false })
@@ -134,6 +145,7 @@ export const satellites = {
   crystals: {
     offset: [45, 10],
     r: 13,
+    shape: { lobes: [[0, 0, 10, 0], [6, -6, 6, 0], [-5, 6, 6, 0], [7, 6, 5, 0], [-6, -4, 5, 0], [0, 0, 3.2, 1]] },
     build(ctx) {
       P.crystals(ctx, 0, 0, { color: 0xb48cff, size: 1.6, glow: true })
       P.crystals(ctx, 6, -6, { color: 0x58d0ff, size: 1.1 })
@@ -141,8 +153,8 @@ export const satellites = {
       P.crystals(ctx, 8, 6, { color: 0xff7de9, size: 0.9 })
       P.rover(ctx, -4, -6, { rotY: 0.6 })
       P.place(ctx, 'sciCrate', 3, 9, { height: 1.3, rotY: 0.2, r: 0.8 })
-      P.cliff(ctx, -10, 7.5, { height: 3, lunar: true, small: true })
-      P.antenna(ctx, 10, -1)
+      P.cliff(ctx, -8, 8, { height: 3, lunar: true, small: true })
+      P.antenna(ctx, 9, 0)
       crater(ctx, -8, -1, 2)
       return {
         type: 'collect',
@@ -158,13 +170,14 @@ export const satellites = {
   orbit: {
     offset: [0, 44],
     r: 14,
+    shape: { lobes: [[0, 0, 11, 0], [-6, -6, 6, 0], [6, -6, 6, 0], [0, 8, 7, 0], [8, 2, 6, 0], [-8, 3, 6, 0], [0, 10, 2.6, 2]] },
     build(ctx) {
       P.landingPad(ctx, 0, 0, { r: 3.5 })
       P.place(ctx, 'racer', 0, 0, { width: 3, y: 0.15, rotY: 0.6, r: 1.4, top: 1 })
       P.antenna(ctx, -10, 7)
       P.antenna(ctx, 10, 7)
       P.holoRing(ctx, 0, 10, { color: 0x6fd3ff })
-      P.alienPlant(ctx, -11, -3, { color: 0x6fd3ff })
+      P.alienPlant(ctx, -10, -1, { color: 0x6fd3ff })
       P.solarPanel(ctx, 11, -3, { rotY: -1 })
       return {
         type: 'race',

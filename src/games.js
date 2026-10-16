@@ -97,7 +97,8 @@ export function createGames(scene, ui, player) {
       if (def.type === 'collect') {
         active.items = def.items.map((p) => {
           const item = makeItem(def.item)
-          item.position.copy(p).setY(0.9)
+          item.position.copy(p).setY(p.y + 0.9)
+          item.userData.baseY = p.y + 0.9
           scene.add(item)
           active.objects.push(item)
           return item
@@ -106,7 +107,7 @@ export function createGames(scene, ui, player) {
       if (def.type === 'race') {
         active.rings = def.rings.map((p, i) => {
           const ring = makeRing(def.accent)
-          ring.position.copy(p).setY(p.y || 1.6)
+          ring.position.copy(p)
           const next = def.rings[(i + 1) % def.rings.length]
           ring.lookAt(next.x, ring.position.y, next.z)
           scene.add(ring)
@@ -134,7 +135,7 @@ export function createGames(scene, ui, player) {
         for (const item of active.items) {
           if (!item.visible) continue
           item.rotation.y += dt * 3
-          item.position.y = 0.9 + Math.sin(t * 3 + item.position.x) * 0.2
+          item.position.y = item.userData.baseY + Math.sin(t * 3 + item.position.x) * 0.2
           if (Math.hypot(item.position.x - p.x, item.position.z - p.z) < 1.3 && Math.abs(item.position.y - (p.y + 0.9)) < 1.6) {
             item.visible = false
             active.collected++

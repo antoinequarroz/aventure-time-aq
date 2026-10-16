@@ -5,6 +5,18 @@ import * as P from '../props.js'
 
 // Le Présent : le village du développeur.
 
+// Relief : place centrale en bas, deux quartiers en hauteur au nord reliés par des escaliers.
+export const mainShape = {
+  lobes: [
+    [0, 0, 15, 0], [0, -14, 9, 0], [-14, 3, 9, 0], [14, 3, 9, 0], [-12, 13, 8, 0], [12, 13, 8, 0], [0, 15, 7, 0],
+    [-13, -10, 7, 2], [13, -10, 7, 2],
+  ],
+  ramps: [
+    [-4.5, -8.8, 0, -7.6, -9.6, 2, 2.6],
+    [4.5, -8.8, 0, 7.6, -9.6, 2, 2.6],
+  ],
+}
+
 export function decorateMain(ctx) {
   const { group, addCollider, animated } = ctx
 
@@ -46,7 +58,7 @@ export function decorateMain(ctx) {
   P.trashBin(ctx, -4.6, -7.6)
   P.cafe(ctx, 10, -5)
   P.billboard(ctx, -5.5, -19, { text: 'antoinequarroz.ch' })
-  P.parkedCar(ctx, -11, -17, { rotY: 0.3, kind: 'sedan' })
+  P.parkedCar(ctx, -12, -13, { rotY: 0.3, kind: 'sedan' })
   P.parkedCar(ctx, 13.5, -1.5, { rotY: Math.PI / 2 + 0.1, kind: 'taxi' })
   P.place(ctx, 'turbine', -18.5, -11, { height: 9, rotY: 0.6, r: 0.7 })
   P.solarPanel(ctx, 16, -16, { rotY: -0.6 })
@@ -64,14 +76,15 @@ export const satellites = {
   rooftops: {
     offset: [0, -44],
     r: 14,
+    shape: { lobes: [[0, 2, 10, 0], [-6, -6, 7, 0], [6, -7, 7, 0], [0, -10, 5, 0], [-6, 7, 5, 0], [9, 1, 3, 1]] },
     build(ctx) {
       P.streetLamp(ctx, 4, 10)
       P.streetLamp(ctx, -4, 10)
       P.billboard(ctx, -8, 8, { text: 'Code · Café · Commit', rotY: 0.5 })
       P.trashBin(ctx, 6, 6)
-      P.cargo(ctx, 9, 7, { color: 0x2f6fd8, rotY: 1.2 })
+      P.cargo(ctx, 6.5, 6, { color: 0x2f6fd8, rotY: 1.2 })
       P.solarPanel(ctx, -11, -6, { rotY: 1 })
-      P.tree(ctx, 12, 1)
+      P.tree(ctx, 9, 1)
       P.parkedCar(ctx, 7, 3, { rotY: 0.4, kind: 'taxi' })
       P.tree(ctx, -2, -4, { pine: true, leaves: 0x2f7a52 })
       // Drapeau d'arrivée sur le dernier toit.
@@ -96,6 +109,7 @@ export const satellites = {
   park: {
     offset: [24, 40],
     r: 13,
+    shape: { lobes: [[0, 0, 10, 0], [-6, -5, 6, 0], [5, 6, 7, 0], [-6, 6, 5, 0], [7, -6, 4.5, 1]] },
     build(ctx) {
       P.pond(ctx, 2, 2, { r: 3 })
       P.bench(ctx, -3, -2, { rotY: Math.PI / 2 })
@@ -108,7 +122,7 @@ export const satellites = {
       P.cafe(ctx, -6, -8, { color: 0x27ae60 })
       P.place(ctx, 'ferrisWheel', -8.5, 3, { height: 7.5, rotY: Math.PI / 2, r: 1.6, top: 10 })
       P.place(ctx, 'turbine', 9.5, -9, { height: 8, rotY: -0.6, r: 0.6 })
-      for (const [px, pz, pine] of [[0, 10, 1], [5, 9, 0], [10, 1, 1], [-3, 8, 0]]) P.tree(ctx, px, pz, { pine, leaves: pine ? 0x2f7a52 : 0x5aa83a })
+      for (const [px, pz, pine] of [[0, 10, 1], [5, 9, 0], [9, 3, 1], [-3, 8, 0]]) P.tree(ctx, px, pz, { pine, leaves: pine ? 0x2f7a52 : 0x5aa83a })
       return {
         type: 'collect',
         start: [-4, -10.5],
@@ -123,14 +137,15 @@ export const satellites = {
   stadium: {
     offset: [-24, 40],
     r: 14,
+    shape: { lobes: [[0, 0, 12, 0], [-7, -6, 7, 0], [7, -6, 7, 0], [0, 8, 8, 0], [10, 8, 3, 1.4]] },
     build(ctx) {
       P.footballPitch(ctx, 0, 0)
       P.bleachers(ctx, 0, 9.5, { w: 10, rotY: Math.PI })
-      for (const [lx, lz] of [[-11, -7], [11, -7], [-11, 7], [11, 7]]) P.streetLamp(ctx, lx, lz, { color: 0xffffff })
+      for (const [lx, lz] of [[-11, -7], [11, -7], [-9, 6.5], [11, 7]]) P.streetLamp(ctx, lx, lz, { color: 0xffffff })
       P.banner(ctx, -8, -10, { color: 0x2f6fd8 })
       P.banner(ctx, 8.5, -10, { color: 0xe74c3c })
       ctx.group.add(mesh(new THREE.IcosahedronGeometry(0.35, 1), mat(0xffffff), { x: 1.5, y: 0.35, z: 1 }))
-      P.place(ctx, 'trophy', -11.5, 0, { height: 1.4, r: 0.6 })
+      P.place(ctx, 'trophy', 10, 8.5, { height: 1.4, r: 0.6 })
       return {
         type: 'race',
         start: [5, -9.5],
