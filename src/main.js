@@ -21,19 +21,21 @@ renderer.setSize(window.innerWidth, window.innerHeight)
 renderer.toneMapping = THREE.ACESFilmicToneMapping
 renderer.toneMappingExposure = 1.15
 renderer.shadowMap.enabled = true
-renderer.shadowMap.type = THREE.PCFShadowMap
+renderer.shadowMap.type = THREE.VSMShadowMap
 document.getElementById('app').appendChild(renderer.domElement)
 
 const scene = new THREE.Scene()
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1500)
 
 // Éclairage : ciel bleuté, soleil chaud et contre-jour violet.
-scene.add(new THREE.HemisphereLight(0xa9c2ff, 0x4a3560, 1.3))
+const hemi = new THREE.HemisphereLight(0xa9c2ff, 0x4a3560, 1.3)
+scene.add(hemi)
 const sun = new THREE.DirectionalLight(0xffe2b8, 2.8)
 sun.castShadow = true
 sun.shadow.mapSize.set(2048, 2048)
-sun.shadow.bias = -0.0004
-sun.shadow.normalBias = 0.03
+sun.shadow.bias = -0.0005
+sun.shadow.radius = 3
+sun.shadow.blurSamples = 10
 Object.assign(sun.shadow.camera, { left: -32, right: 32, top: 32, bottom: -32, near: 1, far: 140 })
 scene.add(sun, sun.target)
 const rim = new THREE.DirectionalLight(0x9b7bff, 1.4)
@@ -41,15 +43,69 @@ rim.position.set(-30, 20, -40)
 scene.add(rim)
 
 // Post-traitement : léger bloom sur les éléments lumineux.
-const composer = new EffectComposer(renderer)
+// Cible multi-échantillonnée : garde l'anticrénelage malgré le post-traitement.
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, { type: THREE.HalfFloatType, samples: 4 }))
 composer.addPass(new RenderPass(scene, camera))
 const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.55, 0.6, 0.85)
 composer.addPass(bloom)
 composer.addPass(new OutputPass())
 
+// Ambiance lumineuse propre à chaque époque, avec un fondu en changeant d'île.
+const MOODS = {
+  past: { sun: new THREE.Color(0xffd29a), sky: new THREE.Color(0xb4c4ff), ground: new THREE.Color(0x5a3d50), rim: new THREE.Color(0xff9b6b), sunI: 2.9 },
+  present: { sun: new THREE.Color(0xffe8c4), sky: new THREE.Color(0xa9c8ff), ground: new THREE.Color(0x4a3a60), rim: new THREE.Color(0x9b7bff), sunI: 2.8 },
+  future: { sun: new THREE.Color(0xe4ecff), sky: new THREE.Color(0x9fa8ff), ground: new THREE.Color(0x3a3470), rim: new THREE.Color(0xc07bff), sunI: 2.6 },
+}
+function applyMood(era, k) {
+  const m = MOODS[era]
+  if (!m) return
+  sun.color.lerp(m.sun, k)
+  hemi.color.lerp(m.sky, k)
+  hemi.groundColor.lerp(m.ground, k)
+  rim.color.lerp(m.rim, k)
+  sun.intensity += (m.sunI - sun.intensity) * k
+}
+
 const space = createSpace(scene)
 const world = createIslands(scene)
 const vehicles = createVehicles(scene)
+
+// Bâtiments qui s'effacent quand ils cachent le joueur.
+const fades = world.fadeables.map((object) => {
+  const materials = new Set()
+  object.traverse((o) => {
+    if (!o.isMesh) return
+    o.material = Array.isArray(o.material) ? o.material.map((m) => m.clone()) : o.material.clone()
+    for (const m of [o.material].flat()) {
+      m.transparent = true
+      materials.add(m)
+    }
+  })
+  object.updateWorldMatrix(true, true)
+  const sphere = new THREE.Box3().setFromObject(object).getBoundingSphere(new THREE.Sphere())
+  return { materials: [...materials], sphere, opacity: 1 }
+})
+const ray = new THREE.Ray()
+const closest = new THREE.Vector3()
+function updateFades(dt) {
+  const eye = cameraTarget.clone().setY(cameraTarget.y + 1.2)
+  ray.origin.copy(eye)
+  ray.direction.subVectors(camera.position, eye)
+  const length = ray.direction.length()
+  ray.direction.normalize()
+  for (const f of fades) {
+    ray.closestPointToPoint(f.sphere.center, closest)
+    const along = closest.distanceTo(eye)
+    const hidden = along > 1.5 && along < length && closest.distanceTo(f.sphere.center) < f.sphere.radius * 0.85
+    const target = hidden ? 0.25 : 1
+    if (Math.abs(f.opacity - target) < 0.01) continue
+    f.opacity += (target - f.opacity) * Math.min(1, dt * 8)
+    for (const m of f.materials) {
+      m.opacity = f.opacity
+      m.depthWrite = f.opacity > 0.95
+    }
+  }
+}
 const interactables = [...world.interactables, ...vehicles.interactables]
 const player = createPlayer(scene, world)
 const games = createGames(scene, ui, player)
@@ -123,6 +179,7 @@ function tick() {
   camera.position.lerp(cameraTarget.clone().add(cameraOffset), 1 - Math.exp(-dt * 4))
   camera.lookAt(cameraTarget.x, cameraTarget.y + 1.5, cameraTarget.z)
 
+  updateFades(dt)
   sun.position.set(cameraTarget.x + 20, 40, cameraTarget.z + 15)
   sun.target.position.copy(cameraTarget)
 
@@ -130,6 +187,7 @@ function tick() {
   ui.setPrompt(nearby && !ui.panelOpen() ? ({ sign: `E · Lire « ${nearby.title} »`, vehicle: `E · Monter : ${nearby.title}`, game: games.active ? null : `E · Jouer : ${nearby.title}` })[nearby.type] : null)
 
   const island = player.currentIsland()
+  applyMood(island?.era, 1 - Math.exp(-dt * 2))
   if (island && island !== lastIsland && started) ui.showIsland(island.name, island.tagline)
   if (island && started) lastIsland = island
 

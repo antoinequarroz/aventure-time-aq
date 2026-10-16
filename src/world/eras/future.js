@@ -18,7 +18,9 @@ export function decorateMain(ctx) {
   for (const [cx, cz, r] of [[-12, 6, 2.5], [6, 4, 1.6], [13, 13, 2], [-4, -15, 1.8], [-15, -12, 1.4]]) crater(ctx, cx, cz, r)
 
   // Base lunaire.
-  group.add(mesh(new THREE.SphereGeometry(4, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat(0xdfe6f0, { metalness: 0.3, roughness: 0.4 }), { z: -14 }))
+  const dome = mesh(new THREE.SphereGeometry(4, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat(0xdfe6f0, { metalness: 0.3, roughness: 0.4 }), { z: -14 })
+  group.add(dome)
+  ctx.addFadeable(dome)
   const tube = mesh(new THREE.CylinderGeometry(1, 1, 6, 12), mat(0xcfd6e0), { x: 6, y: 1, z: -14 })
   tube.rotation.z = Math.PI / 2
   group.add(tube, mesh(new THREE.CylinderGeometry(2, 2, 3, 12), mat(0xcfd6e0), { x: 10, y: 1.5, z: -14 }))
@@ -91,7 +93,12 @@ export function decorateMain(ctx) {
   P.alienPlant(ctx, -9, 16, { color: 0xff7de9 })
   P.crystals(ctx, 17, -12, { color: 0xb48cff, glow: true })
   P.rover(ctx, 9, 9, { drive: true })
-  P.cargo(ctx, -12, -17, { color: 0x7f8c8d, rotY: 0.5 })
+  P.place(ctx, 'sciCrate', -12, -17, { height: 1.4, rotY: 0.5, r: 0.8 })
+  P.place(ctx, 'sciCrate', -10.6, -17.6, { height: 1, rotY: 1.2, r: 0.6 })
+  P.place(ctx, 'cyborg', 6.5, -8, { height: 2, rotY: 0.4, r: 0.5 })
+  P.cliff(ctx, 18, 4, { height: 4, lunar: true, rotY: 1 })
+  P.cliff(ctx, -14, 15, { height: 3, lunar: true, small: true })
+  P.cliff(ctx, 8, 18.5, { height: 2.5, lunar: true, small: true, rotY: 2 })
 }
 
 export const satellites = {
@@ -104,6 +111,7 @@ export const satellites = {
       P.antenna(ctx, 5, 5)
       crater(ctx, 4, -2, 2)
       P.alienPlant(ctx, -9, 3)
+      P.cliff(ctx, -9, -9, { height: 3.5, lunar: true })
       // Balise d'arrivée.
       const beacon = mesh(new THREE.CylinderGeometry(0.15, 0.3, 2, 8), mat(0xdddddd), { x: 7, y: 10.5 + 1, z: -1 })
       const light = mesh(new THREE.SphereGeometry(0.35, 12, 8), mat(0xb48cff, { emissive: 0xb48cff, emissiveIntensity: 3 }), { x: 7, y: 10.5 + 2.2, z: -1, shadow: false })
@@ -132,7 +140,8 @@ export const satellites = {
       P.crystals(ctx, -5, 7, { color: 0x7dff9a, size: 1.2, glow: true })
       P.crystals(ctx, 8, 6, { color: 0xff7de9, size: 0.9 })
       P.rover(ctx, -4, -6, { rotY: 0.6 })
-      P.cargo(ctx, 3, 9, { color: 0xd35400, rotY: 0.2 })
+      P.place(ctx, 'sciCrate', 3, 9, { height: 1.3, rotY: 0.2, r: 0.8 })
+      P.cliff(ctx, -10, 7.5, { height: 3, lunar: true, small: true })
       P.antenna(ctx, 10, -1)
       crater(ctx, -8, -1, 2)
       return {
@@ -151,6 +160,7 @@ export const satellites = {
     r: 14,
     build(ctx) {
       P.landingPad(ctx, 0, 0, { r: 3.5 })
+      P.place(ctx, 'racer', 0, 0, { width: 3, y: 0.15, rotY: 0.6, r: 1.4, top: 1 })
       P.antenna(ctx, -10, 7)
       P.antenna(ctx, 10, 7)
       P.holoRing(ctx, 0, 10, { color: 0x6fd3ff })

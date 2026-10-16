@@ -14,7 +14,7 @@ const ERAS = { past, present, future }
 export const THEMES = {
   past: { center: new THREE.Vector3(-SPACING, 0, 0), top: 0x5f9e3c, dirt: 0x7a5434, rock: 0x6b5a48, accent: 0xffb347, signBg: '#3b2a1a', signFg: '#fbe9c8', bridge: 'wood', gravity: 1 },
   present: { center: new THREE.Vector3(0, 0, 0), top: 0x7bbf4f, dirt: 0x8a6040, rock: 0x7a6a58, accent: 0x6fd3ff, signBg: '#1f3b57', signFg: '#e8f6ff', bridge: 'metal', gravity: 1 },
-  future: { center: new THREE.Vector3(SPACING, 0, 0), top: 0xb9bcc6, dirt: 0x7b7f8e, rock: 0x55586a, accent: 0xb48cff, signBg: '#1a1530', signFg: '#d9ccff', bridge: 'energy', gravity: 0.45 },
+  future: { center: new THREE.Vector3(SPACING, 0, 0), top: 0xaeb2c2, dirt: 0x7b7f8e, rock: 0x55586a, accent: 0xb48cff, signBg: '#1a1530', signFg: '#d9ccff', bridge: 'energy', gravity: 0.45 },
 }
 
 export function createIslands(scene) {
@@ -24,6 +24,7 @@ export function createIslands(scene) {
   const islandsInfo = []
   const surfaces = []
   const games = []
+  const fadeables = []
 
   for (const era of content) {
     const theme = THEMES[era.id]
@@ -40,6 +41,8 @@ export function createIslands(scene) {
         radius,
         animated,
         addCollider: (x, z, r, top = 6) => colliders.push({ x: center.x + x, z: center.z + z, r, top }),
+        // Objet qui devient transparent quand il cache le joueur à la caméra.
+        addFadeable: (object) => fadeables.push(object),
       }
     }
 
@@ -127,6 +130,7 @@ export function createIslands(scene) {
   })
 
   return {
+    fadeables,
     colliders,
     interactables,
     islands: islandsInfo,
@@ -182,6 +186,36 @@ function buildBase({ group, theme }, id, radius) {
   rock.rotateX(Math.PI)
   const rockMesh = mesh(rock, mat(theme.rock), { y: -3.4 - depth / 2 })
   group.add(topMesh, dirt, rockMesh)
+
+  // Strate de roche plus claire et stalactites sous l'île.
+  const strata = mesh(jitter(new THREE.CylinderGeometry(radius - 1.4, radius - 2.8, 1.6, Math.round(radius * 0.9), 1), 0.4, seed + 5), mat(new THREE.Color(theme.rock).offsetHSL(0, 0, 0.08)), { y: -4.1 })
+  group.add(strata)
+  const rnd = (() => { let s = seed * 97 + 1; return () => ((s = (s * 16807) % 2147483647) / 2147483647) })()
+  const spikes = Math.round(radius * 0.7)
+  for (let i = 0; i < spikes; i++) {
+    const a = rnd() * Math.PI * 2
+    const d = (0.35 + rnd() * 0.5) * (radius - 2)
+    const len = 2 + rnd() * radius * 0.35
+    const spike = jitter(new THREE.ConeGeometry(0.6 + rnd() * 1.4, len, 5), 0.15, i + seed)
+    spike.rotateX(Math.PI)
+    const yTop = -4.5 - (d / radius) * 0.4 * depth * 0.6
+    group.add(mesh(spike, mat(i % 3 ? theme.rock : theme.dirt), { x: Math.cos(a) * d, y: yTop - len / 2, z: Math.sin(a) * d, shadow: false }))
+  }
+
+  // Lianes et racines qui pendent du bord (pas sur la lune).
+  if (!id.startsWith('future')) {
+    const vines = Math.round(radius * 1.2)
+    const vineMat = mat(new THREE.Color(theme.top).offsetHSL(0, 0, -0.12))
+    const rootMat = mat(new THREE.Color(theme.dirt).offsetHSL(0, 0, -0.08))
+    for (let i = 0; i < vines; i++) {
+      const a = (i / vines) * Math.PI * 2 + rnd() * 0.2
+      const len = 0.8 + rnd() * 2.5
+      const vine = new THREE.ConeGeometry(0.12 + rnd() * 0.1, len, 4)
+      vine.rotateX(Math.PI)
+      const rr = radius - 0.25 - rnd() * 0.4
+      group.add(mesh(vine, i % 4 ? vineMat : rootMat, { x: Math.cos(a) * rr, y: -1.1 - len / 2, z: Math.sin(a) * rr, shadow: false }))
+    }
+  }
 
   // Touffes d'herbe (ou cailloux sur la lune) en instances.
   const lunar = id.startsWith('future')

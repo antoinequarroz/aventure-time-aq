@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { jitter, mat, mesh, textTexture } from './helpers.js'
-import { model } from './models.js'
+import { model, animate } from './models.js'
 
 // Bibliothèque de décors low-poly. Chaque fonction reçoit le contexte d'une île
 // ({ group, addCollider, animated }) et une position locale.
@@ -11,6 +11,30 @@ const rand = (seed) => {
     s = (s * 16807) % 2147483647
     return s / 2147483647
   }
+}
+
+// Pose un modèle 3D importé (voir models.js), avec un collider optionnel (rayon r).
+export function place(ctx, key, x, z, { height, width, rotY = 0, y = 0, r = 0, top } = {}) {
+  const object = model(key, { height, width, x, y, z, rotY })
+  ctx.group.add(object)
+  if (r) ctx.addCollider(x, z, r, top)
+  if (object.userData.animations.length) {
+    const { mixer, actions } = animate(object)
+    for (const action of Object.values(actions)) action.play()
+    ctx.animated.push((dt) => mixer.update(dt))
+  }
+  return object
+}
+
+// Falaise rocheuse en bord d'île.
+export function cliff(ctx, x, z, { height = 4, rotY = 0, small = false, lunar = false } = {}) {
+  const key = lunar ? (small ? 'moonRockSmall' : 'moonRock') : small ? 'cliffSmall' : 'cliff'
+  return place(ctx, key, x, z, { height, rotY, r: height * 0.32 })
+}
+
+// Sapin Kenney.
+export function pine(ctx, x, z, { height = 4, big = false, collide = true } = {}) {
+  return place(ctx, big ? 'pineBig' : 'pineSmall', x, z, { height, rotY: x * z, r: collide ? 0.5 : 0 })
 }
 
 // ---------- Nature ----------
@@ -270,14 +294,7 @@ export function lantern(ctx, x, z, { color = 0xffb347 } = {}) {
 // ---------- Ville ----------
 
 export function bench(ctx, x, z, { rotY = 0 } = {}) {
-  const g = new THREE.Group()
-  g.position.set(x, 0, z)
-  g.rotation.y = rotY
-  g.add(mesh(new THREE.BoxGeometry(2, 0.12, 0.6), mat(0x9a6a3a), { y: 0.55 }))
-  g.add(mesh(new THREE.BoxGeometry(2, 0.5, 0.1), mat(0x9a6a3a), { y: 0.9, z: -0.28 }))
-  for (const lx of [-0.8, 0.8]) g.add(mesh(new THREE.BoxGeometry(0.08, 0.55, 0.5), mat(0x333333), { x: lx, y: 0.27 }))
-  ctx.group.add(g)
-  ctx.addCollider(x, z, 0.9)
+  place(ctx, 'parkBench', x, z, { width: 1.9, rotY: rotY + Math.PI, r: 0.8 })
 }
 
 export function streetLamp(ctx, x, z, { color = 0xffd27a } = {}) {
@@ -316,8 +333,8 @@ export function billboard(ctx, x, z, { text = 'antoinequarroz.ch', rotY = 0, bg 
   ctx.addCollider(x, z, 0.5)
 }
 
-export function parkedCar(ctx, x, z, { rotY = 0 } = {}) {
-  ctx.group.add(model('truck', { width: 3.6, x, z, rotY }))
+export function parkedCar(ctx, x, z, { rotY = 0, kind = 'truck' } = {}) {
+  ctx.group.add(model(kind, { width: 3.6, x, z, rotY }))
   ctx.addCollider(x, z, 1.6)
 }
 

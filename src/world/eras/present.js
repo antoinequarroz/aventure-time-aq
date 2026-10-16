@@ -14,7 +14,9 @@ export function decorateMain(ctx) {
 
   // Maisons du village (Kenney City Builder), tournées vers la place.
   for (const [key, x, z] of [['houseA', -14, -10], ['houseC', 14, -10], ['houseB', -15, 12], ['houseD', 15, 12]]) {
-    group.add(model(key, { width: 5, x, z, rotY: Math.atan2(-x, -z) }))
+    const house = model(key, { width: 5, x, z, rotY: Math.atan2(-x, -z) })
+    group.add(house)
+    ctx.addFadeable(house)
     addCollider(x, z, 3.1)
   }
   group.add(model('garage', { width: 5, x: 8, z: -17, rotY: Math.PI * 0.85 }))
@@ -44,7 +46,9 @@ export function decorateMain(ctx) {
   P.trashBin(ctx, -4.6, -7.6)
   P.cafe(ctx, 10, -5)
   P.billboard(ctx, -5.5, -19, { text: 'antoinequarroz.ch' })
-  P.parkedCar(ctx, -11, -17, { rotY: 0.3 })
+  P.parkedCar(ctx, -11, -17, { rotY: 0.3, kind: 'sedan' })
+  P.parkedCar(ctx, 13.5, -1.5, { rotY: Math.PI / 2 + 0.1, kind: 'taxi' })
+  P.place(ctx, 'turbine', -18.5, -11, { height: 9, rotY: 0.6, r: 0.7 })
   P.solarPanel(ctx, 16, -16, { rotY: -0.6 })
   P.flowers(ctx, 0, 16, { r: 2.2 })
   P.flowers(ctx, -18, 6, { r: 1.4 })
@@ -67,7 +71,8 @@ export const satellites = {
       P.trashBin(ctx, 6, 6)
       P.cargo(ctx, 9, 7, { color: 0x2f6fd8, rotY: 1.2 })
       P.solarPanel(ctx, -11, -6, { rotY: 1 })
-      P.tree(ctx, 11, 3)
+      P.tree(ctx, 12, 1)
+      P.parkedCar(ctx, 7, 3, { rotY: 0.4, kind: 'taxi' })
       P.tree(ctx, -2, -4, { pine: true, leaves: 0x2f7a52 })
       // Drapeau d'arrivée sur le dernier toit.
       ctx.group.add(mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.2, 6), mat(0xdddddd), { x: 9, y: 6.3 + 1.1, z: -4 }))
@@ -101,7 +106,9 @@ export const satellites = {
       P.flowers(ctx, -6, 5, { r: 2 })
       P.flowers(ctx, 8, -7, { r: 1.5 })
       P.cafe(ctx, -6, -8, { color: 0x27ae60 })
-      for (const [px, pz, pine] of [[-9, 0, 0], [0, 10, 1], [5, 9, 0], [10, 1, 1], [-3, 8, 0], [9, -9, 0]]) P.tree(ctx, px, pz, { pine, leaves: pine ? 0x2f7a52 : 0x5aa83a })
+      P.place(ctx, 'ferrisWheel', -8.5, 3, { height: 7.5, rotY: Math.PI / 2, r: 1.6, top: 10 })
+      P.place(ctx, 'turbine', 9.5, -9, { height: 8, rotY: -0.6, r: 0.6 })
+      for (const [px, pz, pine] of [[0, 10, 1], [5, 9, 0], [10, 1, 1], [-3, 8, 0]]) P.tree(ctx, px, pz, { pine, leaves: pine ? 0x2f7a52 : 0x5aa83a })
       return {
         type: 'collect',
         start: [-4, -10.5],
@@ -123,6 +130,7 @@ export const satellites = {
       P.banner(ctx, -8, -10, { color: 0x2f6fd8 })
       P.banner(ctx, 8.5, -10, { color: 0xe74c3c })
       ctx.group.add(mesh(new THREE.IcosahedronGeometry(0.35, 1), mat(0xffffff), { x: 1.5, y: 0.35, z: 1 }))
+      P.place(ctx, 'trophy', -11.5, 0, { height: 1.4, r: 0.6 })
       return {
         type: 'race',
         start: [5, -9.5],
