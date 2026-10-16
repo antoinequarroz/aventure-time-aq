@@ -64,7 +64,11 @@ export async function loadModels(onProgress) {
   const loader = new GLTFLoader(manager)
   await Promise.all(
     Object.entries(FILES).map(async ([key, file]) => {
-      const gltf = await loader.loadAsync(base + file)
+      // Un modèle qui ne charge pas ne bloque pas le jeu : on le remplace par un objet vide.
+      const gltf = await loader.loadAsync(base + file).catch((error) => {
+        console.error(`Modèle introuvable : ${file}`, error)
+        return { scene: new THREE.Group(), animations: [] }
+      })
       gltf.scene.traverse((o) => {
         if (o.isMesh) {
           o.castShadow = true
@@ -83,7 +87,7 @@ export function model(key, { height, width, x = 0, y = 0, z = 0, rotY = 0 } = {}
   object.updateMatrixWorld(true)
   const box = new THREE.Box3().setFromObject(object)
   const size = box.getSize(new THREE.Vector3())
-  const scale = height ? height / size.y : width ? width / Math.max(size.x, size.z) : 1
+  const scale = (height ? height / size.y : width ? width / Math.max(size.x, size.z) : 1) || 1
   const center = box.getCenter(new THREE.Vector3())
   const inner = new THREE.Group()
   object.position.set(-center.x, -box.min.y, -center.z)
