@@ -10,7 +10,7 @@ const project = (slug) => site(`/projets/${slug}`)
 export const intro = {
   title: 'Aventure Time AQ',
   subtitle: 'Bienvenue dans le monde d\'Antoine Quarroz, développeur web et mobile en Valais. Trois îles à explorer : mon passé, mon présent et mon futur.',
-  controls: 'ZQSD / WASD / flèches pour marcher · Maj pour courir · Espace pour sauter · E pour lire un panneau ou monter dans un véhicule',
+  controls: 'ZQSD / WASD / flèches pour marcher · Maj pour courir · Espace pour sauter · E pour interagir · Échap pour fermer ou abandonner',
 }
 
 export const vehicles = {
@@ -23,6 +23,11 @@ export const islands = [
     id: 'past',
     name: 'L\'île du Passé',
     tagline: 'Royaume médiéval fantastique',
+    satellites: [
+      { id: 'ruins', name: 'Les Ruines', tagline: 'Parcours des anciens', game: { title: 'Parcours des ruines', intro: 'Saute de pierre en pierre jusqu\'au coffre. Si tu tombes, retour au départ.' } },
+      { id: 'camp', name: 'Le Campement', tagline: 'Chasse au trésor', game: { title: 'Chasse aux pièces d\'or', intro: 'Ramasse toutes les pièces d\'or avant la fin du temps.' } },
+      { id: 'lake', name: 'Le Lac', tagline: 'Course des bannières', game: { title: 'Course des bannières', intro: 'Passe dans les anneaux dans l\'ordre, le plus vite possible.' } },
+    ],
     signs: [
       {
         pos: [0, -6],
@@ -67,6 +72,11 @@ export const islands = [
     id: 'present',
     name: 'L\'île du Présent',
     tagline: 'Le village du développeur',
+    satellites: [
+      { id: 'rooftops', name: 'Les Toits', tagline: 'Parcours urbain', game: { title: 'Course sur les toits', intro: 'Grimpe de caisse en toit jusqu\'au drapeau.' } },
+      { id: 'park', name: 'Le Parc', tagline: 'Chasse aux bugs', game: { title: 'Chasse aux bugs', intro: 'Des bugs se sont échappés du code ! Attrape-les tous avant la fin du temps.' } },
+      { id: 'stadium', name: 'Le Stade', tagline: 'Tour de terrain', game: { title: 'Tour du stade', intro: 'Fais le tour du terrain en passant dans les anneaux.' } },
+    ],
     signs: [
       {
         pos: [0, -9],
@@ -133,6 +143,11 @@ export const islands = [
     id: 'future',
     name: 'L\'île du Futur',
     tagline: 'Base lunaire et étoiles',
+    satellites: [
+      { id: 'asteroids', name: 'La Ceinture d\'astéroïdes', tagline: 'Sauts en faible gravité', game: { title: 'Saut d\'astéroïdes', intro: 'La gravité est faible ici : saute d\'astéroïde en astéroïde jusqu\'à la balise.' } },
+      { id: 'crystals', name: 'La Mine de cristaux', tagline: 'Récolte d\'énergie', game: { title: 'Récolte de cristaux', intro: 'Récupère toutes les cellules d\'énergie avant que l\'oxygène ne manque.' } },
+      { id: 'orbit', name: 'La Piste orbitale', tagline: 'Course d\'anneaux', game: { title: 'Course orbitale', intro: 'Traverse les anneaux lumineux dans l\'ordre, chrono en main.' } },
+    ],
     signs: [
       {
         pos: [-9, -6],

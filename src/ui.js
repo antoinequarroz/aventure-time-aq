@@ -18,6 +18,8 @@ export function createUI() {
       <small>E ou Échap pour fermer</small>
     </div>
     <div class="fade" id="fade"></div>
+    <div class="game-hud" id="game-hud"><strong></strong><span class="status"></span><span class="record"></span><small></small></div>
+    <div class="toast" id="toast"></div>
     <div class="help">${intro.controls}</div>
   `
   const $ = (id) => document.getElementById(id)
@@ -26,6 +28,7 @@ export function createUI() {
   const panel = $('panel')
   const fadeEl = $('fade')
   let islandTimer = null
+  let toastTimer = null
 
   return {
     onStart(cb) {
@@ -35,6 +38,22 @@ export function createUI() {
         $('start').blur()
         cb()
       })
+    },
+    setGameHud(title, status, record, hint) {
+      const hud = $('game-hud')
+      hud.classList.toggle('visible', !!title)
+      if (!title) return
+      hud.querySelector('strong').textContent = title
+      hud.querySelector('.status').textContent = status
+      hud.querySelector('.record').textContent = record
+      hud.querySelector('small').textContent = hint
+    },
+    toast(text) {
+      const toast = $('toast')
+      toast.textContent = text
+      toast.classList.add('visible')
+      clearTimeout(toastTimer)
+      toastTimer = setTimeout(() => toast.classList.remove('visible'), 4000)
     },
     setLoading(progress) {
       $('start').textContent = `Chargement… ${Math.round(progress * 100)} %`

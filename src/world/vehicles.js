@@ -15,8 +15,8 @@ export function createVehicles(scene) {
         { island: 'past', at: [17, 0], exit: [-3, 0] },
         { island: 'present', at: [-17, 0], exit: [3, 0] },
       ],
-      duration: 3.2,
-      height: 14,
+      duration: 5,
+      height: 30,
       upright: false,
     }),
     makeVehicle(scene, {
@@ -26,8 +26,8 @@ export function createVehicles(scene) {
         { island: 'present', at: [17, 0], exit: [-3.5, 0] },
         { island: 'future', at: [-17, 0], exit: [3.5, 0] },
       ],
-      duration: 4.5,
-      height: 45,
+      duration: 6,
+      height: 70,
       upright: true,
     }),
   ]

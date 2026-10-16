@@ -1,16 +1,20 @@
 import * as THREE from 'three'
 import { islands as content } from '../content.js'
-import { jitter, mat, mesh, makeCharacter, textTexture } from './helpers.js'
-import { model, animate } from './models.js'
+import { jitter, mat, mesh, textTexture } from './helpers.js'
+import { model } from './models.js'
+import * as past from './eras/past.js'
+import * as present from './eras/present.js'
+import * as future from './eras/future.js'
 
 export const ISLAND_RADIUS = 22
-const SPACING = 75
+const SPACING = 150
+const ERAS = { past, present, future }
 
 // Ordre : passé (gauche), présent (centre), futur (droite).
 export const THEMES = {
-  past: { center: new THREE.Vector3(-SPACING, 0, 0), top: 0x5f9e3c, rock: 0x6b5a48, dirt: 0x7a5434, accent: 0xffb347, signBg: '#3b2a1a', signFg: '#fbe9c8' },
-  present: { center: new THREE.Vector3(0, 0, 0), top: 0x7bbf4f, rock: 0x7a6a58, dirt: 0x8a6040, accent: 0x6fd3ff, signBg: '#1f3b57', signFg: '#e8f6ff' },
-  future: { center: new THREE.Vector3(SPACING, 0, 0), top: 0xb9bcc6, rock: 0x55586a, dirt: 0x7b7f8e, accent: 0xb48cff, signBg: '#1a1530', signFg: '#d9ccff' },
+  past: { center: new THREE.Vector3(-SPACING, 0, 0), top: 0x5f9e3c, dirt: 0x7a5434, rock: 0x6b5a48, accent: 0xffb347, signBg: '#3b2a1a', signFg: '#fbe9c8', bridge: 'wood', gravity: 1 },
+  present: { center: new THREE.Vector3(0, 0, 0), top: 0x7bbf4f, dirt: 0x8a6040, rock: 0x7a6a58, accent: 0x6fd3ff, signBg: '#1f3b57', signFg: '#e8f6ff', bridge: 'metal', gravity: 1 },
+  future: { center: new THREE.Vector3(SPACING, 0, 0), top: 0xb9bcc6, dirt: 0x7b7f8e, rock: 0x55586a, accent: 0xb48cff, signBg: '#1a1530', signFg: '#d9ccff', bridge: 'energy', gravity: 0.45 },
 }
 
 export function createIslands(scene) {
@@ -18,23 +22,36 @@ export function createIslands(scene) {
   const interactables = []
   const animated = []
   const islandsInfo = []
+  const surfaces = []
+  const games = []
 
-  for (const island of content) {
-    const theme = THEMES[island.id]
-    const group = new THREE.Group()
-    group.position.copy(theme.center)
-    scene.add(group)
+  for (const era of content) {
+    const theme = THEMES[era.id]
+    const module = ERAS[era.id]
 
-    const addCollider = (x, z, r) => colliders.push({ x: theme.center.x + x, z: theme.center.z + z, r })
-    const ctx = { group, theme, addCollider, animated }
+    const makeCtx = (center, radius) => {
+      const group = new THREE.Group()
+      group.position.copy(center)
+      scene.add(group)
+      return {
+        group,
+        theme,
+        center,
+        radius,
+        animated,
+        addCollider: (x, z, r, top = 6) => colliders.push({ x: center.x + x, z: center.z + z, r, top }),
+      }
+    }
 
-    buildBase(ctx, island.id)
-    if (island.id === 'past') buildPast(ctx)
-    if (island.id === 'present') buildPresent(ctx)
-    if (island.id === 'future') buildFuture(ctx)
+    // Île principale.
+    const main = makeCtx(theme.center, ISLAND_RADIUS)
+    buildBase(main, era.id, ISLAND_RADIUS)
+    module.decorateMain(main)
+    surfaces.push({ type: 'circle', x: theme.center.x, z: theme.center.z, r: ISLAND_RADIUS, h: 0 })
+    islandsInfo.push({ id: era.id, era: era.id, name: era.name, tagline: era.tagline, center: theme.center, radius: ISLAND_RADIUS, gravity: theme.gravity })
 
-    for (const sign of island.signs) {
-      buildSign(ctx, sign)
+    for (const sign of era.signs) {
+      buildSign(main, sign)
       interactables.push({
         type: 'sign',
         x: theme.center.x + sign.pos[0],
@@ -46,15 +63,50 @@ export function createIslands(scene) {
       })
     }
 
-    islandsInfo.push({ id: island.id, name: island.name, tagline: island.tagline, center: theme.center })
+    // Petites îles thématiques, reliées par des passerelles.
+    for (const sat of era.satellites ?? []) {
+      const layout = module.satellites[sat.id]
+      const center = new THREE.Vector3(theme.center.x + layout.offset[0], 0, theme.center.z + layout.offset[1])
+      const ctx = makeCtx(center, layout.r)
+      buildBase(ctx, `${era.id}-${sat.id}`, layout.r)
+      surfaces.push({ type: 'circle', x: center.x, z: center.z, r: layout.r, h: 0 })
+      islandsInfo.push({ id: sat.id, era: era.id, name: sat.name, tagline: sat.tagline, center, radius: layout.r, gravity: theme.gravity })
+
+      const game = layout.build(ctx)
+      buildBridge(scene, theme, theme.center, ISLAND_RADIUS, center, layout.r, surfaces, animated)
+
+      // Plateformes de parcours.
+      for (const [px, pz, py, pr] of game.platforms ?? []) {
+        buildPlatform(ctx, px, pz, py, pr, game.platformStyle)
+        surfaces.push({ type: 'circle', x: center.x + px, z: center.z + pz, r: pr, h: py })
+        if (Math.hypot(px, pz) < layout.r) ctx.addCollider(px, pz, pr * 0.9, py)
+      }
+
+      const toWorld = ([x, z, y = 0]) => new THREE.Vector3(center.x + x, y, center.z + z)
+      const def = {
+        ...game,
+        id: `${era.id}-${sat.id}`,
+        era: era.id,
+        title: sat.game.title,
+        intro: sat.game.intro,
+        accent: theme.accent,
+        start: toWorld(game.start),
+        items: game.items?.map(toWorld),
+        rings: game.rings?.map(toWorld),
+        goal: game.goal && toWorld(game.goal),
+      }
+      buildStartPad(ctx, game.start, theme.accent, animated)
+      interactables.push({ type: 'game', x: def.start.x, z: def.start.z, r: 2.2, title: def.title, game: def })
+      games.push(def)
+    }
   }
 
   // Nuages qui dérivent sous et entre les îles.
   const clouds = []
-  for (let i = 0; i < 16; i++) {
+  for (let i = 0; i < 26; i++) {
     const cloud = model('cloud', { width: 3 + Math.random() * 4 })
     cloud.scale.y = 0.6
-    cloud.position.set(-130 + Math.random() * 260, -14 - Math.random() * 24, -70 + Math.random() * 60)
+    cloud.position.set(-230 + Math.random() * 460, -16 - Math.random() * 26, -90 + Math.random() * 100)
     cloud.userData.speed = 0.6 + Math.random() * 1.2
     cloud.traverse((o) => {
       if (o.isMesh) {
@@ -70,7 +122,7 @@ export function createIslands(scene) {
   animated.push((dt) => {
     for (const cloud of clouds) {
       cloud.position.x += cloud.userData.speed * dt
-      if (cloud.position.x > 140) cloud.position.x = -140
+      if (cloud.position.x > 240) cloud.position.x = -240
     }
   })
 
@@ -78,22 +130,45 @@ export function createIslands(scene) {
     colliders,
     interactables,
     islands: islandsInfo,
+    games,
     spawn: new THREE.Vector3(THEMES.past.center.x, 0, 4),
+    // Hauteur du sol sous (x, z) : la plus haute surface sous les pieds, ou null (le vide).
+    groundAt(x, z, y) {
+      let best = null
+      for (const s of surfaces) {
+        if (s.h > y + 0.3 || (best !== null && s.h <= best)) continue
+        if (s.type === 'circle') {
+          const dx = x - s.x
+          const dz = z - s.z
+          if (dx * dx + dz * dz <= s.r * s.r) best = s.h
+        } else {
+          const abx = s.bx - s.ax
+          const abz = s.bz - s.az
+          const t = ((x - s.ax) * abx + (z - s.az) * abz) / (abx * abx + abz * abz)
+          if (t < 0 || t > 1) continue
+          const px = s.ax + abx * t
+          const pz = s.az + abz * t
+          if ((x - px) ** 2 + (z - pz) ** 2 <= (s.w / 2) ** 2) best = s.h
+        }
+      }
+      return best
+    },
     update(dt, t) {
       for (const fn of animated) fn(dt, t)
     },
   }
 }
 
-function buildBase({ group, theme }, id) {
+function buildBase({ group, theme }, id, radius) {
+  const seed = id.length * 7 + radius
   // Dessus de l'île avec de légères variations de couleur.
-  const top = jitter(new THREE.CylinderGeometry(ISLAND_RADIUS, ISLAND_RADIUS - 0.6, 1.2, 40, 4), 0.15, id.length * 7)
+  const top = jitter(new THREE.CylinderGeometry(radius, radius - 0.6, 1.2, Math.round(radius * 1.8), 4), 0.15, seed)
   const colors = []
   const base = new THREE.Color(theme.top)
   const c = new THREE.Color()
   const pos = top.attributes.position
   for (let i = 0; i < pos.count; i++) {
-    const n = Math.sin(pos.getX(i) * 0.35) * Math.cos(pos.getZ(i) * 0.3)
+    const n = Math.sin(pos.getX(i) * 0.35 + seed) * Math.cos(pos.getZ(i) * 0.3)
     c.copy(base).offsetHSL(0, 0, n * 0.05 + (pos.getY(i) < 0 ? -0.08 : 0))
     colors.push(c.r, c.g, c.b)
   }
@@ -101,34 +176,36 @@ function buildBase({ group, theme }, id) {
   const topMesh = mesh(top, mat(0xffffff, { vertexColors: true }), { y: -0.6 })
   topMesh.castShadow = false
   // Couche de terre sous l'herbe, puis la roche.
-  const dirt = mesh(jitter(new THREE.CylinderGeometry(ISLAND_RADIUS - 0.4, ISLAND_RADIUS - 1.6, 2.4, 24, 1), 0.35, id.length * 3), mat(theme.dirt), { y: -2.3 })
-  const rock = jitter(new THREE.ConeGeometry(ISLAND_RADIUS - 1.5, 20, 14, 3), 1.6, id.length * 13)
+  const dirt = mesh(jitter(new THREE.CylinderGeometry(radius - 0.4, radius - 1.6, 2.4, Math.round(radius * 1.1), 1), 0.35, seed + 3), mat(theme.dirt), { y: -2.3 })
+  const depth = radius * 0.9
+  const rock = jitter(new THREE.ConeGeometry(radius - 1.5, depth, 14, 3), radius * 0.07, seed + 13)
   rock.rotateX(Math.PI)
-  const rockMesh = mesh(rock, mat(theme.rock), { y: -13.4 })
+  const rockMesh = mesh(rock, mat(theme.rock), { y: -3.4 - depth / 2 })
   group.add(topMesh, dirt, rockMesh)
 
   // Touffes d'herbe (ou cailloux sur la lune) en instances.
-  const tuftGeo = id === 'future' ? new THREE.DodecahedronGeometry(0.18, 0) : new THREE.ConeGeometry(0.08, 0.45, 3)
-  const tufts = new THREE.InstancedMesh(tuftGeo, mat(0xffffff), id === 'future' ? 140 : 500)
+  const lunar = id.startsWith('future')
+  const tuftGeo = lunar ? new THREE.DodecahedronGeometry(0.18, 0) : new THREE.ConeGeometry(0.08, 0.45, 3)
+  const tufts = new THREE.InstancedMesh(tuftGeo, mat(0xffffff), Math.round((lunar ? 0.3 : 1) * radius * radius))
   const m = new THREE.Matrix4()
   const tuftColor = new THREE.Color()
   for (let i = 0; i < tufts.count; i++) {
     const a = Math.random() * Math.PI * 2
-    const r = Math.sqrt(Math.random()) * (ISLAND_RADIUS - 1)
+    const r = Math.sqrt(Math.random()) * (radius - 1)
     m.makeRotationY(Math.random() * Math.PI)
-    m.setPosition(Math.cos(a) * r, id === 'future' ? 0.05 : 0.2, Math.sin(a) * r)
+    m.setPosition(Math.cos(a) * r, lunar ? 0.05 : 0.2, Math.sin(a) * r)
     tufts.setMatrixAt(i, m)
-    tufts.setColorAt(i, tuftColor.set(theme.top).offsetHSL(0, id === 'future' ? -0.05 : 0.05, (Math.random() - 0.6) * 0.15))
+    tufts.setColorAt(i, tuftColor.set(theme.top).offsetHSL(0, lunar ? -0.05 : 0.05, (Math.random() - 0.6) * 0.15))
   }
   tufts.receiveShadow = true
   group.add(tufts)
 
   // Petits rochers flottants autour de l'île.
-  for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI * 2 + id.length
-    const g = jitter(new THREE.IcosahedronGeometry(1 + (i % 3) * 0.6, 0), 0.3, i + 3)
-    const r = mesh(g, mat(theme.rock), { x: Math.cos(a) * (ISLAND_RADIUS + 6), y: -4 - (i % 3) * 3, z: Math.sin(a) * (ISLAND_RADIUS + 6) })
-    group.add(r)
+  const count = Math.round(radius / 4)
+  for (let i = 0; i < count; i++) {
+    const a = (i / count) * Math.PI * 2 + seed
+    const g = jitter(new THREE.IcosahedronGeometry(0.6 + (i % 3) * 0.5, 0), 0.3, i + 3)
+    group.add(mesh(g, mat(theme.rock), { x: Math.cos(a) * (radius + 5), y: -4 - (i % 3) * 3, z: Math.sin(a) * (radius + 5) }))
   }
 }
 
@@ -137,7 +214,7 @@ function buildSign({ group, theme }, sign) {
   const wood = mat(0x7a5230)
   const post = mesh(new THREE.BoxGeometry(0.2, 2.2, 0.2), wood, { x, y: 1.1, z })
   const boardMat = new THREE.MeshStandardMaterial({ map: textTexture(sign.title, { bg: theme.signBg, fg: theme.signFg }) })
-  const board = mesh(new THREE.BoxGeometry(2.8, 0.75, 0.12), [wood, wood, wood, wood, boardMat, boardMat], { x, y: 2.3, z })
+  const board = mesh(new THREE.BoxGeometry(3.2, 0.85, 0.12), [wood, wood, wood, wood, boardMat, boardMat], { x, y: 2.4, z })
   const ring = mesh(
     new THREE.RingGeometry(1.3, 1.6, 32),
     new THREE.MeshBasicMaterial({ color: theme.accent, transparent: true, opacity: 0.55, side: THREE.DoubleSide }),
@@ -147,196 +224,93 @@ function buildSign({ group, theme }, sign) {
   group.add(post, board, ring)
 }
 
-// Arbre low-poly (sapin ou feuillu).
-function tree(group, x, z, { pine = false, leaves = 0x3f7d2a, scale = 1 } = {}) {
-  const trunk = mesh(new THREE.CylinderGeometry(0.2 * scale, 0.3 * scale, 1.4 * scale, 6), mat(0x6b4426), { x, y: 0.7 * scale, z })
-  const crown = pine
-    ? mesh(new THREE.ConeGeometry(1.2 * scale, 3 * scale, 7), mat(leaves), { x, y: 2.8 * scale, z })
-    : mesh(jitter(new THREE.IcosahedronGeometry(1.3 * scale, 0), 0.3, Math.round(x * 10 + z)), mat(leaves), { x, y: 2.3 * scale, z })
-  group.add(trunk, crown)
-}
+// Passerelle entre deux îles, de bord à bord, dans le style de l'époque.
+function buildBridge(scene, theme, a, ra, b, rb, surfaces, animated) {
+  const dir = new THREE.Vector3().subVectors(b, a).setY(0).normalize()
+  const start = a.clone().addScaledVector(dir, ra - 1.5)
+  const end = b.clone().addScaledVector(dir, -(rb - 1.5))
+  const length = start.distanceTo(end)
+  const width = 3
+  surfaces.push({ type: 'bridge', ax: start.x, az: start.z, bx: end.x, bz: end.z, w: width, h: 0 })
 
-function buildPast({ group, addCollider, animated }) {
-  const stone = mat(0x9a948a)
-  const roof = mat(0x2f4e8c)
+  const group = new THREE.Group()
+  group.position.copy(start).lerp(end, 0.5)
+  group.rotation.y = Math.atan2(dir.x, dir.z)
+  scene.add(group)
 
-  // Château.
-  const castle = new THREE.Group()
-  castle.position.set(0, 0, -14)
-  const keep = mesh(new THREE.BoxGeometry(6, 7, 5), stone, { y: 3.5 })
-  castle.add(keep, mesh(new THREE.ConeGeometry(4.3, 3.5, 4), roof, { y: 8.75 }))
-  for (const [tx, tz] of [[-4.5, -3], [4.5, -3], [-4.5, 3], [4.5, 3]]) {
-    castle.add(mesh(new THREE.CylinderGeometry(1.2, 1.3, 8, 10), stone, { x: tx, y: 4, z: tz }))
-    castle.add(mesh(new THREE.ConeGeometry(1.6, 2.5, 10), roof, { x: tx, y: 9.25, z: tz }))
-  }
-  castle.add(mesh(new THREE.BoxGeometry(1.8, 2.6, 0.3), mat(0x4a2e18), { y: 1.3, z: 2.6 }))
-  const flag = mesh(new THREE.PlaneGeometry(1.4, 0.8), mat(0xc0392b, { side: THREE.DoubleSide }), { x: 0.75, y: 11.6, z: 0 })
-  castle.add(mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.5, 5), mat(0x333333), { y: 11.3 }), flag)
-  animated.push((dt, t) => { flag.rotation.y = Math.sin(t * 2) * 0.3 })
-  group.add(castle)
-  addCollider(0, -14, 5.5)
-  for (const [tx, tz] of [[-4.5, -3], [4.5, -3], [-4.5, 3], [4.5, 3]]) addCollider(tx, -14 + tz, 1.4)
-
-  // Montagne enneigée (ski).
-  const mountain = mesh(jitter(new THREE.ConeGeometry(5, 9, 7, 2), 0.4, 5), mat(0x8c8c96), { x: 16, y: 4.5, z: -12 })
-  const snow = mesh(new THREE.ConeGeometry(2.3, 3.2, 7), mat(0xffffff), { x: 16, y: 7.4, z: -12 })
-  group.add(mountain, snow)
-  addCollider(16, -12, 4.6)
-  for (const [px, pz] of [[11, -16], [20, -7], [12, -9]]) tree(group, px, pz, { pine: true, leaves: 0x2d5a3a, scale: 0.8 })
-
-  // But de foot.
-  const white = mat(0xffffff)
-  const goal = new THREE.Group()
-  goal.position.set(-15, 0, 10)
-  goal.add(mesh(new THREE.BoxGeometry(0.15, 2, 0.15), white, { x: -1.8, y: 1 }))
-  goal.add(mesh(new THREE.BoxGeometry(0.15, 2, 0.15), white, { x: 1.8, y: 1 }))
-  goal.add(mesh(new THREE.BoxGeometry(3.75, 0.15, 0.15), white, { y: 2 }))
-  goal.rotation.y = Math.PI / 4
-  const ball = mesh(new THREE.IcosahedronGeometry(0.3, 1), mat(0xf5f5f5), { x: -12, y: 0.3, z: 8 })
-  group.add(goal, ball)
-
-  // Totem « pierre de foyer » façon WoW : cristal flottant.
-  const crystal = mesh(new THREE.OctahedronGeometry(0.8, 0), mat(0x58d0ff, { emissive: 0x2a8fd0, emissiveIntensity: 0.9 }), { x: -13, y: 2.2, z: -9 })
-  const pedestal = mesh(new THREE.CylinderGeometry(0.8, 1, 0.8, 8), stone, { x: -13, y: 0.4, z: -9 })
-  group.add(crystal, pedestal)
-  addCollider(-13, -9, 1)
-  animated.push((dt, t) => {
-    crystal.rotation.y += dt
-    crystal.position.y = 2.2 + Math.sin(t * 2) * 0.25
-  })
-
-  // Pièces d'or qui tournent autour du cristal.
-  const coins = [0, 1, 2].map(() => model('coin', { height: 0.7 }))
-  group.add(...coins)
-  animated.push((dt, t) => coins.forEach((coin, i) => {
-    const a = t * 0.8 + (i / 3) * Math.PI * 2
-    coin.position.set(-13 + Math.cos(a) * 1.8, 1.6 + Math.sin(t * 2 + i) * 0.3, -9 + Math.sin(a) * 1.8)
-    coin.rotation.y = t * 3
-  }))
-
-  for (const [px, pz] of [[-18, -3], [-9, -17], [-18, 3], [-6, 14], [3, 17], [-12, 16], [12, 14], [16, 7], [-3, 12]]) {
-    tree(group, px, pz, { leaves: 0x3f7d2a })
-    addCollider(px, pz, 0.6)
-  }
-}
-
-function buildPresent({ group, addCollider, animated }) {
-  // Place pavée avec fontaine.
-  const plaza = mesh(new THREE.CylinderGeometry(7, 7, 0.1, 32), mat(0xc9c2b4), { y: 0.05, shadow: false })
-  group.add(plaza, model('fountain', { width: 4.5, y: 0.05 }))
-  addCollider(0, 0, 2.3)
-
-  // Maisons du village (Kenney City Builder), tournées vers la place.
-  for (const [key, x, z] of [['houseA', -14, -10], ['houseC', 14, -10], ['houseB', -15, 12], ['houseD', 15, 12]]) {
-    group.add(model(key, { width: 5, x, z, rotY: Math.atan2(-x, -z) }))
-    addCollider(x, z, 3.1)
-  }
-  group.add(model('garage', { width: 5, x: 8, z: -17, rotY: Math.PI * 0.85 }))
-  addCollider(8, -17, 3)
-
-  // Le développeur à son bureau, sur la place.
-  const desk = mesh(new THREE.BoxGeometry(2.2, 0.15, 1.1), mat(0x8a5a32), { x: 0, y: 1, z: -13 })
-  const legs = [[-1, -0.45], [1, -0.45], [-1, 0.45], [1, 0.45]].map(([dx, dz]) => mesh(new THREE.BoxGeometry(0.1, 1, 0.1), mat(0x5a3a22), { x: dx, y: 0.5, z: -13 + dz }))
-  const screen = mesh(new THREE.BoxGeometry(1.2, 0.75, 0.06), mat(0x111111), { x: 0, y: 1.55, z: -13.3 })
-  const glow = mesh(new THREE.PlaneGeometry(1.1, 0.65), new THREE.MeshBasicMaterial({ color: 0x5fd0ff }), { x: 0, y: 1.55, z: -13.26, shadow: false })
-  const glowLight = new THREE.PointLight(0x5fd0ff, 4, 5)
-  glowLight.position.set(0, 1.6, -12.8)
-  const dev = model('character', { height: 2, x: 0, z: -12, rotY: Math.PI })
-  const { mixer } = animate(dev, 'idle')
-  group.add(desk, ...legs, screen, glow, glowLight, dev)
-  addCollider(0, -12.8, 1.6)
-  animated.push((dt, t) => {
-    mixer.update(dt)
-    glow.material.color.setHSL(0.55, 0.8, 0.55 + Math.sin(t * 4) * 0.08)
-  })
-
-  // Lampadaires.
-  for (const [lx, lz] of [[-6, -6], [6, -6], [-6, 6], [6, 6]]) {
-    group.add(mesh(new THREE.CylinderGeometry(0.08, 0.12, 3.2, 8), mat(0x2b2b33), { x: lx, y: 1.6, z: lz }))
-    group.add(mesh(new THREE.SphereGeometry(0.3, 12, 10), mat(0xfff0b0, { emissive: 0xffc85a, emissiveIntensity: 2.5 }), { x: lx, y: 3.3, z: lz, shadow: false }))
-    addCollider(lx, lz, 0.3)
-  }
-
-  // Arbres.
-  for (const [px, pz, pine] of [[-18, -6, 1], [19, 5, 0], [-5, -18, 0], [-7, 18, 1], [7, 18, 0], [19, -4, 1], [-19, 5, 0], [-10, 17, 0], [11, 16, 1]]) {
-    tree(group, px, pz, { pine, leaves: pine ? 0x2f7a52 : 0x5aa83a, scale: pine ? 1.1 : 1 })
-    addCollider(px, pz, 0.6)
-  }
-}
-
-function buildFuture({ group, addCollider, animated }) {
-  // Cratères.
-  for (const [cx, cz, r] of [[-12, 6, 2.5], [6, 4, 1.6], [13, 13, 2], [-4, -15, 1.8], [-15, -12, 1.4]]) {
-    const crater = mesh(new THREE.TorusGeometry(r, 0.35, 6, 18), mat(0x9a9ca6), { x: cx, y: 0, z: cz, shadow: false })
-    crater.rotation.x = Math.PI / 2
-    const floor = mesh(new THREE.CircleGeometry(r, 18), mat(0x8a8c96), { x: cx, y: 0.02, z: cz, shadow: false })
-    floor.rotation.x = -Math.PI / 2
-    group.add(crater, floor)
-  }
-
-  // Base lunaire.
-  const dome = mesh(new THREE.SphereGeometry(4, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat(0xdfe6f0, { metalness: 0.3, roughness: 0.4 }), { x: 0, y: 0, z: -14 })
-  const tube = mesh(new THREE.CylinderGeometry(1, 1, 6, 12), mat(0xcfd6e0), { x: 6, y: 1, z: -14 })
-  tube.rotation.z = Math.PI / 2
-  const module = mesh(new THREE.CylinderGeometry(2, 2, 3, 12), mat(0xcfd6e0), { x: 10, y: 1.5, z: -14 })
-  group.add(dome, tube, module)
-  addCollider(0, -14, 4.2)
-  addCollider(6, -14, 1.2)
-  addCollider(10, -14, 2.2)
-
-  // Antenne parabolique.
-  const dish = mesh(new THREE.SphereGeometry(1.4, 16, 8, 0, Math.PI * 2, 0, Math.PI / 3), mat(0xffffff, { side: THREE.DoubleSide }), { x: -8, y: 3.4, z: -14 })
-  dish.rotation.x = -0.9
-  group.add(mesh(new THREE.CylinderGeometry(0.12, 0.12, 3, 6), mat(0x888888), { x: -8, y: 1.5, z: -14 }), dish)
-  addCollider(-8, -14, 0.6)
-  animated.push((dt) => { dish.rotation.z += dt * 0.3 })
-
-  // Télescope (astronomie).
-  const tripod = mesh(new THREE.ConeGeometry(0.6, 1.4, 3), mat(0x444444), { x: -13, y: 0.7, z: -4 })
-  const tube2 = mesh(new THREE.CylinderGeometry(0.22, 0.3, 2, 10), mat(0xeeeeee), { x: -13, y: 1.8, z: -4 })
-  tube2.rotation.z = 0.8
-  group.add(tripod, tube2)
-  addCollider(-13, -4, 0.7)
-
-  // Cosmonaute.
-  const astronaut = makeCharacter({ body: 0xf4f4f4, legs: 0xdadada, skin: 0xf1c27d, helmet: 0xa8d8ff })
-  astronaut.position.set(-4, 0, 3)
-  group.add(astronaut)
-  addCollider(-4, 3, 0.8)
-  animated.push((dt, t) => {
-    astronaut.position.y = Math.abs(Math.sin(t * 1.3)) * 0.6
-    astronaut.rotation.y = t * 0.4
-    astronaut.userData.limbs.armR.rotation.z = 2.6 + Math.sin(t * 5) * 0.4
-  })
-
-  // Robot compagnon (Quaternius) qui fait coucou.
-  const robot = model('robot', { height: 2.6, x: 3, z: -3, rotY: -0.3 })
-  const { mixer, actions } = animate(robot, 'Wave')
-  group.add(robot)
-  addCollider(3, -3, 1)
-  let robotTimer = 0
-  animated.push((dt) => {
-    mixer.update(dt)
-    // Alterne coucou et danse.
-    robotTimer += dt
-    if (robotTimer > 6) {
-      robotTimer = 0
-      const [from, to] = actions.Wave.isRunning() ? [actions.Wave, actions.Dance] : [actions.Dance, actions.Wave]
-      to.reset().fadeIn(0.4).play()
-      from.fadeOut(0.4)
+  if (theme.bridge === 'wood') {
+    const plankMat = mat(0x9a6a3a)
+    for (let z = -length / 2; z < length / 2; z += 0.55) {
+      const plank = mesh(new THREE.BoxGeometry(width, 0.15, 0.45), plankMat, { y: -0.08, z: z + 0.25 })
+      plank.rotation.z = (Math.random() - 0.5) * 0.04
+      group.add(plank)
     }
-  })
+    const step = length / Math.ceil(length / 2.5)
+    for (let z = -length / 2; z <= length / 2 + 0.01; z += step) {
+      for (const x of [-width / 2, width / 2]) group.add(mesh(new THREE.CylinderGeometry(0.08, 0.1, 1.2, 6), mat(0x5a3a22), { x, y: 0.5, z }))
+    }
+    for (const x of [-width / 2, width / 2]) {
+      const rope = mesh(new THREE.CylinderGeometry(0.03, 0.03, length, 4), mat(0xc9a66b), { x, y: 1, shadow: false })
+      rope.rotation.x = Math.PI / 2
+      group.add(rope)
+    }
+  } else if (theme.bridge === 'metal') {
+    group.add(mesh(new THREE.BoxGeometry(width, 0.2, length), mat(0x8a8f99, { metalness: 0.5, roughness: 0.5 }), { y: -0.1 }))
+    group.add(mesh(new THREE.BoxGeometry(width * 0.6, 0.02, length), mat(0xd9a441), { y: 0.01, shadow: false }))
+    const step = length / Math.ceil(length / 2)
+    for (const x of [-width / 2, width / 2]) {
+      group.add(mesh(new THREE.BoxGeometry(0.08, 0.08, length), mat(0xdddddd), { x, y: 1 }))
+      for (let z = -length / 2; z <= length / 2 + 0.01; z += step) group.add(mesh(new THREE.BoxGeometry(0.06, 1, 0.06), mat(0xdddddd), { x, y: 0.5, z }))
+    }
+  } else {
+    const deck = mesh(new THREE.BoxGeometry(width, 0.12, length), mat(0x8f7bff, { transparent: true, opacity: 0.5, emissive: 0x5a3fd6, emissiveIntensity: 0.6 }), { y: -0.06, shadow: false })
+    group.add(deck)
+    for (const x of [-width / 2, width / 2]) {
+      group.add(mesh(new THREE.BoxGeometry(0.1, 0.1, length), mat(0xd9ccff, { emissive: theme.accent, emissiveIntensity: 2.5 }), { x, y: 0.6, shadow: false }))
+    }
+    animated.push((dt, t) => { deck.material.emissiveIntensity = 0.5 + Math.sin(t * 3) * 0.2 })
+  }
+}
 
-  // Drone qui patrouille autour de la base.
-  const drone = model('drone', { height: 1.4 })
-  group.add(drone)
+// Plateforme de parcours, style selon l'époque.
+function buildPlatform({ group }, x, z, y, r, style) {
+  if (style === 'rooftop') {
+    if (y < 1.5) {
+      group.add(mesh(new THREE.BoxGeometry(r * 1.6, y, r * 1.6), mat(0xa0703f), { x, y: y / 2, z }))
+    } else {
+      const hue = Math.abs((x * 0.13 + z * 0.07) % 1)
+      group.add(mesh(new THREE.BoxGeometry(r * 1.7, y, r * 1.7), mat(new THREE.Color().setHSL(hue, 0.35, 0.55)), { x, y: y / 2, z }))
+      for (let wy = 0.8; wy < y - 0.4; wy += 1) {
+        group.add(mesh(new THREE.BoxGeometry(r * 1.72, 0.35, r * 1.2), mat(0xfff2a8, { emissive: 0xffd76a, emissiveIntensity: 0.5 }), { x, y: wy, z, shadow: false }))
+      }
+      group.add(mesh(new THREE.BoxGeometry(r * 1.8, 0.15, r * 1.8), mat(0x555a66), { x, y: y + 0.05, z }))
+    }
+    return
+  }
+  const asteroid = style === 'asteroid'
+  group.add(mesh(jitter(new THREE.CylinderGeometry(r, r * 0.85, 0.5, 9), 0.08, x + z), mat(asteroid ? 0x6e6a7a : 0xa8a090), { x, y: y - 0.25, z }))
+  const under = jitter(new THREE.ConeGeometry(r * 0.85, r * 1.6, 8), r * 0.12, x * 3 + z)
+  under.rotateX(Math.PI)
+  group.add(mesh(under, mat(asteroid ? 0x4f4b5c : 0x7a7264), { x, y: y - 0.5 - r * 0.8, z }))
+  if (asteroid) {
+    const glow = mesh(new THREE.TorusGeometry(r * 0.9, 0.05, 4, 24), mat(0xb48cff, { emissive: 0xb48cff, emissiveIntensity: 2 }), { x, y: y + 0.02, z, shadow: false })
+    glow.rotation.x = Math.PI / 2
+    group.add(glow)
+  } else {
+    // Mousse sur les pierres des ruines.
+    group.add(mesh(new THREE.CylinderGeometry(r * 0.7, r * 0.7, 0.06, 9), mat(0x5f9e3c), { x, y: y + 0.01, z, shadow: false }))
+  }
+}
+
+function buildStartPad({ group }, [x, z], accent, animated) {
+  const pad = mesh(new THREE.CylinderGeometry(1.6, 1.8, 0.2, 24), mat(0x2a2440), { x, y: 0.1, z })
+  const ring = mesh(new THREE.RingGeometry(1.2, 1.5, 32), new THREE.MeshBasicMaterial({ color: accent, side: THREE.DoubleSide, transparent: true }), { x, y: 0.22, z, shadow: false })
+  ring.rotation.x = -Math.PI / 2
+  const star = mesh(new THREE.OctahedronGeometry(0.35, 0), mat(accent, { emissive: accent, emissiveIntensity: 2 }), { x, y: 3.4, z, shadow: false })
+  group.add(pad, ring, star)
   animated.push((dt, t) => {
-    const a = t * 0.5
-    drone.position.set(Math.cos(a) * 7, 6 + Math.sin(t * 2) * 0.4, -14 + Math.sin(a) * 7)
-    drone.rotation.y = -a
+    star.rotation.y += dt * 2
+    star.position.y = 3.4 + Math.sin(t * 3) * 0.2
+    ring.material.opacity = 0.6 + Math.sin(t * 4) * 0.3
   })
-
-  // Drapeau planté.
-  group.add(mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.5, 5), mat(0xcccccc), { x: 4, y: 1.25, z: 13 }))
-  group.add(mesh(new THREE.PlaneGeometry(1.2, 0.7), mat(0x2f6fd8, { side: THREE.DoubleSide }), { x: 4.6, y: 2.2, z: 13 }))
 }

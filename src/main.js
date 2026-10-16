@@ -10,6 +10,7 @@ import { createVehicles } from './world/vehicles.js'
 import { loadModels } from './world/models.js'
 import { createPlayer } from './player.js'
 import { createUI } from './ui.js'
+import { createGames } from './games.js'
 
 const ui = createUI()
 await loadModels((progress) => ui.setLoading(progress))
@@ -51,6 +52,7 @@ const world = createIslands(scene)
 const vehicles = createVehicles(scene)
 const interactables = [...world.interactables, ...vehicles.interactables]
 const player = createPlayer(scene, world)
+const games = createGames(scene, ui, player)
 ui.setReady()
 
 // Caméra fixe en trois-quarts, qui suit le joueur en douceur.
@@ -64,6 +66,7 @@ if (new URLSearchParams(location.search).has('debug')) {
     player,
     world,
     scene,
+    games,
     teleport(x, z) {
       player.teleport(new THREE.Vector3(x, 0, z))
       cameraTarget.copy(player.position)
@@ -78,12 +81,19 @@ ui.onStart(() => { started = true })
 let nearby = null
 window.addEventListener('keydown', (e) => {
   if (!started || vehicles.traveling) return
-  if (e.code === 'Escape') ui.closePanel()
+  if (e.code === 'Escape') {
+    if (ui.panelOpen()) ui.closePanel()
+    else games.abort()
+  }
   if (e.code !== 'KeyE') return
   if (ui.panelOpen()) return ui.closePanel()
   if (!nearby) return
   if (nearby.type === 'sign') ui.openPanel(nearby.title, nearby.text, nearby.links)
-  if (nearby.type === 'vehicle') vehicles.start(nearby, player)
+  if (nearby.type === 'vehicle') {
+    games.abort()
+    vehicles.start(nearby, player)
+  }
+  if (nearby.type === 'game') games.start(nearby.game)
 })
 
 function findNearby() {
@@ -106,6 +116,7 @@ function tick() {
   if (!vehicles.traveling) player.update(dt, started && !ui.panelOpen())
   vehicles.update(dt, t)
   world.update(dt, t)
+  games.update(dt, t)
   space.update(dt, t)
 
   cameraTarget.lerp(player.position, 1 - Math.exp(-dt * 6))
@@ -116,7 +127,7 @@ function tick() {
   sun.target.position.copy(cameraTarget)
 
   nearby = started && !vehicles.traveling ? findNearby() : null
-  ui.setPrompt(nearby && !ui.panelOpen() ? (nearby.type === 'sign' ? `E · Lire « ${nearby.title} »` : `E · Monter : ${nearby.title}`) : null)
+  ui.setPrompt(nearby && !ui.panelOpen() ? ({ sign: `E · Lire « ${nearby.title} »`, vehicle: `E · Monter : ${nearby.title}`, game: games.active ? null : `E · Jouer : ${nearby.title}` })[nearby.type] : null)
 
   const island = player.currentIsland()
   if (island && island !== lastIsland && started) ui.showIsland(island.name, island.tagline)
