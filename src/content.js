@@ -10,7 +10,7 @@ const project = (slug) => site(`/projets/${slug}`)
 export const intro = {
   title: 'Aventure Time AQ',
   subtitle: 'Bienvenue dans le monde d\'Antoine Quarroz, développeur web et mobile en Valais. Trois îles à explorer : mon passé, mon présent et mon futur.',
-  controls: 'ZQSD / WASD / flèches pour marcher · Maj pour courir · Espace pour sauter · E pour interagir · Échap pour fermer ou abandonner',
+  controls: 'Clic sur le sol ou ZQSD / flèches pour marcher · Maj pour courir · Espace pour sauter · E pour interagir · Échap pour fermer · Sur téléphone : joystick et boutons à l’écran',
 }
 
 export const vehicles = {

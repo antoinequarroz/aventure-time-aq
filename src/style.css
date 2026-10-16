@@ -30,7 +30,25 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #070a1f; fon
   position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%); padding: 10px 18px; border-radius: 10px;
   background: rgba(0,0,0,0.6); opacity: 0; transition: opacity 0.2s; white-space: nowrap;
 }
-.prompt.visible { opacity: 1; }
+.prompt.visible { opacity: 1; pointer-events: auto; cursor: pointer; }
+
+/* Commandes tactiles : joystick à gauche, saut et action à droite. */
+.stick, .touch-btn { display: none; pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; }
+#ui.touch.playing .stick, #ui.touch.playing .touch-btn { display: block; }
+.stick {
+  position: absolute; left: 28px; bottom: 28px; width: 120px; height: 120px; border-radius: 50%;
+  background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.35); backdrop-filter: blur(4px);
+}
+.stick-knob {
+  position: absolute; left: 35px; top: 35px; width: 50px; height: 50px; border-radius: 50%;
+  background: rgba(255,255,255,0.75); box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+.touch-btn {
+  position: absolute; width: 68px; height: 68px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.45);
+  background: rgba(180,140,255,0.35); color: #fff; font: 700 1.5rem system-ui, sans-serif; backdrop-filter: blur(4px);
+}
+.touch-btn.jump { right: 28px; bottom: 40px; }
+.touch-btn.act { right: 108px; bottom: 96px; width: 56px; height: 56px; font-size: 1.2rem; }
 
 .panel {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -46%); width: min(560px, calc(100% - 32px)); max-height: calc(100% - 32px); overflow-y: auto;

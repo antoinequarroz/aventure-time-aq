@@ -56,6 +56,11 @@ export function createPlayer(scene, world) {
   })
   window.addEventListener('blur', () => keys.clear())
 
+  // Commandes de secours (tactile et souris, voir controls.js) : joystick et point à rejoindre.
+  const stick = new THREE.Vector2()
+  let target = null
+  let stuck = 0
+
   const pressed = (...codes) => codes.some((c) => keys.has(c))
 
   // Île (principale ou petite) sous le joueur, la plus petite qui le contient.
@@ -87,10 +92,25 @@ export function createPlayer(scene, world) {
       (pressed('KeyD', 'ArrowRight') ? 1 : 0) - (pressed('KeyA', 'ArrowLeft') ? 1 : 0),
       (pressed('KeyS', 'ArrowDown') ? 1 : 0) - (pressed('KeyW', 'ArrowUp') ? 1 : 0),
     )
+    let analog = 1
+    if (input.lengthSq() > 0) target = null
+    else if (stick.lengthSq() > 0.02) {
+      input.copy(stick)
+      analog = Math.min(1, stick.length() * 1.2)
+      target = null
+    } else if (target) {
+      const dx = target.x - position.x
+      const dz = target.y - position.z
+      const d = Math.hypot(dx, dz)
+      // Arrivé, ou bloqué contre un obstacle : on s'arrête.
+      stuck = Math.hypot(velocity.x, velocity.z) < 0.6 ? stuck + dt : 0
+      if (d < 0.35 || stuck > 0.5) target = null
+      else input.set(dx, dz)
+    }
     if (!enabled) input.set(0, 0)
     const moving = input.lengthSq() > 0
-    if (moving) input.normalize()
-    const running = pressed('ShiftLeft', 'ShiftRight')
+    if (moving) input.normalize().multiplyScalar(analog)
+    const running = pressed('ShiftLeft', 'ShiftRight') || (stick.length() > 0.9) || (target && Math.hypot(target.x - position.x, target.y - position.z) > 6)
     const speed = running ? RUN : WALK
 
     // Accélération douce pour un mouvement moins rigide.
@@ -175,6 +195,16 @@ export function createPlayer(scene, world) {
     position,
     velocity,
     update,
+    setStick(x, y) {
+      stick.set(x, y)
+    },
+    setTarget(x, z) {
+      target = new THREE.Vector2(x, z)
+      stuck = -0.3
+    },
+    jump() {
+      jumpBuffer = JUMP_BUFFER
+    },
     currentIsland,
     setVisible(visible) {
       model.visible = visible

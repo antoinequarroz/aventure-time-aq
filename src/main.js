@@ -13,6 +13,7 @@ import { loadModels } from './world/models.js'
 import { createPlayer } from './player.js'
 import { createUI } from './ui.js'
 import { createGames } from './games.js'
+import { createControls } from './controls.js'
 
 const ui = createUI()
 await loadModels((progress) => ui.setLoading(progress))
@@ -159,7 +160,18 @@ if (new URLSearchParams(location.search).has('debug')) {
 }
 
 let started = false
-ui.onStart(() => { started = true })
+const controls = createControls({
+  canvas: renderer.domElement,
+  camera,
+  scene,
+  player,
+  onInteract: () => interact(),
+  isActive: () => started && !vehicles.traveling && !ui.panelOpen(),
+})
+ui.onStart(() => {
+  started = true
+  controls.focus()
+})
 
 let nearby = null
 window.addEventListener('keydown', (e) => {
@@ -168,7 +180,11 @@ window.addEventListener('keydown', (e) => {
     if (ui.panelOpen()) ui.closePanel()
     else games.abort()
   }
-  if (e.code !== 'KeyE') return
+  if (e.code === 'KeyE') interact()
+})
+
+function interact() {
+  if (!started || vehicles.traveling) return
   if (ui.panelOpen()) return ui.closePanel()
   if (!nearby) return
   if (nearby.type === 'sign') ui.openPanel(nearby.title, nearby.text, nearby.links)
@@ -177,7 +193,7 @@ window.addEventListener('keydown', (e) => {
     vehicles.start(nearby, player)
   }
   if (nearby.type === 'game') games.start(nearby.game)
-})
+}
 
 function findNearby() {
   for (const item of interactables) {
@@ -199,6 +215,7 @@ function tick() {
   if (!vehicles.traveling) player.update(dt, started && !ui.panelOpen())
   vehicles.update(dt, t)
   pushables.update(dt, player)
+  controls.update(dt)
   world.update(dt, t)
   games.update(dt, t)
   space.update(dt, t)

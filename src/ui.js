@@ -35,7 +35,6 @@ export function createUI() {
       $('start').addEventListener('click', () => {
         $('intro').classList.add('hidden')
         root.classList.add('playing')
-        $('start').blur()
         cb()
       })
     },
