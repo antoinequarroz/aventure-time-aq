@@ -4,7 +4,7 @@ Tous les modèles de `public/models/` sont dans le domaine public ([CC0 1.0](htt
 
 | Dossier | Modèles | Auteur | Source |
 | --- | --- | --- | --- |
-| `kenney-platformer/` | personnage animé (joueur, développeur), nuage, pièce | [Kenney](https://kenney.nl) | [Starter Kit 3D Platformer](https://github.com/KenneyNL/Starter-Kit-3D-Platformer) |
+| `kenney-platformer/` | nuage, pièce (et l'ancien personnage, plus utilisé) | [Kenney](https://kenney.nl) | [Starter Kit 3D Platformer](https://github.com/KenneyNL/Starter-Kit-3D-Platformer) |
 | `kenney-city/` | maisons, garage, fontaine | [Kenney](https://kenney.nl) | [Starter Kit City Builder](https://github.com/KenneyNL/Starter-Kit-City-Builder) |
 | `kenney-racing/` | pick-up rouge | [Kenney](https://kenney.nl) | [Starter Kit Racing](https://github.com/KenneyNL/Starter-Kit-Racing) |
 | `kenney-fps/` | drone volant | [Kenney](https://kenney.nl) | [Starter Kit FPS](https://github.com/KenneyNL/Starter-Kit-FPS) |
@@ -13,6 +13,7 @@ Tous les modèles de `public/models/` sont dans le domaine public ([CC0 1.0](htt
 | `pmndrs-market/` | grande roue, éolienne | Creativetrio | [pmndrs market](https://github.com/pmndrs/market-assets) |
 | `pmndrs-market/` | banc | Sara Vieira | [pmndrs market](https://github.com/pmndrs/market-assets) |
 | `pmndrs-market/` | cheval low-poly | MarkLaBarr ([Blend Swap](https://blendswap.com/blend/13092)) | [pmndrs market](https://github.com/pmndrs/market-assets) |
+| `kaykit/` | personnages animés : chevalier, voleur, barbare, mage (joueur et PNJ) ; accessoires retirés à l'affichage, fichiers allégés avec glTF Transform | [Kay Lousberg](https://kaylousberg.com) (KayKit Adventurers) | [KayKit Character Pack Adventurers](https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0) |
 | `quaternius/` | RobotExpressive (robot animé) | [Quaternius](https://quaternius.com) (Tomás Laulhé), modifié par Don McCurdy | [exemples three.js](https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf/RobotExpressive) |
 
 Les modèles du pmndrs market ont été décompressés (Draco retiré) et optimisés avec [glTF Transform](https://gltf-transform.dev).

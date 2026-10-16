@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { mat, mesh } from '../helpers.js'
-import { model, animate } from '../models.js'
+import { model } from '../models.js'
+import * as C from '../characters.js'
 import * as P from '../props.js'
 import { textTexture } from '../helpers.js'
 
@@ -42,12 +43,10 @@ export function decorateMain(ctx) {
   const glow = mesh(new THREE.PlaneGeometry(1.1, 0.65), new THREE.MeshBasicMaterial({ color: 0x5fd0ff }), { x: 0, y: 1.55, z: -13.26, shadow: false })
   const glowLight = new THREE.PointLight(0x5fd0ff, 4, 5)
   glowLight.position.set(0, 1.6, -12.8)
-  const dev = model('character', { height: 2, x: 0, z: -12, rotY: Math.PI })
-  const { mixer } = animate(dev, 'idle')
-  group.add(desk, ...legs, screen, glow, glowLight, dev)
+  group.add(desk, ...legs, screen, glow, glowLight)
+  C.npc(ctx, 'rogue', 0, -12.1, { rotY: Math.PI, anim: 'Interact', speed: 0.7, r: 0 })
   addCollider(0, -12.8, 1.6)
   animated.push((dt, t) => {
-    mixer.update(dt)
     glow.material.color.setHSL(0.55, 0.8, 0.55 + Math.sin(t * 4) * 0.08)
   })
 

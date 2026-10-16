@@ -90,3 +90,15 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #070a1f; fon
   opacity: 0; transition: opacity 0.3s, transform 0.3s;
 }
 .toast.visible { opacity: 1; transform: translate(-50%, 0); }
+
+/* Mini-carte */
+.minimap {
+  position: absolute; top: 16px; left: 16px; pointer-events: auto; cursor: pointer; display: none;
+  padding: 6px; border-radius: 16px; background: rgba(20, 16, 44, 0.72); border: 1px solid rgba(180, 140, 255, 0.4);
+  backdrop-filter: blur(4px); flex-direction: column; align-items: center; gap: 4px;
+}
+#ui.playing .minimap { display: flex; }
+.minimap canvas { display: block; border-radius: 12px; }
+.minimap span { font-size: 0.72rem; opacity: 0.8; max-width: 170px; text-align: center; }
+.minimap.big span { max-width: none; }
+@media (max-width: 600px) { .minimap:not(.big) canvas { width: 110px !important; height: 110px !important; } }

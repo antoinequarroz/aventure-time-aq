@@ -1,5 +1,6 @@
 import * as THREE from 'three'
-import { makeCharacter, mat, mesh } from '../helpers.js'
+import { mat, mesh } from '../helpers.js'
+import * as C from '../characters.js'
 import { model, animate } from '../models.js'
 import * as P from '../props.js'
 import { fireflies } from '../nature.js'
@@ -54,15 +55,9 @@ export function decorateMain(ctx) {
   addCollider(-13, -4, 0.7)
 
   // Cosmonaute qui flotte.
-  const astronaut = makeCharacter({ body: 0xf4f4f4, legs: 0xdadada, skin: 0xf1c27d, helmet: 0xa8d8ff })
-  astronaut.position.set(-4, 0, 3)
-  group.add(astronaut)
-  addCollider(-4, 3, 0.8)
-  animated.push((dt, t) => {
-    astronaut.position.y = Math.abs(Math.sin(t * 1.3)) * 0.6
-    astronaut.rotation.y = t * 0.4
-    astronaut.userData.limbs.armR.rotation.z = 2.6 + Math.sin(t * 5) * 0.4
-  })
+  const astro = C.npc(ctx, 'rogue', -4, 3, { anim: 'Cheer', speed: 0.6, r: 0.8 })
+  C.spaceSuit(astro.object)
+  animated.push((dt, t) => { astro.object.position.y = Math.abs(Math.sin(t * 1.3)) * 0.6 })
 
   // Robot compagnon (Quaternius) qui alterne coucou et danse.
   const robot = model('robot', { height: 2.6, x: 3, z: -3, rotY: -0.3 })

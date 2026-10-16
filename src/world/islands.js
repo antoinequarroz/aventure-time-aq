@@ -171,6 +171,9 @@ export function createIslands(scene) {
     spawn: new THREE.Vector3(THEMES.past.center.x, 0, 4),
     groundAt: ground.heightAt,
     pushOut: ground.pushOut,
+    blocked: ground.blocked,
+    addRamp: (r) => ground.ramps.push(r),
+    surfaces: ground.surfaces,
     update(dt, t) {
       updateNature(t)
       for (const fn of animated) fn(dt, t)

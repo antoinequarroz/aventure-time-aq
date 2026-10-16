@@ -1,6 +1,6 @@
 import * as THREE from 'three'
-import { model as loadModel, animate } from './world/models.js'
-import { mat, mesh } from './world/helpers.js'
+import { animate } from './world/models.js'
+import { character, spaceSuit } from './world/characters.js'
 
 const WALK = 6
 const RUN = 11
@@ -12,24 +12,41 @@ const JUMP_BUFFER = 0.15
 
 export function createPlayer(scene, world) {
   const { colliders, islands, spawn } = world
-  const model = loadModel('character', { height: 2 })
+  // Un avatar par époque (KayKit) : chevalier au Passé, développeur au Présent, cosmonaute au Futur.
+  const model = new THREE.Group()
   scene.add(model)
-  const body = model.children[0]
-  const baseScale = body.scale.x
-  const { mixer, actions } = animate(model, 'idle')
-  actions.jump.setLoop(THREE.LoopOnce)
-  actions.jump.clampWhenFinished = true
-  let current = actions.idle
+  const body = model
+  const baseScale = 1
+  const avatars = {
+    past: character('knight', { keep: ['1H_Sword', 'Badge_Shield', 'Knight_Helmet', 'Knight_Cape'] }),
+    present: character('rogue', { keep: [] }),
+    future: character('rogue', { keep: [] }),
+  }
+  spaceSuit(avatars.future)
+  const rigs = {}
+  for (const [key, avatar] of Object.entries(avatars)) {
+    avatar.visible = false
+    model.add(avatar)
+    const { mixer, actions } = animate(avatar, 'Idle')
+    actions.Jump_Idle.setLoop(THREE.LoopRepeat)
+    rigs[key] = { mixer, actions, current: actions.Idle }
+  }
+  let rig = rigs.past
+  avatars.past.visible = true
+  const NAMES = { idle: 'Idle', walk: 'Walking_A', run: 'Running_A', jump: 'Jump_Idle', cheer: 'Cheer' }
   const play = (name, timeScale = 1) => {
-    const next = actions[name]
+    const next = rig.actions[NAMES[name]]
     next.timeScale = timeScale
-    if (next === current) return
-    next.reset().fadeIn(0.15).play()
-    current.fadeOut(0.15)
-    current = next
+    if (next === rig.current) return
+    next.reset().fadeIn(0.18).play()
+    rig.current.fadeOut(0.18)
+    rig.current = next
+  }
+  const wear = (key) => {
+    for (const [k, avatar] of Object.entries(avatars)) avatar.visible = k === key
+    rig = rigs[key]
   }
 
-  const outfits = createOutfits(model.userData.root)
   const dust = createDust(scene)
 
   const position = spawn.clone()
@@ -44,6 +61,9 @@ export function createPlayer(scene, world) {
   let squash = 0
   let dustTimer = 0
   let era = null
+  const prev = spawn.clone()
+  let visualY = spawn.y
+  let airTime = 0
 
   window.addEventListener('keydown', (e) => {
     keys.add(e.code)
@@ -76,6 +96,7 @@ export function createPlayer(scene, world) {
 
   function respawn() {
     position.copy(checkpoint ?? safePoint)
+    visualY = position.y
     velocity.set(0, 0, 0)
   }
 
@@ -83,7 +104,7 @@ export function createPlayer(scene, world) {
     const island = currentIsland()
     if (island && island.era !== era) {
       era = island.era
-      outfits.wear(era)
+      wear(era)
     }
     const gravity = GRAVITY * (island?.gravity ?? (era === 'future' ? 0.45 : 1))
 
@@ -128,12 +149,17 @@ export function createPlayer(scene, world) {
       dust.puff(position, 4)
     }
     velocity.y -= gravity * dt
+    prev.copy(position)
     position.addScaledVector(velocity, dt)
 
     // Sol : îles, passerelles et plateformes. Ailleurs, c'est le vide.
+    const wasGroundedPrev = grounded
     const ground = world.groundAt(position.x, position.z, position.y)
     const wasGrounded = grounded
-    if (ground !== null && velocity.y <= 0 && position.y <= ground && position.y > ground - 1.5) {
+    // Accroche au sol : en descendant une rampe ou une petite marche, on reste collé au sol
+    // au lieu de « décoller » à chaque image (ce qui faisait clignoter l'animation de saut).
+    const snap = wasGroundedPrev && velocity.y <= 0 ? 0.65 : 0
+    if (ground !== null && velocity.y <= 0 && position.y <= ground + snap && position.y > ground - 1.5) {
       if (!wasGrounded && velocity.y < -8) {
         squash = 1
         dust.puff(position, 8)
@@ -162,6 +188,20 @@ export function createPlayer(scene, world) {
     }
     // Flancs des terrasses.
     world.pushOut(position)
+    // Filet de sécurité : si on a quand même fini dans une falaise, on glisse le long du mur
+    // (un seul axe) ou on reste sur place, au lieu d'être projeté ailleurs.
+    if (world.blocked(position.x, position.z, position.y)) {
+      if (!world.blocked(position.x, prev.z, position.y)) position.z = prev.z
+      else if (!world.blocked(prev.x, position.z, position.y)) position.x = prev.x
+      else {
+        position.x = prev.x
+        position.z = prev.z
+      }
+    }
+    // Petites marches : le corps rattrape la hauteur en douceur au lieu de sauter d'un coup.
+    if (grounded && wasGrounded) visualY += (position.y - visualY) * Math.min(1, dt * 16)
+    else visualY = position.y
+    airTime = grounded ? 0 : airTime + dt
 
     // Orientation, animation et petits effets.
     if (moving) {
@@ -170,10 +210,12 @@ export function createPlayer(scene, world) {
       diff = Math.atan2(Math.sin(diff), Math.cos(diff))
       facing += diff * Math.min(1, dt * 12)
     }
-    if (!grounded) play('jump')
-    else if (moving) play('walk', running ? 2.2 : 1.5)
+    const speedNow = Math.hypot(velocity.x, velocity.z)
+    if (!grounded && (airTime > 0.14 || velocity.y > 0)) play('jump')
+    else if (speedNow > 7.5) play('run', speedNow / RUN * 1.1)
+    else if (speedNow > 0.6) play('walk', Math.max(0.6, speedNow / WALK) * 1.15)
     else play('idle')
-    mixer.update(dt)
+    rig.mixer.update(dt)
 
     dustTimer -= dt
     if (grounded && moving && running && dustTimer <= 0) {
@@ -186,14 +228,14 @@ export function createPlayer(scene, world) {
     const s = Math.sin(squash * Math.PI) * 0.25
     body.scale.set(baseScale * (1 + s), baseScale * (1 - s), baseScale * (1 + s))
 
-    model.position.copy(position)
+    model.position.set(position.x, visualY, position.z)
     model.rotation.y = facing
-    outfits.update(velocity)
   }
 
   return {
     position,
     velocity,
+    stick,
     update,
     setStick(x, y) {
       stick.set(x, y)
@@ -209,7 +251,12 @@ export function createPlayer(scene, world) {
     setVisible(visible) {
       model.visible = visible
     },
+    get grounded() {
+      return grounded
+    },
     teleport(target) {
+      jumpBuffer = 0
+      visualY = target.y
       model.position.copy(target)
       position.copy(target)
       velocity.set(0, 0, 0)
@@ -220,55 +267,6 @@ export function createPlayer(scene, world) {
     },
     clearCheckpoint() {
       checkpoint = null
-    },
-  }
-}
-
-// Tenues selon l'époque : casque et cape de chevalier, casquette et sac du dev, bulle de cosmonaute.
-function createOutfits(root) {
-  const torso = root.getObjectByName('torso')
-  const antenna = root.getObjectByName('antenna')
-  const sets = {}
-
-  const knight = new THREE.Group()
-  const steel = mat(0xb8bcc4, { metalness: 0.7, roughness: 0.35 })
-  knight.add(mesh(new THREE.CylinderGeometry(0.34, 0.36, 0.24, 12), steel, { y: 0.62 }))
-  knight.add(mesh(new THREE.SphereGeometry(0.34, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), steel, { y: 0.74 }))
-  const plume = mesh(new THREE.ConeGeometry(0.08, 0.45, 6), mat(0xc0392b), { y: 1.12, z: -0.05 })
-  plume.rotation.x = -0.4
-  knight.add(plume)
-  const cape = mesh(new THREE.PlaneGeometry(0.62, 0.62, 1, 4), mat(0xc0392b, { side: THREE.DoubleSide }), { y: 0.02, z: -0.34 })
-  knight.add(cape)
-  sets.past = knight
-
-  const dev = new THREE.Group()
-  dev.add(mesh(new THREE.SphereGeometry(0.33, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x1f3b57), { y: 0.58 }))
-  dev.add(mesh(new THREE.BoxGeometry(0.4, 0.04, 0.28), mat(0x1f3b57), { y: 0.6, z: 0.3 }))
-  dev.add(mesh(new THREE.BoxGeometry(0.42, 0.42, 0.18), mat(0xe67e22), { y: 0.02, z: -0.32 }))
-  dev.add(mesh(new THREE.BoxGeometry(0.3, 0.2, 0.05), mat(0x6fd3ff, { emissive: 0x6fd3ff, emissiveIntensity: 0.6 }), { y: 0.05, z: -0.42, shadow: false }))
-  sets.present = dev
-
-  const astro = new THREE.Group()
-  astro.add(mesh(new THREE.SphereGeometry(0.46, 20, 14), mat(0xa8d8ff, { transparent: true, opacity: 0.35, roughness: 0.05, metalness: 0.2 }), { y: 0.4, shadow: false }))
-  astro.add(mesh(new THREE.TorusGeometry(0.4, 0.05, 6, 20), mat(0xdddddd), { y: 0.05 }).rotateX(Math.PI / 2))
-  for (const x of [-0.12, 0.12]) astro.add(mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.42, 10), mat(0xf2f2f2), { x, y: 0.05, z: -0.35 }))
-  astro.add(mesh(new THREE.SphereGeometry(0.05, 6, 4), mat(0xff4a4a, { emissive: 0xff2a2a, emissiveIntensity: 2 }), { y: 0.3, z: -0.48, shadow: false }))
-  sets.future = astro
-
-  for (const set of Object.values(sets)) {
-    set.visible = false
-    torso.add(set)
-  }
-
-  return {
-    wear(era) {
-      for (const [key, set] of Object.entries(sets)) set.visible = key === era
-      if (antenna) antenna.visible = era === 'future'
-    },
-    update(velocity) {
-      // La cape flotte selon la vitesse.
-      const speed = Math.hypot(velocity.x, velocity.z)
-      cape.rotation.x = -Math.min(0.9, speed * 0.08) - Math.max(0, velocity.y) * 0.03
     },
   }
 }

@@ -79,7 +79,20 @@ export function createGround() {
     }
   }
 
-  return { surfaces, ramps, heightAt, onRamp, pushOut }
+  // Vrai si (x, z) est à l'intérieur d'une terrasse trop haute pour y monter (dans la falaise).
+  function blocked(x, z, y) {
+    if (onRamp(x, z)) return false
+    for (const s of surfaces) {
+      if (s.solid === false || s.h <= y + 0.35) continue
+      const dx = x - s.x
+      const dz = z - s.z
+      if (dx * dx + dz * dz > s.r * s.r) continue
+      if (s.type === 'circle' || (s.type === 'poly' && insidePoly(s.pts, x, z))) return true
+    }
+    return false
+  }
+
+  return { surfaces, ramps, heightAt, onRamp, pushOut, blocked }
 }
 
 export function insidePoly(pts, x, z) {

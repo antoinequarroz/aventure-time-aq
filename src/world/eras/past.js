@@ -3,6 +3,8 @@ import { jitter, mat, mesh } from '../helpers.js'
 import { model } from '../models.js'
 import * as P from '../props.js'
 import { fireflies } from '../nature.js'
+import * as B from '../buildings.js'
+import * as C from '../characters.js'
 
 // Le Passé : royaume médiéval fantastique.
 
@@ -32,30 +34,9 @@ export const mainShape = {
 export function decorateMain(ctx) {
   const { group, addCollider, animated } = ctx
   const stone = mat(0x9a948a)
-  const roof = mat(0x2f4e8c)
 
-  // Château.
-  const castle = new THREE.Group()
-  castle.position.set(0, 0, -14)
-  castle.add(mesh(new THREE.BoxGeometry(6, 7, 5), stone, { y: 3.5 }), mesh(new THREE.ConeGeometry(4.3, 3.5, 4), roof, { y: 8.75 }))
-  for (const [tx, tz] of [[-4.5, -3], [4.5, -3], [-4.5, 3], [4.5, 3]]) {
-    castle.add(mesh(new THREE.CylinderGeometry(1.2, 1.3, 8, 10), stone, { x: tx, y: 4, z: tz }))
-    castle.add(mesh(new THREE.ConeGeometry(1.6, 2.5, 10), roof, { x: tx, y: 9.25, z: tz }))
-    // Créneaux.
-    for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * Math.PI * 2
-      castle.add(mesh(new THREE.BoxGeometry(0.4, 0.5, 0.4), stone, { x: tx + Math.cos(a) * 1.15, y: 8.1, z: tz + Math.sin(a) * 1.15 }))
-    }
-  }
-  castle.add(mesh(new THREE.BoxGeometry(1.8, 2.6, 0.3), mat(0x4a2e18), { y: 1.3, z: 2.6 }))
-  for (const wx of [-1.6, 1.6]) castle.add(mesh(new THREE.BoxGeometry(0.6, 0.9, 0.1), mat(0xffd27a, { emissive: 0xffb347, emissiveIntensity: 1.5 }), { x: wx, y: 4.8, z: 2.55, shadow: false }))
-  const flag = mesh(new THREE.PlaneGeometry(1.4, 0.8), mat(0xc0392b, { side: THREE.DoubleSide }), { x: 0.75, y: 11.6, z: 0 })
-  castle.add(mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.5, 5), mat(0x333333), { y: 11.3 }), flag)
-  animated.push((dt, t) => { flag.rotation.y = Math.sin(t * 2) * 0.3 })
-  group.add(castle)
-  ctx.addFadeable(castle)
-  addCollider(0, -14, 5.5)
-  for (const [tx, tz] of [[-4.5, -3], [4.5, -3], [-4.5, 3], [4.5, 3]]) addCollider(tx, -14 + tz, 1.4)
+  // Château (voir buildings.js).
+  B.castle(ctx, 0, -14)
 
   // Montagne enneigée (ski).
   const mountain = new THREE.Group()
@@ -96,7 +77,10 @@ export function decorateMain(ctx) {
   })
 
   // Gardes, armes et canon devant le château.
-  for (const gx of [-1.7, 1.7]) P.place(ctx, 'soldier', gx, -10.4, { height: 1.7, r: 0.5 })
+  for (const gx of [-3.4, 3.4]) C.npc(ctx, 'barbarian', gx, -9.8, { keep: ['1H_Axe', 'Barbarian_Round_Shield', 'Barbarian_Hat'], rotY: gx > 0 ? -0.3 : 0.3 })
+  // Mage qui veille sur la pierre de foyer, aubergiste devant la maison.
+  C.npc(ctx, 'mage', -11, -6.8, { keep: ['2H_Staff', 'Mage_Hat', 'Mage_Cape'], anim: 'Spellcasting', rotY: Math.PI * 0.85, speed: 0.6 })
+  C.npc(ctx, 'barbarian', 5.2, 13.5, { keep: ['Mug'], anim: 'Cheer', rotY: -Math.PI / 2, speed: 0.5 })
   P.place(ctx, 'weaponRack', 7.5, -11.5, { height: 1.4, rotY: -0.4, r: 0.8 })
   P.place(ctx, 'cannon', 10, -6.5, { height: 1.3, rotY: 2.4, r: 0.9 })
   P.place(ctx, 'chest', -11, -12.5, { height: 0.9, rotY: 0.6, r: 0.6 })
@@ -111,6 +95,10 @@ export function decorateMain(ctx) {
 
   // Village médiéval autour du château.
   P.well(ctx, 6, 5)
+  // Village : maisons à colombages et forge du forgeron.
+  B.cottage(ctx, 7.5, 12.5, { rotY: -Math.PI / 2 + 0.3 })
+  B.cottage(ctx, -3.2, 17.2, { rotY: Math.PI / 2 + 0.2, wall: 0xcfc2e6, roof: 0x3a3270, w: 3.2, d: 2.8 })
+  B.forge(ctx, -7, 13.5, { rotY: 0.4 })
   P.lantern(ctx, -2.5, -9)
   P.lantern(ctx, 2.5, -9)
   // Lanternes à potence le long des chemins, deux d'entre elles éclairent vraiment.
@@ -131,7 +119,6 @@ export function decorateMain(ctx) {
   ctx.addPushable('barrel', 13.6, 2.6, { rotY: 2 })
   ctx.addPushable('crate', 11.2, 5.2, { rotY: 0.4 })
   ctx.addPushable('crate', -6, -2.5, { rotY: 0.2 })
-  P.flowers(ctx, -5, 13, { r: 2.2 })
   P.flowers(ctx, 13, 12, { r: 1.8 })
   P.rocks(ctx, -19, 10, { count: 4, color: 0x8d89b8 })
   P.rocks(ctx, 12, 15, { count: 3, color: 0x8d89b8 })
@@ -139,11 +126,11 @@ export function decorateMain(ctx) {
   P.mushroom(ctx, -14.5, 16.5, { scale: 0.7, cap: 0xb04ad6 })
 
   // Arbres en nuées de feuilles roses et violettes, buissons et sapins.
-  for (const [px, pz, pal, sz] of [[-18, -3, 'pink', 1.1], [-6, 17, 'purple', 1], [5, 17, 'pink', 0.9], [-12, 17, 'purple', 0.8], [12, 13.5, 'pink', 1], [17, 8, 'purple', 1.1], [-4.5, 12, 'pink', 0.75]]) {
+  for (const [px, pz, pal, sz] of [[-18, -3, 'pink', 1.1], [-8.5, 18, 'purple', 1], [5, 17, 'pink', 0.9], [-12, 17, 'purple', 0.8], [12, 13.5, 'pink', 1], [17, 8, 'purple', 1.1]]) {
     P.leafTree(ctx, px, pz, { palette: pal, size: sz, height: 2.6 + sz })
   }
-  for (const [px, pz] of [[-9, -17], [-15, -7.5], [16.5, 0], [-19, 7], [9, 17]]) P.pine(ctx, px, pz, { height: 3.6, big: true })
-  for (const [bx, bz, pal] of [[-3.5, 18, 'green'], [4, 11, 'purple'], [-20, 0, 'green'], [14, 9, 'pink'], [-7, 9.5, 'green'], [8.5, -1, 'green'], [-13, 12, 'pink']]) P.bush(ctx, bx, bz, { palette: pal })
+  for (const [px, pz] of [[-9, -17], [-15, -7.5], [17, -6], [-19, 7], [9, 17]]) P.pine(ctx, px, pz, { height: 3.6, big: true })
+  for (const [bx, bz, pal] of [[4, 11, 'purple'], [-20, 0, 'green'], [14, 9, 'pink'], [-7, 9.5, 'green'], [8.5, -1, 'green'], [-13, 12, 'pink']]) P.bush(ctx, bx, bz, { palette: pal })
 }
 
 export const satellites = {

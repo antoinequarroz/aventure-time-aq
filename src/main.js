@@ -8,6 +8,7 @@ import './style.css'
 import { createSpace } from './world/space.js'
 import { createIslands } from './world/islands.js'
 import { createVehicles } from './world/vehicles.js'
+import { createMinimap } from './minimap.js'
 import { createPushables } from './world/pushables.js'
 import { loadModels } from './world/models.js'
 import { createPlayer } from './player.js'
@@ -54,8 +55,9 @@ composer.addPass(new RenderPass(scene, camera))
 // Occlusion ambiante : ombres de contact au pied des objets et dans les recoins (désactivée sur mobile).
 const params = new URLSearchParams(location.search)
 const lowEnd = matchMedia('(pointer: coarse)').matches || params.has('lite')
+let ao = null
 if (!lowEnd && !params.has('noao')) {
-  const ao = new GTAOPass(scene, camera, window.innerWidth, window.innerHeight)
+  ao = new GTAOPass(scene, camera, window.innerWidth, window.innerHeight)
   ao.updateGtaoMaterial({ radius: 1.2, distanceExponent: 1.5, thickness: 1.5, scale: 1.2 })
   ao.blendIntensity = 0.85
   composer.addPass(ao)
@@ -87,7 +89,7 @@ function applyMood(era, k) {
 applyMood('past', 1)
 const space = createSpace(scene)
 const world = createIslands(scene)
-const vehicles = createVehicles(scene)
+const vehicles = createVehicles(scene, world)
 
 // Bâtiments qui s'effacent quand ils cachent le joueur.
 const fades = world.fadeables.map((object) => {
@@ -127,6 +129,7 @@ function updateFades(dt) {
 }
 const interactables = [...world.interactables, ...vehicles.interactables]
 const player = createPlayer(scene, world)
+const minimap = createMinimap({ world, player, interactables, eraOf: (x) => (x < -75 ? 'past' : x > 75 ? 'future' : 'present') })
 const games = createGames(scene, ui, player)
 const pushables = createPushables(scene, world, world.pushables, {
   onStrike: () => ui.toast('STRIKE ! Toutes les quilles sont tombées 🎳'),
@@ -147,6 +150,7 @@ if (new URLSearchParams(location.search).has('debug')) {
     scene,
     games,
     pushables,
+    vehicles,
     setCamera(x, y, z) {
       cameraOffset.set(x, y, z)
       camera.position.copy(cameraTarget).add(cameraOffset)
@@ -166,7 +170,7 @@ const controls = createControls({
   scene,
   player,
   onInteract: () => interact(),
-  isActive: () => started && !vehicles.traveling && !ui.panelOpen(),
+  isActive: () => started && !vehicles.traveling && !vehicles.driving && !ui.panelOpen(),
 })
 ui.onStart(() => {
   started = true
@@ -185,6 +189,7 @@ window.addEventListener('keydown', (e) => {
 
 function interact() {
   if (!started || vehicles.traveling) return
+  if (vehicles.driving) return vehicles.exit(player)
   if (ui.panelOpen()) return ui.closePanel()
   if (!nearby) return
   if (nearby.type === 'sign') ui.openPanel(nearby.title, nearby.text, nearby.links)
@@ -204,6 +209,56 @@ function findNearby() {
   return null
 }
 
+// Caméra : suit le joueur à l'horizontale, mais en hauteur elle suit le niveau du sol
+// (pas l'arc des sauts), et se recale d'un coup après une téléportation au lieu de traverser la carte.
+const focus = new THREE.Vector3()
+let camGround = player.position.y
+let zoom = 1
+function updateCamera(dt) {
+  const p = player.position
+  if (player.grounded || p.y < camGround - 0.5 || vehicles.traveling || vehicles.driving) camGround = p.y
+  focus.set(p.x, camGround, p.z)
+  if (focus.distanceToSquared(cameraTarget) > 30 * 30) cameraTarget.copy(focus)
+  else {
+    const k = 1 - Math.exp(-dt * 7)
+    cameraTarget.x += (focus.x - cameraTarget.x) * k
+    cameraTarget.z += (focus.z - cameraTarget.z) * k
+    cameraTarget.y += (focus.y - cameraTarget.y) * (1 - Math.exp(-dt * 3.5))
+  }
+  // Au volant, la caméra prend un peu de recul.
+  zoom += ((vehicles.driving || vehicles.traveling ? 1.3 : 1) - zoom) * (1 - Math.exp(-dt * 2))
+  camera.position.copy(cameraTarget).addScaledVector(cameraOffset, zoom)
+  camera.lookAt(cameraTarget.x, cameraTarget.y + 1.5, cameraTarget.z)
+}
+
+// Qualité adaptative : si l'ordinateur peine (moins de ~45 images/s), on retire d'abord
+// l'occlusion ambiante, puis on baisse la résolution, pour garder un mouvement fluide.
+let frameAvg = 1 / 60
+let frameCount = 0
+let quality = params.has('lite') ? 2 : 0
+const applyQuality = () => {
+  if (ao) ao.enabled = quality < 1
+  const ratio = [Math.min(devicePixelRatio, 2), Math.min(devicePixelRatio, 1.5), 1, 0.8][quality]
+  renderer.setPixelRatio(ratio)
+  composer.setPixelRatio(ratio)
+  if (quality >= 3 && sun.shadow.mapSize.x !== 1024) {
+    sun.shadow.mapSize.setScalar(1024)
+    sun.shadow.map?.dispose()
+    sun.shadow.map = null
+  }
+}
+function adaptQuality() {
+  const frame = timer.getDelta()
+  frameAvg += (Math.min(frame, 0.1) - frameAvg) * 0.05
+  if (++frameCount < 90 || quality >= 3 || frame <= 0) return
+  if (frameAvg > 1 / 45) {
+    quality++
+    frameCount = 0
+    applyQuality()
+  }
+}
+if (quality) applyQuality()
+
 let lastIsland = null
 const timer = new THREE.Timer()
 
@@ -212,24 +267,23 @@ function tick() {
   const dt = Math.min(timer.getDelta(), 0.05)
   const t = timer.getElapsed()
 
-  if (!vehicles.traveling) player.update(dt, started && !ui.panelOpen())
-  vehicles.update(dt, t)
+  if (!vehicles.traveling && !vehicles.driving) player.update(dt, started && !ui.panelOpen())
+  vehicles.update(dt, t, player, started && !ui.panelOpen())
   pushables.update(dt, player)
   controls.update(dt)
+  if (started) minimap.update(dt)
   world.update(dt, t)
   games.update(dt, t)
   space.update(dt, t)
 
-  cameraTarget.lerp(player.position, 1 - Math.exp(-dt * 6))
-  camera.position.lerp(cameraTarget.clone().add(cameraOffset), 1 - Math.exp(-dt * 4))
-  camera.lookAt(cameraTarget.x, cameraTarget.y + 1.5, cameraTarget.z)
+  updateCamera(dt)
 
   updateFades(dt)
   sun.position.set(cameraTarget.x + 20, 40, cameraTarget.z + 15)
   sun.target.position.copy(cameraTarget)
 
-  nearby = started && !vehicles.traveling ? findNearby() : null
-  ui.setPrompt(nearby && !ui.panelOpen() ? ({ sign: `E · Lire « ${nearby.title} »`, vehicle: `E · Monter : ${nearby.title}`, game: games.active ? null : `E · Jouer : ${nearby.title}` })[nearby.type] : null)
+  nearby = started && !vehicles.traveling && !vehicles.driving ? findNearby() : null
+  ui.setPrompt(vehicles.driving ? vehicles.hint : nearby && !ui.panelOpen() ? ({ sign: `E · Lire « ${nearby.title} »`, vehicle: `E · ${nearby.id === 'car' ? nearby.title : `Monter : ${nearby.title}`}`, game: games.active ? null : `E · Jouer : ${nearby.title}` })[nearby.type] : null)
 
   const island = player.currentIsland()
   applyMood(island?.era, 1 - Math.exp(-dt * 2))
@@ -237,6 +291,7 @@ function tick() {
   if (island && started) lastIsland = island
 
   composer.render()
+  adaptQuality()
   requestAnimationFrame(tick)
 }
 tick()

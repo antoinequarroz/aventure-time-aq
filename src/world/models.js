@@ -5,7 +5,6 @@ import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
 // Modèles 3D libres (CC0), voir CREDITS.md.
 const base = `${import.meta.env.BASE_URL}models/`
 const FILES = {
-  character: 'kenney-platformer/character.glb',
   cloud: 'kenney-platformer/cloud.glb',
   coin: 'kenney-platformer/coin.glb',
   houseA: 'kenney-city/building-small-a.glb',
@@ -27,7 +26,11 @@ const FILES = {
   arenaBanner: 'kenney-arena/banner.glb',
   trophy: 'kenney-arena/trophy.glb',
   weaponRack: 'kenney-arena/weapon-rack.glb',
-  soldier: 'kenney-arena/character-soldier.glb',
+  // KayKit Adventurers (Kay Lousberg, CC0) : personnages animés.
+  knight: 'kaykit/Knight.glb',
+  rogue: 'kaykit/Rogue.glb',
+  barbarian: 'kaykit/Barbarian.glb',
+  mage: 'kaykit/Mage.glb',
   stairs: 'kenney-arena/stairs.glb',
   // pmndrs market (Kenney, Creativetrio, Sara Vieira, MarkLaBarr).
   tower: 'pmndrs-market/tower.glb',

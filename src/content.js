@@ -9,8 +9,8 @@ const project = (slug) => site(`/projets/${slug}`)
 
 export const intro = {
   title: 'Aventure Time AQ',
-  subtitle: 'Bienvenue dans le monde d\'Antoine Quarroz, développeur web et mobile en Valais. Trois îles à explorer : mon passé, mon présent et mon futur.',
-  controls: 'Clic sur le sol ou ZQSD / flèches pour marcher · Maj pour courir · Espace pour sauter · E pour interagir · Échap pour fermer · Sur téléphone : joystick et boutons à l’écran',
+  subtitle: 'Bienvenue dans le monde d\'Antoine Quarroz : développeur, technologue, créateur et formateur, en Valais. Trois îles à explorer : mon passé, mon présent et mon futur.',
+  controls: 'Clic sur le sol ou ZQSD / flèches pour marcher · Maj pour courir · Espace pour sauter · E pour interagir (panneaux, jeux, voiture) · M pour la carte · Échap pour fermer · Sur téléphone : joystick et boutons à l’écran',
 }
 
 export const vehicles = {
@@ -29,6 +29,16 @@ export const islands = [
       { id: 'lake', name: 'Le Lac', tagline: 'Course des bannières', game: { title: 'Course des bannières', intro: 'Passe dans les anneaux dans l\'ordre, le plus vite possible.' } },
     ],
     signs: [
+      {
+        pos: [-4, 4],
+        title: 'Fiche de personnage',
+        text: [
+          'Nom : Antoine Quarroz. Origine : Saint-Martin, Val d\'Hérens. Niveau : en progression constante.',
+          'Classe principale : Développeur, chevalier du code qui défend des sites fiables et rapides.',
+          'Sous-classes : Technologue (alchimiste des nouvelles technos et de l\'IA), Créateur (artisan du design, de la photo et de la vidéo) et Formateur (maître d\'armes qui aime transmettre ses techniques).',
+          'Compétence passive : obsédé par les détails.',
+        ],
+      },
       {
         pos: [0, -6],
         title: 'Mon histoire',
@@ -82,7 +92,7 @@ export const islands = [
         pos: [0, -9],
         title: 'Développeur',
         text: [
-          'Aujourd\'hui, je suis développeur web et mobile freelance, basé en Valais et disponible à distance. Passionné par le code, obsédé par les détails.',
+          'Aujourd\'hui, je suis développeur web et mobile freelance, technologue et créateur, basé en Valais et disponible à distance. Passionné par le code, obsédé par les détails.',
           'Je crée des sites vitrines, des CMS sur mesure, des applications iOS et Android, des outils pour PME et des audits IA.',
           'Mes outils : Vue, Nuxt, React, Next.js, TypeScript, SwiftUI, Flutter, Rust, Supabase, PostgreSQL, Node.js, Three.js, Figma, Docker.',
         ],
@@ -119,6 +129,15 @@ export const islands = [
         ],
       },
       {
+        pos: [-10, 8],
+        title: 'Formateur',
+        text: [
+          'J\'aime transmettre : expliquer simplement le web, le mobile et l\'IA, et faire monter des équipes en compétence.',
+          'Ateliers, cours, accompagnement de projets et coaching de développeurs juniors.',
+          '[à compléter : où tu enseignes, tes formats de formation, les sujets que tu proposes]',
+        ],
+      },
+      {
         pos: [-11, 2],
         title: 'Photo',
         text: 'La photo est une de mes passions. [à compléter : ton matériel, tes sujets préférés ; une galerie viendra ici]',
@@ -149,6 +168,15 @@ export const islands = [
       { id: 'orbit', name: 'La Piste orbitale', tagline: 'Course d\'anneaux', game: { title: 'Course orbitale', intro: 'Traverse les anneaux lumineux dans l\'ordre, chrono en main.' } },
     ],
     signs: [
+      {
+        pos: [-8, 4],
+        title: 'Technologue',
+        text: [
+          'Journal de bord : explorer les technologies avant qu\'elles n\'atterrissent chez tout le monde.',
+          'IA générative et agents, Rust, applications natives, 3D dans le navigateur (comme ce site en Three.js).',
+          'Ma mission : transformer ces nouveautés en outils concrets pour les PME, et apprendre aux autres à s\'en servir.',
+        ],
+      },
       {
         pos: [-9, -6],
         title: 'Astronomie',
