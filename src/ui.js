@@ -7,7 +7,7 @@ export function createUI() {
       <h1>${intro.title}</h1>
       <p>${intro.subtitle}</p>
       <p class="controls">${intro.controls}</p>
-      <button id="start">Commencer l'aventure</button>
+      <button id="start" disabled>Chargement…</button>
     </div>
     <div class="island-name" id="island-name"><strong></strong><span></span></div>
     <div class="prompt" id="prompt"></div>
@@ -35,6 +35,13 @@ export function createUI() {
         $('start').blur()
         cb()
       })
+    },
+    setLoading(progress) {
+      $('start').textContent = `Chargement… ${Math.round(progress * 100)} %`
+    },
+    setReady() {
+      $('start').disabled = false
+      $('start').textContent = 'Commencer l\'aventure'
     },
     showIsland(name, tagline) {
       islandName.querySelector('strong').textContent = name

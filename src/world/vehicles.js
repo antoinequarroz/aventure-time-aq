@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { vehicles as labels } from '../content.js'
 import { mat, mesh } from './helpers.js'
+import { model } from './models.js'
 import { THEMES } from './islands.js'
 
 // Deux véhicules partagés : la voiture relie le passé et le présent,
@@ -144,28 +145,19 @@ function makeVehicle(scene, { id, model, stations, duration, height, upright }) 
   }
 }
 
+// Pick-up rouge du Racing Kit de Kenney.
 function buildCar() {
   const car = new THREE.Group()
-  const body = new THREE.Group()
-  car.add(body)
-  body.add(mesh(new THREE.BoxGeometry(2, 0.7, 3.8), mat(0xd6402f), { y: 0.75 }))
-  body.add(mesh(new THREE.BoxGeometry(1.7, 0.65, 1.9), mat(0xd6402f), { y: 1.42, z: -0.25 }))
-  body.add(mesh(new THREE.BoxGeometry(1.72, 0.45, 1.6), mat(0x9fd6ff, { roughness: 0.2 }), { y: 1.45, z: -0.25 }))
-  for (const x of [-0.6, 0.6]) {
-    body.add(mesh(new THREE.BoxGeometry(0.35, 0.2, 0.05), mat(0xfff5c0, { emissive: 0xffe08a, emissiveIntensity: 1 }), { x, y: 0.85, z: 1.91, shadow: false }))
-  }
-  const wheels = []
-  for (const [x, z] of [[-1, 1.2], [1, 1.2], [-1, -1.2], [1, -1.2]]) {
-    const w = mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.3, 14), mat(0x1e1e1e), { x, y: 0.42, z })
-    w.rotation.z = Math.PI / 2
-    car.add(w)
-    wheels.push(w)
+  const truck = model('truck', { width: 4 })
+  car.add(truck)
+  car.userData.onIdle = (t) => {
+    truck.position.y = Math.sin(t * 30) * 0.015
   }
   car.userData.onFly = (t) => {
-    for (const w of wheels) w.rotation.x = t * 20
+    truck.rotation.z = Math.sin(t * 6) * 0.08
   }
-  car.userData.onIdle = (t) => {
-    body.position.y = Math.sin(t * 30) * 0.015
+  car.userData.onPark = () => {
+    truck.rotation.z = 0
   }
   return car
 }

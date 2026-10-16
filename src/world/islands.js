@@ -1,15 +1,16 @@
 import * as THREE from 'three'
 import { islands as content } from '../content.js'
 import { jitter, mat, mesh, makeCharacter, textTexture } from './helpers.js'
+import { model, animate } from './models.js'
 
 export const ISLAND_RADIUS = 22
 const SPACING = 75
 
 // Ordre : passé (gauche), présent (centre), futur (droite).
 export const THEMES = {
-  past: { center: new THREE.Vector3(-SPACING, 0, 0), top: 0x5f9e3c, rock: 0x6b5a48, accent: 0xffb347, signBg: '#3b2a1a', signFg: '#fbe9c8' },
-  present: { center: new THREE.Vector3(0, 0, 0), top: 0x7bbf4f, rock: 0x7a6a58, accent: 0x6fd3ff, signBg: '#1f3b57', signFg: '#e8f6ff' },
-  future: { center: new THREE.Vector3(SPACING, 0, 0), top: 0xb9bcc6, rock: 0x55586a, accent: 0xb48cff, signBg: '#1a1530', signFg: '#d9ccff' },
+  past: { center: new THREE.Vector3(-SPACING, 0, 0), top: 0x5f9e3c, rock: 0x6b5a48, dirt: 0x7a5434, accent: 0xffb347, signBg: '#3b2a1a', signFg: '#fbe9c8' },
+  present: { center: new THREE.Vector3(0, 0, 0), top: 0x7bbf4f, rock: 0x7a6a58, dirt: 0x8a6040, accent: 0x6fd3ff, signBg: '#1f3b57', signFg: '#e8f6ff' },
+  future: { center: new THREE.Vector3(SPACING, 0, 0), top: 0xb9bcc6, rock: 0x55586a, dirt: 0x7b7f8e, accent: 0xb48cff, signBg: '#1a1530', signFg: '#d9ccff' },
 }
 
 export function createIslands(scene) {
@@ -48,6 +49,31 @@ export function createIslands(scene) {
     islandsInfo.push({ id: island.id, name: island.name, tagline: island.tagline, center: theme.center })
   }
 
+  // Nuages qui dérivent sous et entre les îles.
+  const clouds = []
+  for (let i = 0; i < 16; i++) {
+    const cloud = model('cloud', { width: 3 + Math.random() * 4 })
+    cloud.scale.y = 0.6
+    cloud.position.set(-130 + Math.random() * 260, -14 - Math.random() * 24, -70 + Math.random() * 60)
+    cloud.userData.speed = 0.6 + Math.random() * 1.2
+    cloud.traverse((o) => {
+      if (o.isMesh) {
+        o.castShadow = false
+        o.material = o.material.clone()
+        o.material.transparent = true
+        o.material.opacity = 0.7
+      }
+    })
+    clouds.push(cloud)
+    scene.add(cloud)
+  }
+  animated.push((dt) => {
+    for (const cloud of clouds) {
+      cloud.position.x += cloud.userData.speed * dt
+      if (cloud.position.x > 140) cloud.position.x = -140
+    }
+  })
+
   return {
     colliders,
     interactables,
@@ -60,13 +86,42 @@ export function createIslands(scene) {
 }
 
 function buildBase({ group, theme }, id) {
-  const top = jitter(new THREE.CylinderGeometry(ISLAND_RADIUS, ISLAND_RADIUS - 1, 2, 28, 1), 0.25, id.length * 7)
-  const topMesh = mesh(top, mat(theme.top), { y: -1 })
+  // Dessus de l'île avec de légères variations de couleur.
+  const top = jitter(new THREE.CylinderGeometry(ISLAND_RADIUS, ISLAND_RADIUS - 0.6, 1.2, 40, 4), 0.15, id.length * 7)
+  const colors = []
+  const base = new THREE.Color(theme.top)
+  const c = new THREE.Color()
+  const pos = top.attributes.position
+  for (let i = 0; i < pos.count; i++) {
+    const n = Math.sin(pos.getX(i) * 0.35) * Math.cos(pos.getZ(i) * 0.3)
+    c.copy(base).offsetHSL(0, 0, n * 0.05 + (pos.getY(i) < 0 ? -0.08 : 0))
+    colors.push(c.r, c.g, c.b)
+  }
+  top.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
+  const topMesh = mesh(top, mat(0xffffff, { vertexColors: true }), { y: -0.6 })
   topMesh.castShadow = false
-  const rock = jitter(new THREE.ConeGeometry(ISLAND_RADIUS - 1, 20, 14, 3), 1.6, id.length * 13)
+  // Couche de terre sous l'herbe, puis la roche.
+  const dirt = mesh(jitter(new THREE.CylinderGeometry(ISLAND_RADIUS - 0.4, ISLAND_RADIUS - 1.6, 2.4, 24, 1), 0.35, id.length * 3), mat(theme.dirt), { y: -2.3 })
+  const rock = jitter(new THREE.ConeGeometry(ISLAND_RADIUS - 1.5, 20, 14, 3), 1.6, id.length * 13)
   rock.rotateX(Math.PI)
-  const rockMesh = mesh(rock, mat(theme.rock), { y: -12 })
-  group.add(topMesh, rockMesh)
+  const rockMesh = mesh(rock, mat(theme.rock), { y: -13.4 })
+  group.add(topMesh, dirt, rockMesh)
+
+  // Touffes d'herbe (ou cailloux sur la lune) en instances.
+  const tuftGeo = id === 'future' ? new THREE.DodecahedronGeometry(0.18, 0) : new THREE.ConeGeometry(0.08, 0.45, 3)
+  const tufts = new THREE.InstancedMesh(tuftGeo, mat(0xffffff), id === 'future' ? 140 : 500)
+  const m = new THREE.Matrix4()
+  const tuftColor = new THREE.Color()
+  for (let i = 0; i < tufts.count; i++) {
+    const a = Math.random() * Math.PI * 2
+    const r = Math.sqrt(Math.random()) * (ISLAND_RADIUS - 1)
+    m.makeRotationY(Math.random() * Math.PI)
+    m.setPosition(Math.cos(a) * r, id === 'future' ? 0.05 : 0.2, Math.sin(a) * r)
+    tufts.setMatrixAt(i, m)
+    tufts.setColorAt(i, tuftColor.set(theme.top).offsetHSL(0, id === 'future' ? -0.05 : 0.05, (Math.random() - 0.6) * 0.15))
+  }
+  tufts.receiveShadow = true
+  group.add(tufts)
 
   // Petits rochers flottants autour de l'île.
   for (let i = 0; i < 6; i++) {
@@ -150,6 +205,15 @@ function buildPast({ group, addCollider, animated }) {
     crystal.position.y = 2.2 + Math.sin(t * 2) * 0.25
   })
 
+  // Pièces d'or qui tournent autour du cristal.
+  const coins = [0, 1, 2].map(() => model('coin', { height: 0.7 }))
+  group.add(...coins)
+  animated.push((dt, t) => coins.forEach((coin, i) => {
+    const a = t * 0.8 + (i / 3) * Math.PI * 2
+    coin.position.set(-13 + Math.cos(a) * 1.8, 1.6 + Math.sin(t * 2 + i) * 0.3, -9 + Math.sin(a) * 1.8)
+    coin.rotation.y = t * 3
+  }))
+
   for (const [px, pz] of [[-18, -3], [-9, -17], [-18, 3], [-6, 14], [3, 17], [-12, 16], [12, 14], [16, 7], [-3, 12]]) {
     tree(group, px, pz, { leaves: 0x3f7d2a })
     addCollider(px, pz, 0.6)
@@ -157,53 +221,45 @@ function buildPast({ group, addCollider, animated }) {
 }
 
 function buildPresent({ group, addCollider, animated }) {
-  // Place pavée.
-  const plaza = mesh(new THREE.CylinderGeometry(7, 7, 0.1, 24), mat(0xb8b0a2), { y: 0.05, shadow: false })
-  group.add(plaza)
+  // Place pavée avec fontaine.
+  const plaza = mesh(new THREE.CylinderGeometry(7, 7, 0.1, 32), mat(0xc9c2b4), { y: 0.05, shadow: false })
+  group.add(plaza, model('fountain', { width: 4.5, y: 0.05 }))
+  addCollider(0, 0, 2.3)
 
-  const house = (x, z, color, rot = 0) => {
-    const h = new THREE.Group()
-    h.position.set(x, 0, z)
-    h.rotation.y = rot
-    h.add(mesh(new THREE.BoxGeometry(4, 3, 4), mat(color), { y: 1.5 }))
-    const roofGeo = new THREE.ConeGeometry(3.3, 2, 4)
-    roofGeo.rotateY(Math.PI / 4)
-    h.add(mesh(roofGeo, mat(0xa0402f), { y: 4 }))
-    h.add(mesh(new THREE.BoxGeometry(1, 1.8, 0.1), mat(0x5a3a22), { y: 0.9, z: 2.01 }))
-    h.add(mesh(new THREE.BoxGeometry(0.9, 0.9, 0.1), mat(0xfff2a8, { emissive: 0xffd76a, emissiveIntensity: 0.6 }), { x: 1.1, y: 1.9, z: 2.01 }))
-    group.add(h)
-    addCollider(x, z, 2.8)
+  // Maisons du village (Kenney City Builder), tournées vers la place.
+  for (const [key, x, z] of [['houseA', -14, -10], ['houseC', 14, -10], ['houseB', -15, 12], ['houseD', 15, 12]]) {
+    group.add(model(key, { width: 5, x, z, rotY: Math.atan2(-x, -z) }))
+    addCollider(x, z, 3.1)
   }
-  house(-14, -10, 0xe8d8b8, Math.PI / 6)
-  house(14, -10, 0xd8e2f0, -Math.PI / 6)
-  house(-15, 12, 0xf0d0c0, Math.PI - 0.4)
-  house(15, 12, 0xd5ecd2, Math.PI + 0.4)
+  group.add(model('garage', { width: 5, x: 8, z: -17, rotY: Math.PI * 0.85 }))
+  addCollider(8, -17, 3)
 
   // Le développeur à son bureau, sur la place.
   const desk = mesh(new THREE.BoxGeometry(2.2, 0.15, 1.1), mat(0x8a5a32), { x: 0, y: 1, z: -13 })
   const legs = [[-1, -0.45], [1, -0.45], [-1, 0.45], [1, 0.45]].map(([dx, dz]) => mesh(new THREE.BoxGeometry(0.1, 1, 0.1), mat(0x5a3a22), { x: dx, y: 0.5, z: -13 + dz }))
   const screen = mesh(new THREE.BoxGeometry(1.2, 0.75, 0.06), mat(0x111111), { x: 0, y: 1.55, z: -13.3 })
   const glow = mesh(new THREE.PlaneGeometry(1.1, 0.65), new THREE.MeshBasicMaterial({ color: 0x5fd0ff }), { x: 0, y: 1.55, z: -13.26, shadow: false })
-  const dev = makeCharacter({ body: 0x2e2e2e, legs: 0x3a4a6a })
-  dev.position.set(0, 0, -12)
-  dev.rotation.y = Math.PI
-  group.add(desk, ...legs, screen, glow, dev)
+  const glowLight = new THREE.PointLight(0x5fd0ff, 4, 5)
+  glowLight.position.set(0, 1.6, -12.8)
+  const dev = model('character', { height: 2, x: 0, z: -12, rotY: Math.PI })
+  const { mixer } = animate(dev, 'idle')
+  group.add(desk, ...legs, screen, glow, glowLight, dev)
   addCollider(0, -12.8, 1.6)
   animated.push((dt, t) => {
+    mixer.update(dt)
     glow.material.color.setHSL(0.55, 0.8, 0.55 + Math.sin(t * 4) * 0.08)
-    dev.userData.limbs.armL.rotation.x = -1 + Math.sin(t * 12) * 0.15
-    dev.userData.limbs.armR.rotation.x = -1 + Math.cos(t * 12) * 0.15
   })
 
   // Lampadaires.
   for (const [lx, lz] of [[-6, -6], [6, -6], [-6, 6], [6, 6]]) {
-    group.add(mesh(new THREE.CylinderGeometry(0.08, 0.1, 3.2, 6), mat(0x333333), { x: lx, y: 1.6, z: lz }))
-    group.add(mesh(new THREE.SphereGeometry(0.3, 10, 8), mat(0xfff0b0, { emissive: 0xffd76a, emissiveIntensity: 1.2 }), { x: lx, y: 3.3, z: lz, shadow: false }))
+    group.add(mesh(new THREE.CylinderGeometry(0.08, 0.12, 3.2, 8), mat(0x2b2b33), { x: lx, y: 1.6, z: lz }))
+    group.add(mesh(new THREE.SphereGeometry(0.3, 12, 10), mat(0xfff0b0, { emissive: 0xffc85a, emissiveIntensity: 2.5 }), { x: lx, y: 3.3, z: lz, shadow: false }))
     addCollider(lx, lz, 0.3)
   }
 
-  for (const [px, pz] of [[-18, -8], [19, 5], [-5, -18], [6, -18], [-6, 18], [7, 18], [19, -4], [-19, 5]]) {
-    tree(group, px, pz, { leaves: 0x4c9a35 })
+  // Arbres.
+  for (const [px, pz, pine] of [[-18, -6, 1], [19, 5, 0], [-5, -18, 0], [-7, 18, 1], [7, 18, 0], [19, -4, 1], [-19, 5, 0], [-10, 17, 0], [11, 16, 1]]) {
+    tree(group, px, pz, { pine, leaves: pine ? 0x2f7a52 : 0x5aa83a, scale: pine ? 1.1 : 1 })
     addCollider(px, pz, 0.6)
   }
 }
@@ -251,6 +307,33 @@ function buildFuture({ group, addCollider, animated }) {
     astronaut.position.y = Math.abs(Math.sin(t * 1.3)) * 0.6
     astronaut.rotation.y = t * 0.4
     astronaut.userData.limbs.armR.rotation.z = 2.6 + Math.sin(t * 5) * 0.4
+  })
+
+  // Robot compagnon (Quaternius) qui fait coucou.
+  const robot = model('robot', { height: 2.6, x: 3, z: -3, rotY: -0.3 })
+  const { mixer, actions } = animate(robot, 'Wave')
+  group.add(robot)
+  addCollider(3, -3, 1)
+  let robotTimer = 0
+  animated.push((dt) => {
+    mixer.update(dt)
+    // Alterne coucou et danse.
+    robotTimer += dt
+    if (robotTimer > 6) {
+      robotTimer = 0
+      const [from, to] = actions.Wave.isRunning() ? [actions.Wave, actions.Dance] : [actions.Dance, actions.Wave]
+      to.reset().fadeIn(0.4).play()
+      from.fadeOut(0.4)
+    }
+  })
+
+  // Drone qui patrouille autour de la base.
+  const drone = model('drone', { height: 1.4 })
+  group.add(drone)
+  animated.push((dt, t) => {
+    const a = t * 0.5
+    drone.position.set(Math.cos(a) * 7, 6 + Math.sin(t * 2) * 0.4, -14 + Math.sin(a) * 7)
+    drone.rotation.y = -a
   })
 
   // Drapeau planté.

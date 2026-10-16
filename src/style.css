@@ -16,6 +16,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #070a1f; fon
   margin-top: 24px; padding: 14px 28px; font-size: 1.1rem; border: 0; border-radius: 999px; cursor: pointer;
   background: linear-gradient(135deg, #ffb347, #b48cff); color: #1a1530; font-weight: 700;
 }
+.intro button:disabled { opacity: 0.6; cursor: wait; }
 
 .island-name {
   position: absolute; top: 28px; left: 50%; transform: translate(-50%, -12px); text-align: center;

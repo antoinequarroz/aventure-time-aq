@@ -44,12 +44,20 @@ src/
     space.js        étoiles et planètes
     islands.js      construction des trois îles
     vehicles.js     voiture et fusée entre les îles
+    models.js       chargement des modèles 3D (glTF)
+public/models/      modèles 3D libres (CC0), voir CREDITS.md
     helpers.js      matériaux, personnages, textures de texte
 ```
 
+## Graphismes
+
+Les modèles 3D viennent de [Kenney](https://kenney.nl) et [Quaternius](https://quaternius.com), en CC0 (voir [CREDITS.md](CREDITS.md)). Pour en ajouter un, dépose le `.glb` dans `public/models/`, déclare-le dans `src/world/models.js`, puis place-le avec `model('nom', { height, x, z })`.
+
+Le rendu utilise le tone mapping ACES, un ciel à nébuleuses en shader, des étoiles scintillantes et un léger bloom.
+
 ## Débogage
 
-Ouvre le site avec `?debug` pour accéder à `window.__game` dans la console (par exemple `__game.player.teleport({ x: 0, y: 0, z: 0 })`).
+Ouvre le site avec `?debug` pour accéder à `window.__game` dans la console (par exemple `__game.teleport(0, 4)` pour aller sur l'île du Présent).
 
 ## Déploiement
 

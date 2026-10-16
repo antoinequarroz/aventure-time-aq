@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { makeCharacter } from './world/helpers.js'
+import { model as loadModel, animate } from './world/models.js'
 import { ISLAND_RADIUS } from './world/islands.js'
 
 const WALK = 6
@@ -9,15 +9,26 @@ const GRAVITY = 22
 const RADIUS = 0.5
 
 export function createPlayer(scene, { colliders, islands, spawn }) {
-  const model = makeCharacter({ body: 0x3f6fd8, legs: 0x3a2a1a })
+  const model = loadModel('character', { height: 2 })
   scene.add(model)
+  const { mixer, actions } = animate(model, 'idle')
+  actions.jump.setLoop(THREE.LoopOnce)
+  actions.jump.clampWhenFinished = true
+  let current = actions.idle
+  const play = (name, timeScale = 1) => {
+    const next = actions[name]
+    next.timeScale = timeScale
+    if (next === current) return
+    next.reset().fadeIn(0.15).play()
+    current.fadeOut(0.15)
+    current = next
+  }
 
   const position = spawn.clone()
   const velocity = new THREE.Vector3()
   const keys = new Set()
   let grounded = true
   let facing = 0
-  let walkCycle = 0
   let respawnPoint = spawn.clone()
   let jumpRequested = false
 
@@ -92,16 +103,11 @@ export function createPlayer(scene, { colliders, islands, spawn }) {
       let diff = target - facing
       diff = Math.atan2(Math.sin(diff), Math.cos(diff))
       facing += diff * Math.min(1, dt * 12)
-      walkCycle += dt * speed * 1.6
-    } else {
-      walkCycle *= 0.85
     }
-    const swing = Math.sin(walkCycle) * (moving ? 0.7 : 0)
-    const { legL, legR, armL, armR } = model.userData.limbs
-    legL.rotation.x = swing
-    legR.rotation.x = -swing
-    armL.rotation.x = -swing
-    armR.rotation.x = swing
+    if (!grounded) play('jump')
+    else if (moving) play('walk', speed === RUN ? 2.2 : 1.5)
+    else play('idle')
+    mixer.update(dt)
 
     model.position.copy(position)
     model.rotation.y = facing
