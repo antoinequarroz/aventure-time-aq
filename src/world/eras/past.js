@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { jitter, mat, mesh } from '../helpers.js'
 import { model } from '../models.js'
 import * as P from '../props.js'
+import { fireflies } from '../nature.js'
 
 // Le Passé : royaume médiéval fantastique.
 
@@ -18,6 +19,14 @@ export const mainShape = {
     [0, -1.2, 0, 0, -5.4, 2.4, 3.4],
     [10.5, -2.5, 0, 12.8, -5.6, 1.2, 2.6],
   ],
+  // Chemins de dalles depuis les passerelles, places pavées d'hexagones.
+  paths: [
+    { pts: [[1.5, 21], [0.6, 13], [0, 6], [0, -0.6]], w: 2.4 },
+    { pts: [[-22.5, 4], [-14, 2.6], [-5, 2.4], [-1.5, 2.6]], w: 2 },
+    { pts: [[-12.5, -13], [-8, -6], [-3, -1.2]], w: 2 },
+    { pts: [[2, 3.4], [9, 0], [10.6, -2.2]], w: 1.8 },
+  ],
+  plazas: [[0, -7.4, 2.6], [0, 3, 3.2]],
 }
 
 export function decorateMain(ctx) {
@@ -65,7 +74,10 @@ export function decorateMain(ctx) {
   goal.add(mesh(new THREE.BoxGeometry(0.15, 2, 0.15), white, { x: 1.8, y: 1 }))
   goal.add(mesh(new THREE.BoxGeometry(3.75, 0.15, 0.15), white, { y: 2 }))
   goal.rotation.y = Math.PI / 4
-  group.add(goal, mesh(new THREE.IcosahedronGeometry(0.3, 1), mat(0xf5f5f5), { x: -12, y: 0.3, z: 8 }))
+  group.add(goal)
+  for (const side of [-1, 1]) addCollider(-15 + side * 1.27, 10 - side * 1.27, 0.2)
+  // Ballon à pousser jusque dans la cage.
+  ctx.addPushable('ball', -12, 8, { goal: [-15, 10, 1.1] })
 
   // Pierre de foyer façon WoW : cristal flottant et pièces d'or.
   const crystal = mesh(new THREE.OctahedronGeometry(0.8, 0), mat(0x58d0ff, { emissive: 0x2a8fd0, emissiveIntensity: 0.9 }), { x: -13, y: 2.2, z: -9 })
@@ -91,31 +103,47 @@ export function decorateMain(ctx) {
   // Trophée près du but de foot, cheval près du puits.
   P.place(ctx, 'trophy', -17.5, 13, { height: 1.4, r: 0.6 })
   P.place(ctx, 'horse', 8.5, 3.5, { height: 2, rotY: -1.2, r: 0.9 })
-  // Falaises en bordure d'île.
-  P.cliff(ctx, -16.5, -12, { height: 5, rotY: 0.4 })
-  P.cliff(ctx, 15.5, 13.5, { height: 3.5, small: true, rotY: 2 })
-  P.cliff(ctx, -8, 19.5, { height: 3, small: true, rotY: 1 })
+  // Flèches de roche lavande en bordure d'île (Mike).
+  P.spires(ctx, -17, -12, { height: 7, count: 5 })
+  P.spires(ctx, 16, 14, { height: 4.5, count: 3, spread: 1.1 })
+  P.spires(ctx, -8.5, 19.5, { height: 4, count: 3, spread: 1 })
+  P.spires(ctx, 19, 5.5, { height: 5, count: 4, spread: 1.2 })
 
   // Village médiéval autour du château.
-  P.well(ctx, 5, 2)
+  P.well(ctx, 6, 5)
   P.lantern(ctx, -2.5, -9)
   P.lantern(ctx, 2.5, -9)
+  // Lanternes à potence le long des chemins, deux d'entre elles éclairent vraiment.
+  P.gallowsLantern(ctx, 2.2, 15, { rotY: Math.PI, light: true })
+  P.gallowsLantern(ctx, -1.8, 8, { rotY: 0 })
+  P.gallowsLantern(ctx, -15, 0.6, { rotY: -Math.PI / 2, light: true })
+  P.gallowsLantern(ctx, -9.5, -9.5, { rotY: 0.6 })
+  P.gallowsLantern(ctx, -2.2, -4.2, { rotY: 0, color: 0xffa860 })
+  P.gallowsLantern(ctx, 2.2, -4.2, { rotY: Math.PI, color: 0xffa860 })
+  // Barrières sur le rebord du plateau du château.
+  P.rimFence(ctx, 7, 0, 3)
+  fireflies(ctx, { count: 90 })
   P.banner(ctx, -6, -10, { color: 0x2f4e8c })
   P.banner(ctx, 6, -10, { color: 0xc0392b })
-  P.place(ctx, 'barrel', 12, 3, { height: 1, r: 0.5 })
-  P.place(ctx, 'barrel', 12.9, 4.2, { height: 1, rotY: 1, r: 0.5 })
-  P.crate(ctx, 11.4, 5, { rotY: 0.4 })
-  P.crate(ctx, 11.4, 5, { size: 0.6, y: 0.9, rotY: 0.9 })
+  // Tonneaux et caisses qu'on pousse.
+  ctx.addPushable('barrel', 12, 3)
+  ctx.addPushable('barrel', 12.9, 4.2, { rotY: 1 })
+  ctx.addPushable('barrel', 13.6, 2.6, { rotY: 2 })
+  ctx.addPushable('crate', 11.2, 5.2, { rotY: 0.4 })
+  ctx.addPushable('crate', -6, -2.5, { rotY: 0.2 })
   P.flowers(ctx, -5, 13, { r: 2.2 })
   P.flowers(ctx, 13, 12, { r: 1.8 })
-  P.rocks(ctx, -19, 10, { count: 4 })
-  P.rocks(ctx, 12, 15, { count: 3 })
+  P.rocks(ctx, -19, 10, { count: 4, color: 0x8d89b8 })
+  P.rocks(ctx, 12, 15, { count: 3, color: 0x8d89b8 })
   P.mushroom(ctx, -16, 15, { scale: 1.2 })
   P.mushroom(ctx, -14.5, 16.5, { scale: 0.7, cap: 0xb04ad6 })
 
-  for (const [px, pz] of [[-18, -3], [-9, -17], [-6, 17], [3, 17], [-12, 16], [12, 14], [16, 7], [-3, 12]]) {
-    P.tree(ctx, px, pz, { leaves: [0x3f7d2a, 0x4c8a30, 0x356e25][Math.abs(px + pz) % 3] })
+  // Arbres en nuées de feuilles roses et violettes, buissons et sapins.
+  for (const [px, pz, pal, sz] of [[-18, -3, 'pink', 1.1], [-6, 17, 'purple', 1], [5, 17, 'pink', 0.9], [-12, 17, 'purple', 0.8], [12, 13.5, 'pink', 1], [17, 8, 'purple', 1.1], [-4.5, 12, 'pink', 0.75]]) {
+    P.leafTree(ctx, px, pz, { palette: pal, size: sz, height: 2.6 + sz })
   }
+  for (const [px, pz] of [[-9, -17], [-15, -7.5], [16.5, 0], [-19, 7], [9, 17]]) P.pine(ctx, px, pz, { height: 3.6, big: true })
+  for (const [bx, bz, pal] of [[-3.5, 18, 'green'], [4, 11, 'purple'], [-20, 0, 'green'], [14, 9, 'pink'], [-7, 9.5, 'green'], [8.5, -1, 'green'], [-13, 12, 'pink']]) P.bush(ctx, bx, bz, { palette: pal })
 }
 
 export const satellites = {
@@ -138,7 +166,9 @@ export const satellites = {
       P.crystals(ctx, 8, 6, { color: 0x58d0ff, size: 0.8 })
       P.rocks(ctx, -8, -3, { count: 4 })
       P.pine(ctx, 9, 8, { height: 3.5, big: true })
-      P.tree(ctx, -6, 10, { leaves: 0x4c8a30 })
+      P.leafTree(ctx, -6, 10, { palette: 'purple' })
+      P.bush(ctx, -9, 7, { palette: 'pink' })
+      fireflies(ctx, { count: 40 })
       // Coffre au trésor sur la dernière pierre.
       P.place(ctx, 'chest', 11, -7.8, { height: 0.9, y: 6, rotY: Math.PI })
       return {
@@ -164,9 +194,9 @@ export const satellites = {
       P.tent(ctx, -5, -5, { color: 0xc0392b, rotY: 0.8 })
       P.tent(ctx, -6, 4, { color: 0x2f6fd8, rotY: 2.2 })
       P.tent(ctx, 1, -8, { color: 0x27ae60, rotY: 0 })
-      P.crate(ctx, 4, 4)
-      P.crate(ctx, 5, 3.4, { size: 0.7, rotY: 0.5 })
-      P.place(ctx, 'barrel', 3, 5.5, { height: 1, r: 0.5 })
+      ctx.addPushable('crate', 4, 4)
+      ctx.addPushable('crate', 5.2, 3.2, { rotY: 0.5 })
+      ctx.addPushable('barrel', 3, 5.5)
       P.place(ctx, 'horse', 9.5, 4.5, { height: 2, rotY: 2.2, r: 0.9 })
       P.place(ctx, 'cannon', 7.5, -5.5, { height: 1.2, rotY: -0.8, r: 0.8 })
       P.place(ctx, 'arenaBanner', -2, -10.5, { height: 2.4, r: 0.4 })
@@ -175,7 +205,10 @@ export const satellites = {
       P.mushroom(ctx, -9, 8, { scale: 1.4 })
       // Tour de guet (Kenney).
       P.place(ctx, 'tower', -10.5, -4.5, { width: 3.2, rotY: 0.8, r: 1.7, top: 20 })
-      for (const [px, pz] of [[-10, 3], [3, 10], [-4, 9.5], [8, 8], [-4, -11]]) P.tree(ctx, px, pz, { pine: px % 2 === 0, leaves: 0x356e25 })
+      for (const [px, pz] of [[-10, 3], [8, 8]]) P.pine(ctx, px, pz, { height: 3.8, big: true })
+      for (const [px, pz, pal] of [[3, 10, 'pink'], [-4, 9.5, 'purple'], [-4, -11, 'pink']]) P.leafTree(ctx, px, pz, { palette: pal, size: 0.9 })
+      P.gallowsLantern(ctx, 6.5, -1.5, { rotY: Math.PI / 2, light: true })
+      fireflies(ctx, { count: 50 })
       return {
         type: 'collect',
         start: [8, -2],
@@ -200,7 +233,10 @@ export const satellites = {
       P.flowers(ctx, 6, 8, { r: 2 })
       P.flowers(ctx, -4, 11, { r: 1.5 })
       P.rocks(ctx, 9, -2, { count: 3, size: 0.8 })
-      P.tree(ctx, 11, 6)
+      P.leafTree(ctx, 11, 6, { palette: 'pink' })
+      P.bush(ctx, -3, -11, { palette: 'purple' })
+      P.bush(ctx, 4, -10, { palette: 'green' })
+      fireflies(ctx, { count: 50, color: 0xa8fff0 })
       P.pine(ctx, -9.5, -1.5, { height: 3.6, big: true })
       P.pine(ctx, -9, 3, { height: 2.6 })
       for (const [bx, bz, c] of [[6, -7, 0xc0392b], [-6, -6, 0x2f4e8c]]) P.banner(ctx, bx, bz, { color: c })

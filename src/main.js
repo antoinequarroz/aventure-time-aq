@@ -8,6 +8,7 @@ import './style.css'
 import { createSpace } from './world/space.js'
 import { createIslands } from './world/islands.js'
 import { createVehicles } from './world/vehicles.js'
+import { createPushables } from './world/pushables.js'
 import { loadModels } from './world/models.js'
 import { createPlayer } from './player.js'
 import { createUI } from './ui.js'
@@ -63,10 +64,12 @@ composer.addPass(bloom)
 composer.addPass(new OutputPass())
 
 // Ambiance lumineuse propre à chaque époque, avec un fondu en changeant d'île.
+// Passé : nuit violette et clair de lune (Mike Fernandez). Présent : fin d'après-midi orangée
+// (Bruno Simon). Futur : lumière froide et contre-jour néon.
 const MOODS = {
-  past: { sun: new THREE.Color(0xffd29a), sky: new THREE.Color(0xb4c4ff), ground: new THREE.Color(0x5a3d50), rim: new THREE.Color(0xff9b6b), sunI: 2.9 },
-  present: { sun: new THREE.Color(0xffe8c4), sky: new THREE.Color(0xa9c8ff), ground: new THREE.Color(0x4a3a60), rim: new THREE.Color(0x9b7bff), sunI: 2.8 },
-  future: { sun: new THREE.Color(0xe4ecff), sky: new THREE.Color(0x9fa8ff), ground: new THREE.Color(0x3a3470), rim: new THREE.Color(0xc07bff), sunI: 2.6 },
+  past: { sun: new THREE.Color(0xb3b8ff), sky: new THREE.Color(0x8c86ff), ground: new THREE.Color(0x3a2f6a), rim: new THREE.Color(0xff6fcf), sunI: 1.9, hemiI: 1.15, fog: new THREE.Color(0x231a4a), exposure: 1.1 },
+  present: { sun: new THREE.Color(0xffcf96), sky: new THREE.Color(0xffc49a), ground: new THREE.Color(0x8a4a5a), rim: new THREE.Color(0xff5fa8), sunI: 3.0, hemiI: 1.25, fog: new THREE.Color(0x3a2448), exposure: 1.1 },
+  future: { sun: new THREE.Color(0xd8e0ff), sky: new THREE.Color(0x8f8cff), ground: new THREE.Color(0x2a2464), rim: new THREE.Color(0x3fe8ff), sunI: 2.4, hemiI: 1.2, fog: new THREE.Color(0x1d1745), exposure: 1.1 },
 }
 function applyMood(era, k) {
   const m = MOODS[era]
@@ -76,8 +79,11 @@ function applyMood(era, k) {
   hemi.groundColor.lerp(m.ground, k)
   rim.color.lerp(m.rim, k)
   sun.intensity += (m.sunI - sun.intensity) * k
+  hemi.intensity += (m.hemiI - hemi.intensity) * k
+  scene.fog.color.lerp(m.fog, k)
 }
 
+applyMood('past', 1)
 const space = createSpace(scene)
 const world = createIslands(scene)
 const vehicles = createVehicles(scene)
@@ -121,6 +127,10 @@ function updateFades(dt) {
 const interactables = [...world.interactables, ...vehicles.interactables]
 const player = createPlayer(scene, world)
 const games = createGames(scene, ui, player)
+const pushables = createPushables(scene, world, world.pushables, {
+  onStrike: () => ui.toast('STRIKE ! Toutes les quilles sont tombées 🎳'),
+  onGoal: () => ui.toast('BUUUT ! ⚽'),
+})
 ui.setReady()
 
 // Caméra fixe en trois-quarts, qui suit le joueur en douceur.
@@ -135,6 +145,11 @@ if (new URLSearchParams(location.search).has('debug')) {
     world,
     scene,
     games,
+    pushables,
+    setCamera(x, y, z) {
+      cameraOffset.set(x, y, z)
+      camera.position.copy(cameraTarget).add(cameraOffset)
+    },
     teleport(x, z) {
       player.teleport(new THREE.Vector3(x, world.groundAt(x, z, Infinity, true) ?? 0, z))
       cameraTarget.copy(player.position)
@@ -183,6 +198,7 @@ function tick() {
 
   if (!vehicles.traveling) player.update(dt, started && !ui.panelOpen())
   vehicles.update(dt, t)
+  pushables.update(dt, player)
   world.update(dt, t)
   games.update(dt, t)
   space.update(dt, t)

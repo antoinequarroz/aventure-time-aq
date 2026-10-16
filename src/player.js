@@ -173,6 +173,7 @@ export function createPlayer(scene, world) {
 
   return {
     position,
+    velocity,
     update,
     currentIsland,
     setVisible(visible) {

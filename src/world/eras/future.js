@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { makeCharacter, mat, mesh } from '../helpers.js'
 import { model, animate } from '../models.js'
 import * as P from '../props.js'
+import { fireflies } from '../nature.js'
 
 // Le Futur : base lunaire, faible gravité.
 
@@ -103,12 +104,19 @@ export function decorateMain(ctx) {
   P.alienPlant(ctx, -9, 16, { color: 0xff7de9 })
   P.crystals(ctx, 15, -11, { color: 0xb48cff, glow: true })
   P.rover(ctx, 9, 9, { drive: true })
-  P.place(ctx, 'sciCrate', -6, -19, { height: 1.4, rotY: 0.5, r: 0.8 })
-  P.place(ctx, 'sciCrate', -4.4, -19.6, { height: 1, rotY: 1.2, r: 0.6 })
+  // Caisses qu'on pousse (elles glissent loin : gravité lunaire).
+  ctx.addPushable('moonCrate', -5.5, -17.5, { rotY: 0.5 })
+  ctx.addPushable('moonCrate', -3.6, -18.2, { rotY: 1.2 })
+  ctx.addPushable('moonCrate', 5, 6, { rotY: 0.3 })
   P.place(ctx, 'cyborg', 6.5, -8, { height: 2, rotY: 0.4, r: 0.5 })
-  P.cliff(ctx, 18, 4, { height: 4, lunar: true, rotY: 1 })
-  P.cliff(ctx, -14, 15, { height: 3, lunar: true, small: true })
-  P.cliff(ctx, 8, 18.5, { height: 2.5, lunar: true, small: true, rotY: 2 })
+  // Flèches de cristal néon, arbres et buissons extraterrestres, poussière qui scintille.
+  P.spires(ctx, 18, 4, { height: 6, count: 4, color: 0x7f78e0, glow: 0x3fe8ff, spread: 1.2 })
+  P.spires(ctx, -14, 15, { height: 4.5, count: 3, color: 0x9a7bf0, glow: 0xff5fd0, spread: 1 })
+  P.spires(ctx, 8, 18.5, { height: 4, count: 3, color: 0x7f78e0, glow: 0x3fe8ff, spread: 0.9 })
+  P.leafTree(ctx, -16, -1, { palette: 'teal', size: 1 })
+  P.leafTree(ctx, 5, 16, { palette: 'purple', size: 0.9 })
+  for (const [bx, bz, pal] of [[-6, 9, 'teal'], [14, 13, 'purple'], [9, -1, 'teal'], [-11, 5, 'purple']]) P.bush(ctx, bx, bz, { palette: pal })
+  fireflies(ctx, { count: 70, color: 0x7ff6ff, height: 4 })
 }
 
 export const satellites = {

@@ -3,6 +3,8 @@ import { islands as content } from '../content.js'
 import { jitter, mat, mesh, textTexture } from './helpers.js'
 import { model } from './models.js'
 import { buildTerrain, createGround, edgeAlong, settle, shapeRadius } from './terrain.js'
+import { buildLeaves, growGrass, scatterConfetti, updateNature } from './nature.js'
+import * as P from './props.js'
 import * as past from './eras/past.js'
 import * as present from './eras/present.js'
 import * as future from './eras/future.js'
@@ -13,9 +15,9 @@ const ERAS = { past, present, future }
 
 // Ordre : passé (gauche), présent (centre), futur (droite).
 export const THEMES = {
-  past: { center: new THREE.Vector3(-SPACING, 0, 0), top: 0x5f9e3c, dirt: 0x7a5434, rock: 0x6b5a48, accent: 0xffb347, signBg: '#3b2a1a', signFg: '#fbe9c8', bridge: 'wood', gravity: 1 },
-  present: { center: new THREE.Vector3(0, 0, 0), top: 0x7bbf4f, dirt: 0x8a6040, rock: 0x7a6a58, accent: 0x6fd3ff, signBg: '#1f3b57', signFg: '#e8f6ff', bridge: 'metal', gravity: 1 },
-  future: { center: new THREE.Vector3(SPACING, 0, 0), top: 0xaeb2c2, dirt: 0x7b7f8e, rock: 0x55586a, accent: 0xb48cff, signBg: '#1a1530', signFg: '#d9ccff', bridge: 'energy', gravity: 0.45 },
+  past: { center: new THREE.Vector3(-SPACING, 0, 0), top: 0x5fae46, lip: 0x4a9a3a, dirt: 0x7a5434, rock: 0x67637f, accent: 0xffb347, signBg: '#3b2a1a', signFg: '#fbe9c8', bridge: 'wood', gravity: 1 },
+  present: { center: new THREE.Vector3(0, 0, 0), top: 0x7bbf4f, lip: 0xd07a3c, dirt: 0x8a6040, rock: 0xa0583a, accent: 0x6fd3ff, signBg: '#1f3b57', signFg: '#e8f6ff', bridge: 'metal', gravity: 1 },
+  future: { center: new THREE.Vector3(SPACING, 0, 0), top: 0xaeb2c2, lip: 0x9a9eb2, dirt: 0x7b7f8e, rock: 0x5a5c78, accent: 0xb48cff, signBg: '#1a1530', signFg: '#d9ccff', bridge: 'energy', gravity: 0.45 },
 }
 
 export function createIslands(scene) {
@@ -25,9 +27,17 @@ export function createIslands(scene) {
   const islandsInfo = []
   const games = []
   const fadeables = []
+  const pushables = []
   const ground = createGround()
   const surfaces = ground.surfaces
   const warn = (child, p) => console.warn(`Décor dans le vide à (${p.x.toFixed(1)}, ${p.z.toFixed(1)})`, child)
+
+  // Après les décors : feuillages en particules puis herbe qui les contourne.
+  const finish = (ctx) => {
+    buildLeaves(ctx, ground)
+    growGrass(ctx, ground, colliders, ctx.era)
+    if (ctx.era === 'present') scatterConfetti(ctx, ground, { count: Math.round(ctx.radius * ctx.radius * 1.2) })
+  }
 
   for (const era of content) {
     const theme = THEMES[era.id]
@@ -43,6 +53,9 @@ export function createIslands(scene) {
         group,
         theme,
         center,
+        shape,
+        era: era.id,
+        colliders,
         radius: shapeRadius(shape),
         animated,
         // Hauteur du terrain en coordonnées locales.
@@ -50,8 +63,10 @@ export function createIslands(scene) {
         addCollider: (x, z, r, top = 6) => colliders.push({ x: center.x + x, z: center.z + z, r, top: top + ctx.heightAt(x, z) }),
         // Objet qui devient transparent quand il cache le joueur à la caméra.
         addFadeable: (object) => fadeables.push(object),
+        // Objet qu'on peut pousser (voir pushables.js), en coordonnées locales.
+        addPushable: (kind, x, z, opts = {}) => pushables.push({ kind, x: center.x + x, z: center.z + z, gravity: theme.gravity, ...opts, goals: (opts.goals ?? (opts.goal ? [opts.goal] : [])).map(([gx, gz, gr]) => [center.x + gx, center.z + gz, gr]) }),
       }
-      buildTerrain(ctx, shape, ground, { lunar, stairs })
+      buildTerrain(ctx, shape, ground, { lunar, stairs, era: era.id })
       ctx.decorFrom = group.children.length
       return ctx
     }
@@ -75,6 +90,7 @@ export function createIslands(scene) {
       })
     }
     settle(main.group, main.decorFrom, ground, warn)
+    finish(main)
 
     // Petites îles thématiques, reliées par des passerelles.
     for (const sat of era.satellites ?? []) {
@@ -86,8 +102,8 @@ export function createIslands(scene) {
 
       const game = layout.build(ctx)
       const dir = new THREE.Vector3().subVectors(center, theme.center).setY(0).normalize()
-      const from = theme.center.clone().addScaledVector(dir, edgeAlong(mainShape, dir) - 1.2)
-      const to = center.clone().addScaledVector(dir, -(edgeAlong(shape, dir.clone().negate()) - 1.2))
+      const from = theme.center.clone().addScaledVector(dir, edgeAlong(mainShape, dir, theme.center) - 1.2)
+      const to = center.clone().addScaledVector(dir, -(edgeAlong(shape, dir.clone().negate(), center) - 1.2))
       buildBridge(scene, theme, from, to, surfaces, animated)
 
       // Plateformes de parcours.
@@ -100,6 +116,7 @@ export function createIslands(scene) {
 
       buildStartPad(ctx, game.start, theme.accent, animated)
       settle(ctx.group, ctx.decorFrom, ground, warn)
+      finish(ctx)
 
       const toWorld = ([x, z, y = 0]) => new THREE.Vector3(center.x + x, y + ctx.heightAt(x, z), center.z + z)
       const def = {
@@ -146,6 +163,7 @@ export function createIslands(scene) {
 
   return {
     fadeables,
+    pushables,
     colliders,
     interactables,
     islands: islandsInfo,
@@ -154,6 +172,7 @@ export function createIslands(scene) {
     groundAt: ground.heightAt,
     pushOut: ground.pushOut,
     update(dt, t) {
+      updateNature(t)
       for (const fn of animated) fn(dt, t)
     },
   }
@@ -201,6 +220,9 @@ function buildBridge(scene, theme, start, end, surfaces, animated) {
       const rope = mesh(new THREE.CylinderGeometry(0.03, 0.03, length, 4), mat(0xc9a66b), { x, y: 1, shadow: false })
       rope.rotation.x = Math.PI / 2
       group.add(rope)
+      // Grands mâts aux extrémités et guirlande de fanions (Mike).
+      for (const z of [-length / 2, length / 2]) group.add(mesh(new THREE.BoxGeometry(0.2, 3.4, 0.2), mat(0x5a3a22), { x, y: 1.5, z }))
+      P.bunting(group, [x, 3.1, -length / 2], [x, 3.1, length / 2], { sag: Math.min(1.2, length * 0.08) })
     }
   } else if (theme.bridge === 'metal') {
     group.add(mesh(new THREE.BoxGeometry(width, 0.2, length), mat(0x8a8f99, { metalness: 0.5, roughness: 0.5 }), { y: -0.1 }))

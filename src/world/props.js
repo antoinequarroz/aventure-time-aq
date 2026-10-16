@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { jitter, mat, mesh, textTexture } from './helpers.js'
 import { model, animate } from './models.js'
+import { water } from './nature.js'
 
 // Bibliothèque de décors low-poly. Chaque fonction reçoit le contexte d'une île
 // ({ group, addCollider, animated }) et une position locale.
@@ -91,23 +92,19 @@ export function crystals(ctx, x, z, { color = 0x58d0ff, count = 5, size = 1, col
   }
 }
 
-export function pond(ctx, x, z, { r = 3, color = 0x3a8fd6 } = {}) {
-  const water = mesh(new THREE.CircleGeometry(r, 32), mat(color, { roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.85 }), { x, y: 0.06, z, shadow: false })
-  water.rotation.x = -Math.PI / 2
-  const rim = mesh(new THREE.TorusGeometry(r, 0.25, 6, 32), mat(0x8a8478), { x, y: 0.05, z, shadow: false })
-  rim.rotation.x = Math.PI / 2
-  ctx.group.add(water, rim)
+export function pond(ctx, x, z, { r = 3, bank = 0x6b4a32, deep, shallow } = {}) {
+  const surface = water(ctx, x, z, { r, bank, deep, shallow })
   // Nénuphars.
   const pads = rand(x + z)
   for (let i = 0; i < 4; i++) {
     const a = pads() * Math.PI * 2
-    const d = pads() * r * 0.7
-    const pad = mesh(new THREE.CircleGeometry(0.35, 8), mat(0x4f9a3a, { side: THREE.DoubleSide }), { x: x + Math.cos(a) * d, y: 0.08, z: z + Math.sin(a) * d, shadow: false })
+    const d = 0.3 * r + pads() * r * 0.4
+    const pad = mesh(new THREE.CircleGeometry(0.35, 7, 0.4, Math.PI * 1.8), mat(0x4f9a3a, { side: THREE.DoubleSide }), { x: x + Math.cos(a) * d, y: 0.1, z: z + Math.sin(a) * d, shadow: false })
     pad.rotation.x = -Math.PI / 2
     ctx.group.add(pad)
   }
-  ctx.animated.push((dt, t) => { water.material.color.setHSL(0.58, 0.6, 0.48 + Math.sin(t) * 0.03) })
   ctx.addCollider(x, z, r * 0.8)
+  return surface
 }
 
 export function flowers(ctx, x, z, { r = 2, count = 25, colors = [0xff6b8a, 0xffd34f, 0xffffff, 0xb28dff] } = {}) {
@@ -339,6 +336,7 @@ export function parkedCar(ctx, x, z, { rotY = 0, kind = 'truck' } = {}) {
 }
 
 export function footballPitch(ctx, x, z, { w = 16, l = 10 } = {}) {
+  ctx.noGrass?.push({ type: 'rect', x, z, w: w + 0.6, l: l + 0.6 })
   const grass = mesh(new THREE.PlaneGeometry(w, l), mat(0x3d9a40), { x, y: 0.04, z, shadow: false })
   grass.rotation.x = -Math.PI / 2
   ctx.group.add(grass)
@@ -362,6 +360,7 @@ export function footballPitch(ctx, x, z, { w = 16, l = 10 } = {}) {
     goal.add(mesh(new THREE.BoxGeometry(0.12, 1.6, 0.12), line, { y: 0.8, z: 1.5 }))
     goal.add(mesh(new THREE.BoxGeometry(0.12, 0.12, 3.1), line, { y: 1.6 }))
     ctx.group.add(goal)
+    for (const pz of [-1.5, 1.5]) ctx.addCollider(gx, z + pz, 0.15)
   }
 }
 
@@ -476,4 +475,154 @@ export function cargo(ctx, x, z, { color = 0xd35400, rotY = 0 } = {}) {
   for (let i = -1; i <= 1; i++) c.add(mesh(new THREE.BoxGeometry(0.06, 1.42, 1.42), mat(0x333333), { x: i * 1 }))
   ctx.group.add(c)
   ctx.addCollider(x, z, 1.5)
+}
+
+// ---------- Style « Bruno / Mike » ----------
+
+// Arbre à nuées de feuilles : tronc anguleux et boules de petites feuilles (voir nature.js).
+export function leafTree(ctx, x, z, { palette = 'pink', height = 3.2, size = 1, collide = true, rotY } = {}) {
+  const r = rand(x * 11 + z * 7)
+  const tree = new THREE.Group()
+  tree.position.set(x, 0, z)
+  tree.rotation.y = rotY ?? r() * Math.PI * 2
+  const bark = mat(0x5a3a2a)
+  const trunk = mesh(new THREE.CylinderGeometry(0.16 * size, 0.3 * size, height, 5), bark, { y: height / 2 })
+  trunk.rotation.z = (r() - 0.5) * 0.15
+  tree.add(trunk)
+  // Deux branches qui partent du tronc.
+  for (const side of [-1, 1]) {
+    const b = mesh(new THREE.CylinderGeometry(0.06 * size, 0.12 * size, 1.4 * size, 4), bark, { x: side * 0.45 * size, y: height * 0.78, z: (r() - 0.5) * 0.3 })
+    b.rotation.z = -side * 0.8
+    tree.add(b)
+  }
+  const top = height + 0.2 * size
+  tree.userData.leafClouds = [
+    { x: 0, y: top, z: 0, r: 1.35 * size, palette },
+    { x: 0.95 * size, y: top - 0.55 * size, z: 0.2 * size, r: 1.0 * size, palette },
+    { x: -0.9 * size, y: top - 0.45 * size, z: -0.25 * size, r: 1.05 * size, palette },
+    { x: 0.1 * size, y: top + 0.8 * size, z: -0.3 * size, r: 0.85 * size, palette },
+  ]
+  ctx.group.add(tree)
+  if (collide) ctx.addCollider(x, z, 0.45 * size)
+  return tree
+}
+
+// Buisson : une ou deux boules de feuilles posées au sol.
+export function bush(ctx, x, z, { palette = 'green', size = 1 } = {}) {
+  const r = rand(x * 5 + z * 13)
+  const b = new THREE.Group()
+  b.position.set(x, 0, z)
+  b.userData.leafClouds = [{ x: 0, y: 0.55 * size, z: 0, r: 0.75 * size, palette, fall: false }]
+  if (r() < 0.6) b.userData.leafClouds.push({ x: 0.6 * size, y: 0.4 * size, z: 0.3 * size, r: 0.5 * size, palette, fall: false })
+  ctx.group.add(b)
+  return b
+}
+
+// Lanterne de chemin façon potence (Mike) : poteau, bras et lanterne qui luit.
+export function gallowsLantern(ctx, x, z, { rotY = 0, color = 0xff7ad9, light = false } = {}) {
+  const g = new THREE.Group()
+  g.position.set(x, 0, z)
+  g.rotation.y = rotY
+  const wood = mat(0x8a4f3a)
+  g.add(mesh(new THREE.BoxGeometry(0.5, 0.35, 0.5), mat(0x7f86a8), { y: 0.17 }))
+  g.add(mesh(new THREE.BoxGeometry(0.2, 3, 0.2), wood, { y: 1.6 }))
+  g.add(mesh(new THREE.BoxGeometry(1.1, 0.16, 0.16), wood, { x: 0.45, y: 3 }))
+  const brace = mesh(new THREE.BoxGeometry(0.1, 0.6, 0.1), wood, { x: 0.25, y: 2.75 })
+  brace.rotation.z = Math.PI / 4
+  g.add(brace)
+  g.add(mesh(new THREE.BoxGeometry(0.02, 0.35, 0.02), mat(0x222222), { x: 0.85, y: 2.75, shadow: false }))
+  const lamp = new THREE.Group()
+  lamp.position.set(0.85, 2.3, 0)
+  lamp.add(mesh(new THREE.BoxGeometry(0.42, 0.08, 0.42), mat(0x3a2a2a), { y: 0.3 }))
+  lamp.add(mesh(new THREE.ConeGeometry(0.32, 0.22, 4).rotateY(Math.PI / 4), mat(0x3a2a2a), { y: 0.44 }))
+  lamp.add(mesh(new THREE.BoxGeometry(0.34, 0.5, 0.34), mat(0xffe6f4, { emissive: color, emissiveIntensity: 2.6 }), { shadow: false }))
+  lamp.add(mesh(new THREE.BoxGeometry(0.42, 0.08, 0.42), mat(0x3a2a2a), { y: -0.28 }))
+  g.add(lamp)
+  if (light) {
+    const l = new THREE.PointLight(color, 6, 9, 1.6)
+    l.position.set(0.85, 2.1, 0)
+    g.add(l)
+  }
+  ctx.group.add(g)
+  ctx.addCollider(x, z, 0.3)
+  ctx.animated.push((dt, t) => { lamp.rotation.z = Math.sin(t * 1.3 + x) * 0.05 })
+  return g
+}
+
+// Flèches de roche lavande, hautes et anguleuses (fond du décor de Mike).
+export function spires(ctx, x, z, { height = 6, count = 4, color = 0xa9a3ea, spread = 1.6, collide = true, glow = null } = {}) {
+  const r = rand(x * 3 + z * 19)
+  const material = mat(color, glow ? { roughness: 0.4, emissive: glow, emissiveIntensity: 0.35 } : { roughness: 0.75 })
+  for (let i = 0; i < count; i++) {
+    const h = height * (0.45 + r() * 0.65)
+    const w = 0.5 + r() * 0.7
+    const g = new THREE.CylinderGeometry(0.04, w, h, 4 + Math.floor(r() * 2), 1)
+    jitter(g, 0.12, i + Math.round(x * 10))
+    const s = mesh(g, material, { x: x + (r() - 0.5) * spread * 2, y: h / 2 - 0.2, z: z + (r() - 0.5) * spread * 2 })
+    s.rotation.set((r() - 0.5) * 0.25, r() * 3, (r() - 0.5) * 0.25)
+    ctx.group.add(s)
+  }
+  if (collide) ctx.addCollider(x, z, spread + 0.4)
+}
+
+// Barrière en bois le long d'une ligne brisée [[x, z], ...].
+export function fence(ctx, pts, { color = 0x6a4433, collide = true } = {}) {
+  const wood = mat(color)
+  for (let s = 0; s < pts.length - 1; s++) {
+    const [ax, az] = pts[s]
+    const [bx, bz] = pts[s + 1]
+    const len = Math.hypot(bx - ax, bz - az)
+    const n = Math.max(1, Math.round(len / 1.6))
+    const seg = new THREE.Group()
+    seg.position.set(ax, 0, az)
+    seg.rotation.y = Math.atan2(bx - ax, bz - az)
+    for (let k = 0; k <= n; k++) {
+      seg.add(mesh(new THREE.BoxGeometry(0.18, 1.1, 0.18), wood, { y: 0.55, z: (len * k) / n }))
+      if (collide) ctx.addCollider(ax + ((bx - ax) * k) / n, az + ((bz - az) * k) / n, 0.35, 1.2)
+    }
+    for (const y of [0.45, 0.85]) seg.add(mesh(new THREE.BoxGeometry(0.08, 0.14, len), wood, { y, z: len / 2 }))
+    ctx.group.add(seg)
+    // Collider continu : petits cercles entre les poteaux.
+    if (collide) for (let d = 0.8; d < len; d += 0.8) ctx.addCollider(ax + ((bx - ax) * d) / len, az + ((bz - az) * d) / len, 0.3, 1.2)
+  }
+}
+
+// Guirlande de fanions entre deux points (coordonnées du groupe, y absolu).
+export function bunting(group, a, b, { colors = [0xc2185b, 0xe8743b, 0x8e24aa], sag = 0.6, size = 0.45 } = {}) {
+  const A = new THREE.Vector3(...a)
+  const B = new THREE.Vector3(...b)
+  const len = A.distanceTo(B)
+  const n = Math.max(3, Math.round(len / 0.7))
+  const flagGeo = new THREE.BufferGeometry()
+  flagGeo.setAttribute('position', new THREE.Float32BufferAttribute([-size / 2, 0, 0, size / 2, 0, 0, 0, -size * 1.2, 0], 3))
+  flagGeo.computeVertexNormals()
+  const pts = []
+  for (let k = 0; k <= n; k++) {
+    const t = k / n
+    const p = A.clone().lerp(B, t)
+    p.y -= Math.sin(t * Math.PI) * sag
+    pts.push(p)
+  }
+  const rope = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), n * 2, 0.025, 3), mat(0xe8e0d0))
+  group.add(rope)
+  for (let k = 1; k < n; k++) {
+    const flag = new THREE.Mesh(flagGeo, mat(colors[k % colors.length], { side: THREE.DoubleSide }))
+    flag.position.copy(pts[k])
+    flag.rotation.y = Math.atan2(B.x - A.x, B.z - A.z) + Math.PI / 2
+    group.add(flag)
+  }
+}
+
+// Barrière sur le bord d'un lobe : suit les arêtes du polygone, un peu en retrait.
+// from / count : première arête et nombre d'arêtes à clôturer.
+export function rimFence(ctx, lobe, from, count, { inset = 0.5, color } = {}) {
+  const pts = ctx.polys[lobe]
+  const [cx, cz] = ctx.shape.lobes[lobe]
+  const line = []
+  for (let k = 0; k <= count; k++) {
+    const [px, pz] = pts[(from + k) % pts.length]
+    const d = Math.hypot(px - cx, pz - cz)
+    line.push([px - ((px - cx) / d) * inset, pz - ((pz - cz) / d) * inset])
+  }
+  fence(ctx, line, { color })
 }
