@@ -1,11 +1,21 @@
 // Tout le texte du site est ici : modifie librement titres et paragraphes.
 // Chaque île a une liste de panneaux (`signs`). `pos` = position [x, z]
 // relative au centre de l'île (rayon jouable ~ 20).
+// `text` peut être une chaîne ou une liste de paragraphes ; `links` est optionnel.
+// Les textes marqués [à compléter] sont provisoires.
+
+const site = (path = '') => `https://www.antoinequarroz.ch${path}`
+const project = (slug) => site(`/projets/${slug}`)
 
 export const intro = {
   title: 'Aventure Time AQ',
-  subtitle: 'Le portfolio d\'Antoine, en trois îles : passé, présent et futur.',
-  controls: 'ZQSD / WASD / flèches pour marcher · Maj pour courir · Espace pour sauter · E pour lire un panneau ou utiliser un portail',
+  subtitle: 'Bienvenue dans le monde d\'Antoine Quarroz, développeur web et mobile en Valais. Trois îles à explorer : mon passé, mon présent et mon futur.',
+  controls: 'ZQSD / WASD / flèches pour marcher · Maj pour courir · Espace pour sauter · E pour lire un panneau ou monter dans un véhicule',
+}
+
+export const vehicles = {
+  car: { label: 'Voiture', to: { past: 'Présent', present: 'Passé' } },
+  rocket: { label: 'Fusée', to: { present: 'Futur', future: 'Présent' } },
 }
 
 export const islands = [
@@ -17,22 +27,39 @@ export const islands = [
       {
         pos: [0, -6],
         title: 'Mon histoire',
-        text: 'Texte provisoire : d\'où je viens, mon enfance, ce qui m\'a donné envie de créer. Remplace ce paragraphe par ton histoire.',
+        text: [
+          'Je viens de Saint-Martin, dans le Val d\'Hérens, en Valais.',
+          'Médiamaticien de formation, j\'ai appris à mélanger design, communication et technique. C\'est là qu\'est née mon envie de créer des choses fiables, claires et mémorables.',
+          '[à compléter : enfance, déclic pour l\'informatique, études]',
+        ],
       },
       {
         pos: [-9, -5],
         title: 'Jeux vidéo',
-        text: 'World of Warcraft et les autres jeux qui m\'ont marqué. Texte provisoire : ta classe préférée, tes souvenirs de raids, les jeux du moment.',
+        text: [
+          'Les jeux vidéo, et surtout World of Warcraft, ont nourri mon goût pour les mondes fantastiques et l\'aventure. Ce site en est un petit clin d\'œil.',
+          '[à compléter : ta classe préférée, tes souvenirs de raids, les jeux du moment]',
+        ],
       },
       {
         pos: [-10, 7],
         title: 'Foot',
-        text: 'Texte provisoire : ton club, ton poste, tes meilleurs souvenirs sur le terrain.',
+        text: 'Le foot fait partie de ma vie depuis longtemps. [à compléter : ton club, ton poste, tes meilleurs souvenirs]',
       },
       {
         pos: [9, -5],
         title: 'Ski',
-        text: 'Texte provisoire : tes stations préférées, depuis quand tu skies, tes plus belles descentes.',
+        text: 'Grandir en Valais, c\'est grandir sur les skis. [à compléter : tes stations préférées, tes plus belles descentes]',
+      },
+      {
+        pos: [8, 8],
+        title: 'Racines valaisannes',
+        text: 'J\'ai réalisé des sites pour ma région : le carnaval de Saint-Martin, le Rallye Team Quarroz et le Saint-Martin RestObar dans le Val d\'Hérens.',
+        links: [
+          { label: 'Carna\'dzons', url: 'https://www.carnadzons.ch' },
+          { label: 'Rallye Team Quarroz', url: project('rallye-team-quarroz') },
+          { label: 'Le Saint-Martin RestObar', url: 'https://lesaintmartin.ch' },
+        ],
       },
     ],
   },
@@ -44,22 +71,61 @@ export const islands = [
       {
         pos: [0, -9],
         title: 'Développeur',
-        text: 'L\'informatique au quotidien. Texte provisoire : ton métier, tes langages et outils favoris, ce que tu aimes construire.',
+        text: [
+          'Aujourd\'hui, je suis développeur web et mobile freelance, basé en Valais et disponible à distance. Passionné par le code, obsédé par les détails.',
+          'Je crée des sites vitrines, des CMS sur mesure, des applications iOS et Android, des outils pour PME et des audits IA.',
+          'Mes outils : Vue, Nuxt, React, Next.js, TypeScript, SwiftUI, Flutter, Rust, Supabase, PostgreSQL, Node.js, Three.js, Figma, Docker.',
+        ],
+        links: [{ label: 'antoinequarroz.ch', url: site() }],
       },
       {
-        pos: [-10, 4],
+        pos: [-6, 12],
+        title: 'Projets web',
+        text: [
+          'VELQORA : un studio IA qui construit le « Brand Brain » d\'une marque.',
+          'Orion : un tableau de bord pour la santé de mes projets.',
+          'STAQ : des boilerplates et workflows pour développeurs.',
+          'LivreMatch, Chat d\'Intérieur, Bagage Malin, Rangements Malins : des sites éditoriaux.',
+        ],
+        links: [
+          { label: 'VELQORA', url: project('velqora') },
+          { label: 'Orion', url: project('orion') },
+          { label: 'STAQ', url: project('staq') },
+          { label: 'LivreMatch', url: project('livrematch') },
+        ],
+      },
+      {
+        pos: [6, 12],
+        title: 'Applis mobiles',
+        text: [
+          'Remembeyes : un QR code qui devient un album photo partagé pour les événements.',
+          'LifXp : le développement personnel, version jeu vidéo.',
+          'Respire : une appli pour arrêter de fumer, avec un mode SOS.',
+        ],
+        links: [
+          { label: 'Remembeyes', url: project('remembeyes') },
+          { label: 'LifXp', url: project('lifxp') },
+          { label: 'Respire', url: project('respire') },
+        ],
+      },
+      {
+        pos: [-11, 2],
         title: 'Photo',
-        text: 'Texte provisoire : ton matériel, tes sujets préférés. Plus tard, une galerie de tes photos ici.',
+        text: 'La photo est une de mes passions. [à compléter : ton matériel, tes sujets préférés ; une galerie viendra ici]',
       },
       {
-        pos: [10, 4],
+        pos: [11, 2],
         title: 'Vidéo',
-        text: 'Texte provisoire : tes montages, tes projets vidéo, tes logiciels.',
+        text: 'Médiamaticien, je tourne et monte aussi des vidéos. [à compléter : tes projets vidéo, tes logiciels]',
       },
       {
-        pos: [0, 11],
-        title: 'Projets',
-        text: 'Texte provisoire : tes projets du moment, avec des liens vers GitHub ou des démos.',
+        pos: [-9, -4],
+        title: 'Ils m\'ont fait confiance',
+        text: [
+          'Indépendants, PME et startups en Suisse et ailleurs.',
+          '« J\'ai particulièrement apprécié son écoute, sa disponibilité et son souci du détail. » Christophe Baur, PhysioBaur',
+        ],
+        links: [{ label: 'PhysioBaur', url: 'https://physiobaur.ch/' }],
       },
     ],
   },
@@ -71,17 +137,32 @@ export const islands = [
       {
         pos: [-9, -6],
         title: 'Astronomie',
-        text: 'Texte provisoire : ce qui te fascine dans l\'espace, ton matériel d\'observation, tes objets célestes préférés.',
+        text: 'Les étoiles me fascinent depuis toujours. [à compléter : ce qui te fascine dans l\'espace, ton matériel d\'observation, tes objets célestes préférés]',
       },
       {
         pos: [9, -6],
-        title: 'Idées pour le futur',
-        text: 'Texte provisoire : les projets que tu rêves de réaliser et ce que tu veux apprendre.',
+        title: 'Projets d\'avenir',
+        text: [
+          'Hermes Cockpit : une app macOS pour piloter des agents IA par projet.',
+          'EnvVault : un outil en Rust pour chiffrer et versionner ses fichiers .env.',
+          'Et l\'IA au service des PME, avec des audits et des outils sur mesure.',
+        ],
+        links: [
+          { label: 'Hermes Cockpit', url: project('hermes-cockpit') },
+          { label: 'EnvVault', url: project('envvault') },
+          { label: 'Audit IA pour PME', url: site('/audit-ia-pme') },
+        ],
       },
       {
         pos: [0, 10],
         title: 'Contact',
-        text: 'Texte provisoire : ton e-mail, ton GitHub, ton LinkedIn.',
+        text: 'Une idée, un projet ? Je suis disponible pour de nouveaux mandats.',
+        links: [
+          { label: 'info@antoinequarroz.ch', url: 'mailto:info@antoinequarroz.ch' },
+          { label: 'GitHub', url: 'https://github.com/antoinequarroz' },
+          { label: 'LinkedIn', url: 'https://www.linkedin.com/in/antoine-quarroz-376020187/' },
+          { label: 'Site web', url: site() },
+        ],
       },
     ],
   },

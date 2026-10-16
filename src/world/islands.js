@@ -6,19 +6,11 @@ export const ISLAND_RADIUS = 22
 const SPACING = 75
 
 // Ordre : passé (gauche), présent (centre), futur (droite).
-const THEMES = {
+export const THEMES = {
   past: { center: new THREE.Vector3(-SPACING, 0, 0), top: 0x5f9e3c, rock: 0x6b5a48, accent: 0xffb347, signBg: '#3b2a1a', signFg: '#fbe9c8' },
   present: { center: new THREE.Vector3(0, 0, 0), top: 0x7bbf4f, rock: 0x7a6a58, accent: 0x6fd3ff, signBg: '#1f3b57', signFg: '#e8f6ff' },
   future: { center: new THREE.Vector3(SPACING, 0, 0), top: 0xb9bcc6, rock: 0x55586a, accent: 0xb48cff, signBg: '#1a1530', signFg: '#d9ccff' },
 }
-
-// Portails provisoires entre îles, en attendant la voiture et la fusée.
-const PORTALS = [
-  { from: 'past', at: [18, 0], to: 'present', arrive: [-14, 0], label: 'Vers le Présent' },
-  { from: 'present', at: [-18, 0], to: 'past', arrive: [14, 0], label: 'Vers le Passé' },
-  { from: 'present', at: [18, 0], to: 'future', arrive: [-14, 0], label: 'Vers le Futur' },
-  { from: 'future', at: [-18, 0], to: 'present', arrive: [14, 0], label: 'Vers le Présent' },
-]
 
 export function createIslands(scene) {
   const colliders = []
@@ -49,24 +41,11 @@ export function createIslands(scene) {
         r: 3,
         title: sign.title,
         text: sign.text,
+        links: sign.links,
       })
     }
 
     islandsInfo.push({ id: island.id, name: island.name, tagline: island.tagline, center: theme.center })
-  }
-
-  for (const portal of PORTALS) {
-    const from = THEMES[portal.from]
-    const to = THEMES[portal.to]
-    buildPortal({ group: scene, theme: from, animated }, portal)
-    interactables.push({
-      type: 'portal',
-      x: from.center.x + portal.at[0],
-      z: from.center.z + portal.at[1],
-      r: 3.5,
-      title: portal.label,
-      target: new THREE.Vector3(to.center.x + portal.arrive[0], 0, to.center.z + portal.arrive[1]),
-    })
   }
 
   return {
@@ -111,27 +90,6 @@ function buildSign({ group, theme }, sign) {
   )
   ring.rotation.x = -Math.PI / 2
   group.add(post, board, ring)
-}
-
-function buildPortal({ group, theme, animated }, portal) {
-  const x = theme.center.x + portal.at[0]
-  const z = theme.center.z + portal.at[1]
-  const torus = mesh(new THREE.TorusGeometry(1.8, 0.25, 12, 40), mat(theme.accent, { emissive: theme.accent, emissiveIntensity: 0.8 }), { x, y: 2.2, z })
-  torus.rotation.y = Math.PI / 2
-  const inner = mesh(
-    new THREE.CircleGeometry(1.6, 32),
-    new THREE.MeshBasicMaterial({ color: theme.accent, transparent: true, opacity: 0.35, side: THREE.DoubleSide }),
-    { x, y: 2.2, z, shadow: false },
-  )
-  inner.rotation.y = Math.PI / 2
-  const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: textTexture(portal.label, { bg: 'rgba(0,0,0,0.55)', fg: '#ffffff', font: 'bold 48px sans-serif' }) }))
-  label.position.set(x, 4.8, z)
-  label.scale.set(4, 1, 1)
-  group.add(torus, inner, label)
-  animated.push((dt, t) => {
-    inner.material.opacity = 0.25 + Math.sin(t * 3) * 0.12
-    torus.rotation.x = Math.sin(t) * 0.1
-  })
 }
 
 // Arbre low-poly (sapin ou feuillu).
@@ -192,7 +150,7 @@ function buildPast({ group, addCollider, animated }) {
     crystal.position.y = 2.2 + Math.sin(t * 2) * 0.25
   })
 
-  for (const [px, pz] of [[-18, -3], [-9, -17], [-18, 3], [-6, 14], [3, 17], [-12, 16], [12, 14], [16, 7], [7, 10]]) {
+  for (const [px, pz] of [[-18, -3], [-9, -17], [-18, 3], [-6, 14], [3, 17], [-12, 16], [12, 14], [16, 7], [-3, 12]]) {
     tree(group, px, pz, { leaves: 0x3f7d2a })
     addCollider(px, pz, 0.6)
   }
@@ -244,7 +202,7 @@ function buildPresent({ group, addCollider, animated }) {
     addCollider(lx, lz, 0.3)
   }
 
-  for (const [px, pz] of [[-19, 0], [19, 4], [-5, -18], [6, -18], [-6, 18], [7, 18], [19, -4], [-19, 5]]) {
+  for (const [px, pz] of [[-18, -8], [19, 5], [-5, -18], [6, -18], [-6, 18], [7, 18], [19, -4], [-19, 5]]) {
     tree(group, px, pz, { leaves: 0x4c9a35 })
     addCollider(px, pz, 0.6)
   }
@@ -276,23 +234,6 @@ function buildFuture({ group, addCollider, animated }) {
   group.add(mesh(new THREE.CylinderGeometry(0.12, 0.12, 3, 6), mat(0x888888), { x: -8, y: 1.5, z: -14 }), dish)
   addCollider(-8, -14, 0.6)
   animated.push((dt) => { dish.rotation.z += dt * 0.3 })
-
-  // Fusée (sera utilisable dans une prochaine étape).
-  const rocket = new THREE.Group()
-  rocket.position.set(14, 0, 2)
-  rocket.add(mesh(new THREE.CylinderGeometry(1, 1.1, 6, 14), mat(0xf2f2f2), { y: 4 }))
-  rocket.add(mesh(new THREE.ConeGeometry(1, 2.2, 14), mat(0xd6402f), { y: 8.1 }))
-  rocket.add(mesh(new THREE.CircleGeometry(0.45, 14), mat(0x6fd3ff, { emissive: 0x2a8fd0 }), { y: 5.5, z: 1.03 }))
-  for (let i = 0; i < 3; i++) {
-    const fin = mesh(new THREE.BoxGeometry(0.15, 1.8, 1.2), mat(0xd6402f), { y: 1.6 })
-    const a = (i / 3) * Math.PI * 2
-    fin.position.x = Math.cos(a) * 1.15
-    fin.position.z = Math.sin(a) * 1.15
-    fin.rotation.y = -a
-    rocket.add(fin)
-  }
-  group.add(rocket)
-  addCollider(14, 2, 1.6)
 
   // Télescope (astronomie).
   const tripod = mesh(new THREE.ConeGeometry(0.6, 1.4, 3), mat(0x444444), { x: -13, y: 0.7, z: -4 })

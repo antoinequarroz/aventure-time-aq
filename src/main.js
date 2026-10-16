@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import './style.css'
 import { createSpace } from './world/space.js'
 import { createIslands } from './world/islands.js'
+import { createVehicles } from './world/vehicles.js'
 import { createPlayer } from './player.js'
 import { createUI } from './ui.js'
 
@@ -24,6 +25,8 @@ scene.add(sun, sun.target)
 
 const space = createSpace(scene)
 const world = createIslands(scene)
+const vehicles = createVehicles(scene)
+const interactables = [...world.interactables, ...vehicles.interactables]
 const player = createPlayer(scene, world)
 const ui = createUI()
 
@@ -40,21 +43,17 @@ ui.onStart(() => { started = true })
 
 let nearby = null
 window.addEventListener('keydown', (e) => {
-  if (!started) return
+  if (!started || vehicles.traveling) return
   if (e.code === 'Escape') ui.closePanel()
   if (e.code !== 'KeyE') return
   if (ui.panelOpen()) return ui.closePanel()
   if (!nearby) return
-  if (nearby.type === 'sign') ui.openPanel(nearby.title, nearby.text)
-  if (nearby.type === 'portal') ui.fade(() => {
-    player.teleport(nearby.target)
-    camera.position.copy(player.position).add(cameraOffset)
-    cameraTarget.copy(player.position)
-  })
+  if (nearby.type === 'sign') ui.openPanel(nearby.title, nearby.text, nearby.links)
+  if (nearby.type === 'vehicle') vehicles.start(nearby, player)
 })
 
 function findNearby() {
-  for (const item of world.interactables) {
+  for (const item of interactables) {
     const dx = player.position.x - item.x
     const dz = player.position.z - item.z
     if (dx * dx + dz * dz < item.r * item.r && player.position.y > -1) return item
@@ -69,7 +68,8 @@ function tick() {
   const dt = Math.min(clock.getDelta(), 0.05)
   const t = clock.elapsedTime
 
-  player.update(dt, started && !ui.panelOpen())
+  if (!vehicles.traveling) player.update(dt, started && !ui.panelOpen())
+  vehicles.update(dt, t)
   world.update(dt, t)
   space.update(dt)
 
@@ -80,8 +80,8 @@ function tick() {
   sun.position.set(cameraTarget.x + 20, 40, cameraTarget.z + 15)
   sun.target.position.copy(cameraTarget)
 
-  nearby = started ? findNearby() : null
-  ui.setPrompt(nearby && !ui.panelOpen() ? (nearby.type === 'sign' ? `E · Lire « ${nearby.title} »` : `E · ${nearby.title}`) : null)
+  nearby = started && !vehicles.traveling ? findNearby() : null
+  ui.setPrompt(nearby && !ui.panelOpen() ? (nearby.type === 'sign' ? `E · Lire « ${nearby.title} »` : `E · Monter : ${nearby.title}`) : null)
 
   const island = player.currentIsland()
   if (island && island !== lastIsland && started) ui.showIsland(island.name, island.tagline)

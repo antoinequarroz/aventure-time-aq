@@ -13,7 +13,8 @@ export function createUI() {
     <div class="prompt" id="prompt"></div>
     <div class="panel" id="panel">
       <h2></h2>
-      <p></p>
+      <div class="panel-text"></div>
+      <div class="panel-links"></div>
       <small>E ou Échap pour fermer</small>
     </div>
     <div class="fade" id="fade"></div>
@@ -46,9 +47,22 @@ export function createUI() {
       prompt.textContent = text || ''
       prompt.classList.toggle('visible', !!text)
     },
-    openPanel(title, text) {
+    openPanel(title, text, links = []) {
       panel.querySelector('h2').textContent = title
-      panel.querySelector('p').textContent = text
+      const body = panel.querySelector('.panel-text')
+      body.replaceChildren(...[].concat(text).map((paragraph) => {
+        const p = document.createElement('p')
+        p.textContent = paragraph
+        return p
+      }))
+      panel.querySelector('.panel-links').replaceChildren(...links.map(({ label, url }) => {
+        const a = document.createElement('a')
+        a.href = url
+        a.textContent = label
+        a.target = '_blank'
+        a.rel = 'noopener'
+        return a
+      }))
       panel.classList.add('visible')
     },
     closePanel() {

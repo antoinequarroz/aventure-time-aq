@@ -111,7 +111,11 @@ export function createPlayer(scene, { colliders, islands, spawn }) {
     position,
     update,
     currentIsland,
+    setVisible(visible) {
+      model.visible = visible
+    },
     teleport(target) {
+      model.position.copy(target)
       position.copy(target)
       velocity.set(0, 0, 0)
       respawnPoint.copy(target)
