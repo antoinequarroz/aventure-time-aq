@@ -578,12 +578,12 @@ export function fence(ctx, pts, { color = 0x6a4433, collide = true } = {}) {
     seg.rotation.y = Math.atan2(bx - ax, bz - az)
     for (let k = 0; k <= n; k++) {
       seg.add(mesh(new THREE.BoxGeometry(0.18, 1.1, 0.18), wood, { y: 0.55, z: (len * k) / n }))
-      if (collide) ctx.addCollider(ax + ((bx - ax) * k) / n, az + ((bz - az) * k) / n, 0.35, 1.2)
+      if (collide) ctx.addCollider(ax + ((bx - ax) * k) / n, az + ((bz - az) * k) / n, 0.35, 1.7)
     }
     for (const y of [0.45, 0.85]) seg.add(mesh(new THREE.BoxGeometry(0.08, 0.14, len), wood, { y, z: len / 2 }))
     ctx.group.add(seg)
     // Collider continu : petits cercles entre les poteaux.
-    if (collide) for (let d = 0.8; d < len; d += 0.8) ctx.addCollider(ax + ((bx - ax) * d) / len, az + ((bz - az) * d) / len, 0.3, 1.2)
+    if (collide) for (let d = 0.8; d < len; d += 0.8) ctx.addCollider(ax + ((bx - ax) * d) / len, az + ((bz - az) * d) / len, 0.3, 1.7)
   }
 }
 

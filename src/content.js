@@ -31,6 +31,8 @@ export const islands = [
     signs: [
       {
         pos: [-4, 4],
+        icon: '📜',
+        prop: 'lectern',
         title: 'Fiche de personnage',
         text: [
           'Nom : Antoine Quarroz. Origine : Saint-Martin, Val d\'Hérens. Niveau : en progression constante.',
@@ -40,7 +42,10 @@ export const islands = [
         ],
       },
       {
-        pos: [0, -6],
+        room: 'castle',
+        pos: [-3, -4],
+        icon: '🏰',
+        prop: 'lectern',
         title: 'Mon histoire',
         text: [
           'Je viens de Saint-Martin, dans le Val d\'Hérens, en Valais.',
@@ -49,7 +54,10 @@ export const islands = [
         ],
       },
       {
-        pos: [-9, -5],
+        room: 'castle',
+        pos: [3.5, -4.5],
+        icon: '🎮',
+        prop: 'arcade',
         title: 'Jeux vidéo',
         text: [
           'Les jeux vidéo, et surtout World of Warcraft, ont nourri mon goût pour les mondes fantastiques et l\'aventure. Ce site en est un petit clin d\'œil.',
@@ -57,17 +65,17 @@ export const islands = [
         ],
       },
       {
-        pos: [-10, 7],
-        title: 'Foot',
-        text: 'Le foot fait partie de ma vie depuis longtemps. [à compléter : ton club, ton poste, tes meilleurs souvenirs]',
-      },
-      {
         pos: [9, -5],
+        icon: '⛷️',
+        prop: 'skis',
         title: 'Ski',
         text: 'Grandir en Valais, c\'est grandir sur les skis. [à compléter : tes stations préférées, tes plus belles descentes]',
       },
       {
-        pos: [8, 8],
+        sat: 'camp',
+        pos: [2, 4],
+        icon: '🏔️',
+        prop: 'flag',
         title: 'Racines valaisannes',
         text: 'J\'ai réalisé des sites pour ma région : le carnaval de Saint-Martin, le Rallye Team Quarroz et le Saint-Martin RestObar dans le Val d\'Hérens.',
         links: [
@@ -89,7 +97,8 @@ export const islands = [
     ],
     signs: [
       {
-        pos: [0, -9],
+        pos: [0, -10.4],
+        icon: '👨‍💻',
         title: 'Développeur',
         text: [
           'Aujourd\'hui, je suis développeur web et mobile freelance, technologue et créateur, basé en Valais et disponible à distance. Passionné par le code, obsédé par les détails.',
@@ -99,7 +108,10 @@ export const islands = [
         links: [{ label: 'antoinequarroz.ch', url: site() }],
       },
       {
-        pos: [-6, 12],
+        room: 'studio',
+        pos: [0, -3],
+        icon: '💻',
+        prop: 'laptop',
         title: 'Projets web',
         text: [
           'VELQORA : un studio IA qui construit le « Brand Brain » d\'une marque.',
@@ -115,7 +127,10 @@ export const islands = [
         ],
       },
       {
-        pos: [6, 12],
+        room: 'studio',
+        pos: [-4, 1.5],
+        icon: '📱',
+        prop: 'phone',
         title: 'Applis mobiles',
         text: [
           'Remembeyes : un QR code qui devient un album photo partagé pour les événements.',
@@ -129,7 +144,32 @@ export const islands = [
         ],
       },
       {
+        pos: [-5.5, -16.8],
+        icon: '🌐',
+        title: 'antoinequarroz.ch',
+        text: [
+          'Mon site, mon atelier en ligne : portfolio, projets, articles et contact.',
+          'Tu y trouves le détail de chaque projet présenté sur ces îles, avec captures et technologies utilisées.',
+        ],
+        links: [{ label: 'Visiter antoinequarroz.ch', url: site() }],
+      },
+      {
+        room: 'studio',
+        pos: [5.6, -1.6],
+        icon: '☕',
+        prop: 'coffee',
+        title: 'Code · Café · Commit',
+        text: [
+          'Ma routine de développeur : un café, du code propre, et un commit qui raconte clairement ce qui a changé.',
+          'Petits pas, tests, revue : c\'est comme ça que les projets avancent sans casser.',
+          '[à compléter : ta boisson préférée, ta playlist de code, ton éditeur]',
+        ],
+      },
+      {
         pos: [-10, 8],
+        icon: '🧑‍🏫',
+        prop: 'whiteboard',
+        rotY: 0.6,
         title: 'Formateur',
         text: [
           'J\'aime transmettre : expliquer simplement le web, le mobile et l\'IA, et faire monter des équipes en compétence.',
@@ -138,17 +178,32 @@ export const islands = [
         ],
       },
       {
+        sat: 'stadium',
+        pos: [-4, -5],
+        icon: '⚽',
+        prop: 'ball',
+        title: 'Foot',
+        text: 'Le foot fait partie de ma vie depuis longtemps. [à compléter : ton club, ton poste, tes meilleurs souvenirs]',
+      },
+      {
         pos: [-11, 2],
+        icon: '📷',
+        prop: 'camera',
         title: 'Photo',
         text: 'La photo est une de mes passions. [à compléter : ton matériel, tes sujets préférés ; une galerie viendra ici]',
       },
       {
         pos: [11, 2],
+        icon: '🎬',
+        prop: 'videocam',
         title: 'Vidéo',
         text: 'Médiamaticien, je tourne et monte aussi des vidéos. [à compléter : tes projets vidéo, tes logiciels]',
       },
       {
-        pos: [-9, -4],
+        sat: 'park',
+        pos: [-4, 3],
+        icon: '🤝',
+        prop: 'trophy',
         title: 'Ils m\'ont fait confiance',
         text: [
           'Indépendants, PME et startups en Suisse et ailleurs.',
@@ -170,6 +225,8 @@ export const islands = [
     signs: [
       {
         pos: [-8, 4],
+        icon: '🧪',
+        prop: 'hologram',
         title: 'Technologue',
         text: [
           'Journal de bord : explorer les technologies avant qu\'elles n\'atterrissent chez tout le monde.',
@@ -178,12 +235,16 @@ export const islands = [
         ],
       },
       {
-        pos: [-9, -6],
+        pos: [-11.6, -2.6],
+        icon: '🔭',
         title: 'Astronomie',
         text: 'Les étoiles me fascinent depuis toujours. [à compléter : ce qui te fascine dans l\'espace, ton matériel d\'observation, tes objets célestes préférés]',
       },
       {
-        pos: [9, -6],
+        room: 'base',
+        pos: [-2.5, -4.4],
+        icon: '🚀',
+        prop: 'console',
         title: 'Projets d\'avenir',
         text: [
           'Hermes Cockpit : une app macOS pour piloter des agents IA par projet.',
@@ -198,6 +259,8 @@ export const islands = [
       },
       {
         pos: [0, 10],
+        icon: '📡',
+        prop: 'dish',
         title: 'Contact',
         text: 'Une idée, un projet ? Je suis disponible pour de nouveaux mandats.',
         links: [

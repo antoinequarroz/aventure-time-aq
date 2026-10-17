@@ -30,7 +30,7 @@ export function createMinimap({ world, player, interactables, eraOf }) {
     if (e.code === 'KeyM') toggle()
   })
 
-  const polys = world.surfaces.filter((s) => s.type === 'poly').sort((a, b) => a.h - b.h)
+  const polys = world.surfaces.filter((s) => s.type === 'poly' && !s.wall).sort((a, b) => a.h - b.h)
   const bridges = world.surfaces.filter((s) => s.type === 'bridge')
 
   function draw() {

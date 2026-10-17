@@ -5,6 +5,8 @@ import { model } from './models.js'
 import { buildTerrain, createGround, edgeAlong, settle, shapeRadius } from './terrain.js'
 import { buildLeaves, growGrass, scatterConfetti, updateNature } from './nature.js'
 import * as P from './props.js'
+import { buildPoint } from './points.js'
+import { buildRoom, ROOMS } from './interiors.js'
 import * as past from './eras/past.js'
 import * as present from './eras/present.js'
 import * as future from './eras/future.js'
@@ -29,6 +31,8 @@ export function createIslands(scene) {
   const fadeables = []
   const pushables = []
   const ground = createGround()
+  const pending = []
+  const mains = {}
   const surfaces = ground.surfaces
   const warn = (child, p) => console.warn(`Décor dans le vide à (${p.x.toFixed(1)}, ${p.z.toFixed(1)})`, child)
 
@@ -75,20 +79,27 @@ export function createIslands(scene) {
     const mainShape = module.mainShape ?? { lobes: [[0, 0, ISLAND_RADIUS, 0]] }
     const main = makeCtx(theme.center, mainShape)
     module.decorateMain(main)
+    mains[era.id] = main
     islandsInfo.push({ id: era.id, era: era.id, name: era.name, tagline: era.tagline, center: theme.center, radius: main.radius, gravity: theme.gravity })
 
-    for (const sign of era.signs) {
-      buildSign(main, sign)
+    // Points d'intérêt : sur l'île principale, sur une petite île (`sat`) ou dans un intérieur (`room`).
+    const addPoint = (ctx, sign, place) => {
+      buildPoint(ctx, sign.pos[0], sign.pos[1], { prop: sign.prop, title: sign.title, accent: theme.accent, rotY: sign.rotY ?? 0, labelY: sign.prop ? 3 : 3.2 })
       interactables.push({
         type: 'sign',
-        x: theme.center.x + sign.pos[0],
-        z: theme.center.z + sign.pos[1],
-        r: 3,
+        x: ctx.center.x + sign.pos[0],
+        z: ctx.center.z + sign.pos[1],
+        r: 2.6,
         title: sign.title,
         text: sign.text,
         links: sign.links,
+        icon: sign.icon,
+        kicker: place,
+        era: era.id,
       })
     }
+    for (const sign of era.signs) if (!sign.sat && !sign.room) addPoint(main, sign, era.name)
+    pending.push(...era.signs.filter((sign) => sign.room).map((sign) => ({ sign, addPoint })))
     settle(main.group, main.decorFrom, ground, warn)
     finish(main)
 
@@ -114,6 +125,7 @@ export function createIslands(scene) {
         if (base > 0 || Math.hypot(px, pz) < ctx.radius) colliders.push({ x: center.x + px, z: center.z + pz, r: pr * 0.9, top: py })
       }
 
+      for (const sign of era.signs) if (sign.sat === sat.id) addPoint(ctx, sign, sat.name)
       buildStartPad(ctx, game.start, theme.accent, animated)
       settle(ctx.group, ctx.decorFrom, ground, warn)
       finish(ctx)
@@ -134,6 +146,45 @@ export function createIslands(scene) {
       interactables.push({ type: 'game', x: def.start.x, z: def.start.z, r: 2.2, title: def.title, game: def })
       games.push(def)
     }
+  }
+
+  // Intérieurs (château, studio, base lunaire) et leurs portes.
+  const DOORS = {
+    castle: { at: [0, -8.9], out: [0, -6.4], label: 'Entrer dans le château' },
+    studio: { at: [-15 + 0.781 * 3.7, 12 - 0.625 * 3.7], out: [-15 + 0.781 * 5.8, 12 - 0.625 * 5.8], label: 'Entrer dans le studio' },
+    base: { at: [0, -9.7], out: [0, -7.2], label: 'Entrer dans la base' },
+  }
+  const rooms = {}
+  for (const key of Object.keys(ROOMS)) {
+    const room = buildRoom(scene, ground, colliders, animated, key)
+    rooms[key] = room
+    islandsInfo.push(room.info)
+    const main = mains[room.era]
+    const door = DOORS[key]
+    const accent = THEMES[room.era].accent
+    const from = main.group.children.length
+    buildPoint(main, door.at[0], door.at[1], { title: door.label.replace('Entrer dans le', '').replace('Entrer dans la', '').trim().replace(/^./, (c) => c.toUpperCase()), accent, collide: false, labelY: 3.4 })
+    settle(main.group, from, ground, warn)
+    const outside = new THREE.Vector3(main.center.x + door.out[0], 0, main.center.z + door.out[1])
+    outside.y = ground.heightAt(outside.x, outside.z, Infinity, true) ?? 0
+    interactables.push({ type: 'door', x: main.center.x + door.at[0], z: main.center.z + door.at[1], r: 2, title: door.label, to: room.arrival.clone(), auto: true })
+    interactables.push({ type: 'door', x: room.exit.x, z: room.exit.z, r: 1.6, title: 'Sortir', to: outside, auto: true })
+  }
+  for (const { sign, addPoint } of pending) addPoint(rooms[sign.room], sign, rooms[sign.room].room.name)
+
+  // Poteaux indicateurs : une flèche par destination (petites îles, intérieur, véhicules).
+  const C = (era) => THEMES[era].center
+  const SIGNPOSTS = {
+    past: { at: [3, 1], extra: [['Château', C('past').x, C('past').z - 10], ['Voiture ➜ Présent', C('past').x + 19, 0]] },
+    present: { at: [2, 8], extra: [['Studio', -12, 9.6], ['Voiture ➜ Passé', -19, 0], ['Fusée ➜ Futur', 17, 0]] },
+    future: { at: [2, 2], extra: [['Base lunaire', C('future').x, -10], ['Fusée ➜ Présent', C('future').x - 17, 0]] },
+  }
+  for (const [eraId, def] of Object.entries(SIGNPOSTS)) {
+    const main = mains[eraId]
+    const targets = islandsInfo.filter((i) => i.era === eraId && !i.interior && i.id !== eraId).map((i) => [i.name, i.center.x, i.center.z]).concat(def.extra)
+    const from = main.group.children.length
+    signpost(main, def.at[0], def.at[1], targets, THEMES[eraId])
+    settle(main.group, from, ground, warn)
   }
 
   // Nuages qui dérivent sous et entre les îles.
@@ -172,6 +223,7 @@ export function createIslands(scene) {
     groundAt: ground.heightAt,
     pushOut: ground.pushOut,
     blocked: ground.blocked,
+    rails: ground.rails,
     addRamp: (r) => ground.ramps.push(r),
     surfaces: ground.surfaces,
     update(dt, t) {
@@ -194,6 +246,32 @@ function buildSign({ group, theme }, sign) {
   )
   ring.rotation.x = -Math.PI / 2
   group.add(post, board, ring)
+}
+
+// Poteau indicateur avec des flèches en bois vers chaque destination.
+function signpost(ctx, x, z, targets, theme) {
+  const g = new THREE.Group()
+  g.position.set(x, 0, z)
+  ctx.group.add(g)
+  const wood = mat(0x6b4226)
+  const top = 1.2 + targets.length * 0.55
+  g.add(mesh(new THREE.CylinderGeometry(0.1, 0.13, top + 0.3, 6), wood, { y: (top + 0.3) / 2 }))
+  g.add(mesh(new THREE.ConeGeometry(0.18, 0.3, 6), mat(theme.accent, { emissive: theme.accent, emissiveIntensity: 0.6 }), { y: top + 0.45 }))
+  targets.forEach(([label, tx, tz], i) => {
+    const dx = tx - (ctx.center.x + x)
+    const dz = tz - (ctx.center.z + z)
+    const arm = new THREE.Group()
+    arm.position.y = top - i * 0.55
+    arm.rotation.y = Math.atan2(-dz, dx)
+    const face = new THREE.MeshStandardMaterial({ map: textTexture(label, { bg: theme.signBg, fg: theme.signFg, width: 512, height: 96, font: 'bold 44px Georgia, serif' }) })
+    const board = mesh(new THREE.BoxGeometry(2.3, 0.42, 0.08), [wood, wood, wood, wood, face, face], { x: 1.3 })
+    const tip = mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.08, 3), wood, { x: 2.5 })
+    tip.rotation.x = Math.PI / 2
+    tip.rotation.y = Math.PI / 2
+    arm.add(board, tip)
+    g.add(arm)
+  })
+  ctx.addCollider(x, z, 0.3)
 }
 
 // Passerelle entre deux îles, de bord à bord, dans le style de l'époque.

@@ -64,6 +64,7 @@ export function createPlayer(scene, world) {
   const prev = spawn.clone()
   let visualY = spawn.y
   let airTime = 0
+  let cheerTime = 0
 
   window.addEventListener('keydown', (e) => {
     keys.add(e.code)
@@ -188,6 +189,7 @@ export function createPlayer(scene, world) {
     }
     // Flancs des terrasses.
     world.pushOut(position)
+    world.rails(position, prev)
     // Filet de sécurité : si on a quand même fini dans une falaise, on glisse le long du mur
     // (un seul axe) ou on reste sur place, au lieu d'être projeté ailleurs.
     if (world.blocked(position.x, position.z, position.y)) {
@@ -211,7 +213,9 @@ export function createPlayer(scene, world) {
       facing += diff * Math.min(1, dt * 12)
     }
     const speedNow = Math.hypot(velocity.x, velocity.z)
-    if (!grounded && (airTime > 0.14 || velocity.y > 0)) play('jump')
+    cheerTime -= dt
+    if (cheerTime > 0 && grounded && speedNow < 0.6) play('cheer')
+    else if (!grounded && (airTime > 0.14 || velocity.y > 0)) play('jump')
     else if (speedNow > 7.5) play('run', speedNow / RUN * 1.1)
     else if (speedNow > 0.6) play('walk', Math.max(0.6, speedNow / WALK) * 1.15)
     else play('idle')
@@ -250,6 +254,9 @@ export function createPlayer(scene, world) {
     currentIsland,
     setVisible(visible) {
       model.visible = visible
+    },
+    cheer() {
+      cheerTime = 2.2
     },
     get grounded() {
       return grounded

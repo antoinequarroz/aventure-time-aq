@@ -77,10 +77,14 @@ export function decorateMain(ctx) {
   })
 
   // Gardes, armes et canon devant le château.
-  for (const gx of [-3.4, 3.4]) C.npc(ctx, 'barbarian', gx, -9.8, { keep: ['1H_Axe', 'Barbarian_Round_Shield', 'Barbarian_Hat'], rotY: gx > 0 ? -0.3 : 0.3 })
+  // Les gardes font leur ronde devant les portes du château.
+  for (const gx of [-3.4, 3.4]) C.npc(ctx, 'barbarian', gx, -9.8, { keep: ['1H_Axe', 'Barbarian_Round_Shield', 'Barbarian_Hat'], rotY: gx > 0 ? -0.3 : 0.3, path: [[gx, -9.8], [gx * 1.6, -8.4], [gx * 0.7, -8]], walk: 1.1, pause: 3 })
   // Mage qui veille sur la pierre de foyer, aubergiste devant la maison.
   C.npc(ctx, 'mage', -11, -6.8, { keep: ['2H_Staff', 'Mage_Hat', 'Mage_Cape'], anim: 'Spellcasting', rotY: Math.PI * 0.85, speed: 0.6 })
-  C.npc(ctx, 'barbarian', 5.2, 13.5, { keep: ['Mug'], anim: 'Cheer', rotY: -Math.PI / 2, speed: 0.5 })
+  C.npc(ctx, 'barbarian', 5.2, 13.5, { keep: ['Mug'], anim: 'Cheer', rotY: -Math.PI / 2, speed: 0.5, path: [[5.2, 13.5], [3, 10.5], [5, 9]], walk: 0.9, pause: 4 })
+  // Un chevalier qui se promène dans le village, et un voyageur sur le chemin.
+  C.npc(ctx, 'knight', -2, 9, { keep: ['1H_Sword', 'Knight_Helmet', 'Knight_Cape'], path: [[-2, 9], [-2, 2], [2, 1], [3, 6]], walk: 1.2, pause: 2 })
+  C.npc(ctx, 'rogue', 10, 1, { keep: ['Rogue_Cape'], path: [[12, 2], [12, 4], [6, 0.5]], walk: 1.4, pause: 3 })
   P.place(ctx, 'weaponRack', 7.5, -11.5, { height: 1.4, rotY: -0.4, r: 0.8 })
   P.place(ctx, 'cannon', 10, -6.5, { height: 1.3, rotY: 2.4, r: 0.9 })
   P.place(ctx, 'chest', -11, -12.5, { height: 0.9, rotY: 0.6, r: 0.6 })

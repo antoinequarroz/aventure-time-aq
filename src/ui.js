@@ -11,15 +11,21 @@ export function createUI() {
     </div>
     <div class="island-name" id="island-name"><strong></strong><span></span></div>
     <div class="prompt" id="prompt"></div>
-    <div class="panel" id="panel">
-      <h2></h2>
+    <div class="panel-backdrop" id="panel-backdrop"></div>
+    <div class="panel" id="panel" role="dialog" aria-modal="true">
+      <button class="panel-close" aria-label="Fermer">×</button>
+      <div class="panel-hero">
+        <div class="panel-icon"></div>
+        <div><span class="panel-kicker"></span><h2></h2></div>
+      </div>
       <div class="panel-text"></div>
       <div class="panel-links"></div>
-      <small>E ou Échap pour fermer</small>
+      <div class="panel-foot"><small>E, Échap ou clic à côté pour fermer</small><span class="panel-count"></span></div>
     </div>
     <div class="fade" id="fade"></div>
     <div class="game-hud" id="game-hud"><strong></strong><span class="status"></span><span class="record"></span><small></small></div>
     <div class="toast" id="toast"></div>
+    <div class="bigtext" id="bigtext"></div>
     <div class="help">${intro.controls}</div>
   `
   const $ = (id) => document.getElementById(id)
@@ -27,6 +33,13 @@ export function createUI() {
   const prompt = $('prompt')
   const panel = $('panel')
   const fadeEl = $('fade')
+  const backdrop = $('panel-backdrop')
+  const close = () => {
+    panel.classList.remove('visible')
+    backdrop.classList.remove('visible')
+  }
+  backdrop.addEventListener('pointerdown', close)
+  panel.querySelector('.panel-close').addEventListener('click', close)
   let islandTimer = null
   let toastTimer = null
 
@@ -46,6 +59,15 @@ export function createUI() {
       hud.querySelector('.status').textContent = status
       hud.querySelector('.record').textContent = record
       hud.querySelector('small').textContent = hint
+    },
+    // Grand texte au centre (compte à rebours, combos), qui apparaît puis s'efface.
+    bigText(text, small = false) {
+      const el = $('bigtext')
+      el.textContent = text
+      el.classList.toggle('small', small)
+      el.classList.remove('pop')
+      void el.offsetWidth
+      el.classList.add('pop')
     },
     toast(text) {
       const toast = $('toast')
@@ -72,26 +94,36 @@ export function createUI() {
       prompt.textContent = text || ''
       prompt.classList.toggle('visible', !!text)
     },
-    openPanel(title, text, links = []) {
+    // Fiche d'un point d'intérêt : icône, lieu, titre, texte et liens, aux couleurs de l'île.
+    openPanel({ title, text, links = [], icon = '✦', kicker = '', era = 'present', count = '' }) {
+      panel.dataset.era = era
       panel.querySelector('h2').textContent = title
+      panel.querySelector('.panel-icon').textContent = icon
+      panel.querySelector('.panel-kicker').textContent = kicker
+      panel.querySelector('.panel-count').textContent = count
       const body = panel.querySelector('.panel-text')
-      body.replaceChildren(...[].concat(text).map((paragraph) => {
+      body.replaceChildren(...[].concat(text).flatMap((t) => t.split(/\s(?=\[à compléter)/)).map((paragraph, i) => {
         const p = document.createElement('p')
-        p.textContent = paragraph
+        const todo = /^\[à compléter/.test(paragraph)
+        p.className = todo ? 'todo' : i === 0 ? 'lead' : ''
+        p.textContent = todo ? paragraph.replace(/^\[|\]$/g, '') : paragraph
         return p
       }))
       panel.querySelector('.panel-links').replaceChildren(...links.map(({ label, url }) => {
         const a = document.createElement('a')
         a.href = url
-        a.textContent = label
+        a.textContent = `${label} ↗`
         a.target = '_blank'
         a.rel = 'noopener'
         return a
       }))
+      panel.scrollTop = 0
       panel.classList.add('visible')
+      backdrop.classList.add('visible')
     },
     closePanel() {
       panel.classList.remove('visible')
+      backdrop.classList.remove('visible')
     },
     panelOpen() {
       return panel.classList.contains('visible')

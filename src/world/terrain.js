@@ -92,7 +92,34 @@ export function createGround() {
     return false
   }
 
-  return { surfaces, ramps, heightAt, onRamp, pushOut, blocked }
+  // Garde-corps des passerelles : si on était sur une passerelle, on ne peut pas en sortir
+  // par le côté (seulement par les bouts), sauf en passant au-dessus d'un bond.
+  function rails(position, prev, radius = 0.45) {
+    for (const s of surfaces) {
+      if (s.type !== 'bridge' || position.y > s.h + 1.3 || position.y < s.h - 0.5) continue
+      const abx = s.bx - s.ax
+      const abz = s.bz - s.az
+      const len2 = abx * abx + abz * abz
+      const len = Math.sqrt(len2)
+      const tp = ((prev.x - s.ax) * abx + (prev.z - s.az) * abz) / len2
+      if (tp < 0 || tp > 1) continue
+      const nx = -abz / len
+      const nz = abx / len
+      const sidePrev = (prev.x - s.ax) * nx + (prev.z - s.az) * nz
+      const half = s.w / 2
+      if (Math.abs(sidePrev) > half + 0.05) continue
+      const t = ((position.x - s.ax) * abx + (position.z - s.az) * abz) / len2
+      const side = (position.x - s.ax) * nx + (position.z - s.az) * nz
+      const lim = half - radius
+      // Aux deux bouts, on laisse passer pour rejoindre l'île.
+      if (t < 0.03 || t > 0.97 || Math.abs(side) <= lim) continue
+      const clamped = Math.sign(side) * lim
+      position.x += nx * (clamped - side)
+      position.z += nz * (clamped - side)
+    }
+  }
+
+  return { surfaces, ramps, heightAt, onRamp, pushOut, blocked, rails }
 }
 
 export function insidePoly(pts, x, z) {

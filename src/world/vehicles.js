@@ -21,6 +21,8 @@ export function createVehicles(scene, world) {
   })
 
   let trip = null
+  const rocketCollider = { x: 0, z: 0, r: 1.5, top: 12, car: true }
+  world.colliders.push(rocketCollider)
 
   return {
     interactables: [car.interactable, rocket.interactable],
@@ -47,6 +49,8 @@ export function createVehicles(scene, world) {
     update(dt, t, player, enabled) {
       car.update(dt, t, player, enabled)
       rocket.idle(t, trip !== null)
+      rocketCollider.x = trip ? 1e6 : rocket.object.position.x
+      rocketCollider.z = rocket.object.position.z
       if (!trip) return
       const { vehicle } = trip
       trip.t += dt / vehicle.duration
@@ -79,6 +83,7 @@ function makeVehicle(scene, { id, model, stations, duration, height, upright }) 
   const to = new THREE.Vector3()
   const prev = new THREE.Vector3()
   const up = new THREE.Vector3(0, 1, 0)
+  const axis = new THREE.Vector3()
 
   const interactable = {
     type: 'vehicle',
@@ -113,6 +118,7 @@ function makeVehicle(scene, { id, model, stations, duration, height, upright }) 
 
   return {
     interactable,
+    object: model,
     duration,
     fly(k, t) {
       if (k === 0 || prev.lengthSq() === 0) {
@@ -124,8 +130,13 @@ function makeVehicle(scene, { id, model, stations, duration, height, upright }) 
       const dir = ahead.sub(pos)
       if (dir.lengthSq() > 1e-6) {
         dir.normalize()
-        if (upright) model.quaternion.setFromUnitVectors(up, dir)
-        else model.lookAt(pos.clone().add(dir))
+        if (upright) {
+          // Décollage nez en avant, puis la fusée se redresse pour se poser debout, sur ses flammes.
+          const flat = to.clone().sub(from).setY(0).normalize()
+          const tilt = Math.sin(Math.PI * THREE.MathUtils.smoothstep(k, 0.08, 0.85)) * 1.1
+          axis.copy(up).addScaledVector(flat, tilt).normalize()
+          model.quaternion.setFromUnitVectors(up, axis)
+        } else model.lookAt(pos.clone().add(dir))
       }
       model.position.copy(pos)
       prev.copy(pos)
@@ -209,7 +220,7 @@ function makeCar(scene, world) {
       const cx = pos.x + Math.sin(heading) * CAR.length * k
       const cz = pos.z + Math.cos(heading) * CAR.length * k
       for (const c of world.colliders) {
-        if (pos.y > c.top - 0.2) continue
+        if (c.car || pos.y > c.top - 0.2) continue
         const dx = cx - c.x
         const dz = cz - c.z
         const min = c.r + 1.05
@@ -244,7 +255,16 @@ function makeCar(scene, world) {
   }
   const nearestRamp = () => ramps.reduce((a, b) => (a.pos.distanceToSquared(pos) < b.pos.distanceToSquared(pos) ? a : b))
 
+  // Collisions de la voiture garée (on ne la traverse plus à pied).
+  const selfColliders = [-1, 1].map(() => ({ x: 0, z: 0, r: 1.15, top: 0, car: true }))
+  world.colliders.push(...selfColliders)
   function place() {
+    selfColliders.forEach((c, i) => {
+      const k = i ? 1.15 : -1.15
+      c.x = driving || flight ? 1e6 : pos.x + Math.sin(heading) * k
+      c.z = pos.z + Math.cos(heading) * k
+      c.top = pos.y + 2.2
+    })
     object.position.copy(pos)
     object.rotation.set(0, heading, 0)
     body.rotation.set(pitch, 0, roll)
@@ -273,6 +293,7 @@ function makeCar(scene, world) {
     exit(player) {
       if (!driving || flight) return
       driving = false
+      place()
       speed = 0
       lights.forEach((l) => (l.material.emissiveIntensity = 0.4))
       // On descend côté conducteur, ou de l'autre côté si c'est le vide ou un mur.

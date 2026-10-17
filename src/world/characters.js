@@ -21,16 +21,91 @@ export function character(key, { height = 1.9, keep = [], x = 0, z = 0, rotY = 0
   return object
 }
 
-// Personnage non joueur posé sur une île, qui joue une animation en boucle.
-export function npc(ctx, key, x, z, { rotY = 0, anim = 'Idle', keep, height = 1.9, r = 0.5, speed = 1 } = {}) {
+// Position du joueur, mise à jour par main.js : les PNJ se tournent vers lui et le saluent.
+export const focus = new THREE.Vector3(1e6, 0, 0)
+
+// Personnage non joueur posé sur une île. Sans `path`, il joue son animation sur place ;
+// avec `path` (points [x, z] locaux), il se promène de point en point et fait une pause à chacun.
+// Quand le joueur s'approche, il s'arrête, se tourne vers lui et le salue.
+export function npc(ctx, key, x, z, { rotY = 0, anim = 'Idle', keep, height = 1.9, r = 0.5, speed = 1, path = null, walk = 1.3, pause = 2.5, greet = true } = {}) {
   const object = character(key, { height, keep, x, z, rotY })
   ctx.group.add(object)
+  // Hauteur gérée ici (pas par le calage automatique), car le PNJ peut changer de niveau en marchant.
+  object.userData.terrain = true
+  object.position.y = ctx.heightAt(x, z)
   const { mixer, actions } = animate(object, anim)
   if (actions[anim]) actions[anim].timeScale = speed
   // Décalage pour que les PNJ ne bougent pas tous en même temps.
   mixer.update(Math.abs(x * 1.7 + z) % 3)
-  ctx.animated.push((dt) => mixer.update(dt))
-  if (r) ctx.addCollider(x, z, r)
+  let col = null
+  if (r) {
+    ctx.addCollider(x, z, r)
+    col = ctx.colliders[ctx.colliders.length - 1]
+  }
+  let current = actions[anim]
+  const play = (name, scale = 1) => {
+    const next = actions[name]
+    if (!next) return
+    next.timeScale = scale
+    if (next === current) return
+    next.reset().fadeIn(0.25).play()
+    current?.fadeOut(0.25)
+    current = next
+  }
+  let target = 0
+  let wait = pause * (0.3 + Math.random())
+  let greeted = 0
+  const pos = object.position
+  ctx.animated.push((dt) => {
+    mixer.update(dt)
+    const px = focus.x - ctx.center.x - pos.x
+    const pz = focus.z - ctx.center.z - pos.z
+    const near = greet && px * px + pz * pz < 3.2 * 3.2
+    if (near) {
+      turn(Math.atan2(px, pz), dt)
+      if (greeted <= 0) {
+        play('Cheer')
+        greeted = 2.2
+      }
+      greeted -= dt
+      if (greeted < 0.3) play(anim === 'Cheer' ? 'Idle' : anim, speed)
+      return
+    }
+    greeted = 0
+    if (!path) {
+      play(anim, speed)
+      return
+    }
+    if (wait > 0) {
+      play(anim, speed)
+      wait -= dt
+      return
+    }
+    const [tx, tz] = path[target]
+    const dx = tx - pos.x
+    const dz = tz - pos.z
+    const d = Math.hypot(dx, dz)
+    if (d < 0.12) {
+      target = (target + 1) % path.length
+      wait = pause * (0.6 + Math.random() * 0.8)
+      return
+    }
+    play('Walking_A', walk / 1.3)
+    const step = Math.min(d, walk * dt)
+    pos.x += (dx / d) * step
+    pos.z += (dz / d) * step
+    pos.y = ctx.heightAt(pos.x, pos.z)
+    turn(Math.atan2(dx, dz), dt)
+    if (col) {
+      col.x = ctx.center.x + pos.x
+      col.z = ctx.center.z + pos.z
+    }
+  })
+  function turn(angle, dt) {
+    let diff = angle - object.rotation.y
+    diff = Math.atan2(Math.sin(diff), Math.cos(diff))
+    object.rotation.y += diff * Math.min(1, dt * 6)
+  }
   return { object, mixer, actions }
 }
 

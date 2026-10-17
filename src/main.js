@@ -9,6 +9,7 @@ import { createSpace } from './world/space.js'
 import { createIslands } from './world/islands.js'
 import { createVehicles } from './world/vehicles.js'
 import { createMinimap } from './minimap.js'
+import { focus as npcFocus } from './world/characters.js'
 import { createPushables } from './world/pushables.js'
 import { loadModels } from './world/models.js'
 import { createPlayer } from './player.js'
@@ -151,8 +152,10 @@ if (new URLSearchParams(location.search).has('debug')) {
     games,
     pushables,
     vehicles,
+    state: () => ({ nearby: nearby?.title, doorCooldown, doorBusy, panel: ui.panelOpen() }),
     setCamera(x, y, z) {
       cameraOffset.set(x, y, z)
+      viewOffset.copy(cameraOffset)
       camera.position.copy(cameraTarget).add(cameraOffset)
     },
     teleport(x, z) {
@@ -178,6 +181,15 @@ ui.onStart(() => {
 })
 
 let nearby = null
+// Points d'intérêt déjà lus (gardés d'une visite à l'autre).
+const DISCOVERED_KEY = 'aventure-time-aq:discovered'
+const discovered = new Set((() => {
+  try {
+    return JSON.parse(localStorage.getItem(DISCOVERED_KEY)) || []
+  } catch {
+    return []
+  }
+})())
 window.addEventListener('keydown', (e) => {
   if (!started || vehicles.traveling) return
   if (e.code === 'Escape') {
@@ -192,12 +204,36 @@ function interact() {
   if (vehicles.driving) return vehicles.exit(player)
   if (ui.panelOpen()) return ui.closePanel()
   if (!nearby) return
-  if (nearby.type === 'sign') ui.openPanel(nearby.title, nearby.text, nearby.links)
+  if (nearby.type === 'sign') {
+    discovered.add(nearby.title)
+    try {
+      localStorage.setItem(DISCOVERED_KEY, JSON.stringify([...discovered]))
+    } catch {
+      // Navigation privée : la progression n'est pas gardée.
+    }
+    const total = interactables.filter((i) => i.type === 'sign').length
+    ui.openPanel({ ...nearby, count: `Découverts : ${discovered.size} / ${total}` })
+  }
   if (nearby.type === 'vehicle') {
     games.abort()
     vehicles.start(nearby, player)
   }
   if (nearby.type === 'game') games.start(nearby.game)
+  if (nearby.type === 'door') enterDoor(nearby)
+}
+
+// Portes : fondu au noir, puis on se retrouve dedans (ou dehors), comme dans Pokémon.
+let doorBusy = false
+let doorCooldown = 0
+function enterDoor(door) {
+  if (doorBusy) return
+  doorBusy = true
+  games.abort()
+  ui.fade(() => {
+    player.teleport(door.to)
+    doorBusy = false
+    doorCooldown = 1.2
+  })
 }
 
 function findNearby() {
@@ -214,6 +250,9 @@ function findNearby() {
 const focus = new THREE.Vector3()
 let camGround = player.position.y
 let zoom = 1
+const indoorOffset = new THREE.Vector3(0, 10.5, 8.5)
+const viewOffset = new THREE.Vector3(0, 14, 19)
+let wasInside = false
 function updateCamera(dt) {
   const p = player.position
   if (player.grounded || p.y < camGround - 0.5 || vehicles.traveling || vehicles.driving) camGround = p.y
@@ -225,9 +264,13 @@ function updateCamera(dt) {
     cameraTarget.z += (focus.z - cameraTarget.z) * k
     cameraTarget.y += (focus.y - cameraTarget.y) * (1 - Math.exp(-dt * 3.5))
   }
-  // Au volant, la caméra prend un peu de recul.
+  // Au volant, la caméra prend un peu de recul ; dans un intérieur, elle se rapproche et plonge.
+  const inside = player.currentIsland()?.interior
   zoom += ((vehicles.driving || vehicles.traveling ? 1.3 : 1) - zoom) * (1 - Math.exp(-dt * 2))
-  camera.position.copy(cameraTarget).addScaledVector(cameraOffset, zoom)
+  viewOffset.lerp(inside ? indoorOffset : cameraOffset, 1 - Math.exp(-dt * 5))
+  if (cameraTarget.distanceToSquared(focus) < 0.01 && inside !== wasInside) viewOffset.copy(inside ? indoorOffset : cameraOffset)
+  wasInside = inside
+  camera.position.copy(cameraTarget).addScaledVector(viewOffset, zoom)
   camera.lookAt(cameraTarget.x, cameraTarget.y + 1.5, cameraTarget.z)
 }
 
@@ -267,7 +310,8 @@ function tick() {
   const dt = Math.min(timer.getDelta(), 0.05)
   const t = timer.getElapsed()
 
-  if (!vehicles.traveling && !vehicles.driving) player.update(dt, started && !ui.panelOpen())
+  if (!vehicles.traveling && !vehicles.driving) player.update(dt, started && !ui.panelOpen() && !games.frozen)
+  npcFocus.copy(player.position)
   vehicles.update(dt, t, player, started && !ui.panelOpen())
   pushables.update(dt, player)
   controls.update(dt)
@@ -283,7 +327,9 @@ function tick() {
   sun.target.position.copy(cameraTarget)
 
   nearby = started && !vehicles.traveling && !vehicles.driving ? findNearby() : null
-  ui.setPrompt(vehicles.driving ? vehicles.hint : nearby && !ui.panelOpen() ? ({ sign: `E · Lire « ${nearby.title} »`, vehicle: `E · ${nearby.id === 'car' ? nearby.title : `Monter : ${nearby.title}`}`, game: games.active ? null : `E · Jouer : ${nearby.title}` })[nearby.type] : null)
+  doorCooldown -= dt
+  if (nearby?.type === 'door' && nearby.auto && doorCooldown <= 0 && !ui.panelOpen() && Math.hypot(player.position.x - nearby.x, player.position.z - nearby.z) < 0.95) enterDoor(nearby)
+  ui.setPrompt(vehicles.driving ? vehicles.hint : nearby && !ui.panelOpen() ? ({ sign: `E · Lire « ${nearby.title} »`, vehicle: `E · ${nearby.id === 'car' ? nearby.title : `Monter : ${nearby.title}`}`, game: games.active ? null : `E · Jouer : ${nearby.title}`, door: `E · ${nearby.title}` })[nearby.type] : null)
 
   const island = player.currentIsland()
   applyMood(island?.era, 1 - Math.exp(-dt * 2))

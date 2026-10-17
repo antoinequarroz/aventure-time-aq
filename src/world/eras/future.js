@@ -58,6 +58,11 @@ export function decorateMain(ctx) {
   const astro = C.npc(ctx, 'rogue', -4, 3, { anim: 'Cheer', speed: 0.6, r: 0.8 })
   C.spaceSuit(astro.object)
   animated.push((dt, t) => { astro.object.position.y = Math.abs(Math.sin(t * 1.3)) * 0.6 })
+  // Cosmonautes en mission, à petits pas sur la Lune.
+  for (const [ax, az, route] of [[6, 2, [[6, 2], [10, 6], [6, 9]]], [-8, -1, [[-8, -1], [-11, 3], [-6, 6]]]]) {
+    const a = C.npc(ctx, 'knight', ax, az, { keep: [], path: route, walk: 0.9, pause: 3 })
+    C.spaceSuit(a.object)
+  }
 
   // Robot compagnon (Quaternius) qui alterne coucou et danse.
   const robot = model('robot', { height: 2.6, x: 3, z: -3, rotY: -0.3 })

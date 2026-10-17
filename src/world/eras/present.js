@@ -44,7 +44,11 @@ export function decorateMain(ctx) {
   const glowLight = new THREE.PointLight(0x5fd0ff, 4, 5)
   glowLight.position.set(0, 1.6, -12.8)
   group.add(desk, ...legs, screen, glow, glowLight)
-  C.npc(ctx, 'rogue', 0, -12.1, { rotY: Math.PI, anim: 'Interact', speed: 0.7, r: 0 })
+  C.npc(ctx, 'rogue', 0, -12.1, { rotY: Math.PI, anim: 'Interact', speed: 0.7, r: 0, greet: false })
+  // Habitants qui flânent autour de la fontaine.
+  C.npc(ctx, 'mage', 4.2, 4.2, { keep: [], path: [[4.2, 4.2], [-4.2, 4.2], [-4.2, -4.2], [4.2, -4.2]], walk: 1.2, pause: 1.5 })
+  C.npc(ctx, 'knight', -2, 11, { keep: [], path: [[-2, 11], [2, 10], [0, 6.5]], walk: 1, pause: 3 })
+  C.npc(ctx, 'barbarian', 9, -3, { keep: ['Mug'], anim: 'Cheer', speed: 0.4, path: [[9, -3], [7.5, -1]], walk: 0.8, pause: 5 })
   addCollider(0, -12.8, 1.6)
   animated.push((dt, t) => {
     glow.material.color.setHSL(0.55, 0.8, 0.55 + Math.sin(t * 4) * 0.08)
@@ -142,6 +146,7 @@ export const satellites = {
       for (const [px, pz, pal] of [[0, 10, 'pink'], [5, 9, 'yellow'], [9, 3, 'orange'], [-3, 8, 'pink']]) P.leafTree(ctx, px, pz, { palette: pal, size: 0.9 })
       P.bush(ctx, -2, 4.5, { palette: 'yellow' })
       P.bush(ctx, 6, 0.5, { palette: 'pink' })
+      C.npc(ctx, 'rogue', -2, -2, { keep: [], path: [[-2, -2], [-1, 6], [5, 5], [5, -1]], walk: 1.1, pause: 2 })
       return {
         type: 'collect',
         start: [-4, -10.5],
@@ -165,6 +170,8 @@ export const satellites = {
       P.banner(ctx, 8.5, -10, { color: 0xe74c3c })
       ctx.addPushable('ball', 1.5, 1, { goals: [[-8.3, 0, 1.3], [8.3, 0, 1.3]] })
       P.place(ctx, 'trophy', 10, 8.5, { height: 1.4, r: 0.6 })
+      // Un joueur qui s'échauffe autour du terrain.
+      C.npc(ctx, 'barbarian', -9, -6, { keep: [], path: [[-9, -6], [9, -6], [9, 5], [-9, 5]], walk: 2.4, pause: 1 })
       return {
         type: 'race',
         start: [5, -9.5],
