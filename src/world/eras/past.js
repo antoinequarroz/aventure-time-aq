@@ -18,6 +18,8 @@ export const mainShape = {
     [-14, -6, 4, 1],
     // Place des réseaux, au sud-ouest.
     [-21, 21, 8, 0], [-15, 19, 5, 0],
+    // Bibliothèque (sites éditoriaux), au sud-est.
+    [22, 16, 7.5, 0], [16.5, 12.5, 5, 0],
   ],
   ramps: [
     [0, -1.2, 0, 0, -5.4, 2.4, 3.4],
@@ -30,8 +32,9 @@ export const mainShape = {
     { pts: [[-12.5, -13], [-8, -6], [-3, -1.2]], w: 2 },
     { pts: [[2, 3.4], [9, 0], [10.6, -2.2]], w: 1.8 },
     { pts: [[-2.5, 6], [-9, 12.5], [-15, 17.5]], w: 2 },
+    { pts: [[3, 5], [10, 8.5], [16, 12.5]], w: 1.8 },
   ],
-  plazas: [[0, -7.4, 2.6], [0, 3, 3.2], [-21, 21, 6.8]],
+  plazas: [[0, -7.4, 2.6], [0, 3, 3.2], [-21, 21, 6.8], [22, 16, 6.2]],
 }
 
 export function decorateMain(ctx) {
@@ -93,7 +96,7 @@ export function decorateMain(ctx) {
   P.place(ctx, 'horse', 8.5, 3.5, { height: 2, rotY: -1.2, r: 0.9 })
   // Flèches de roche lavande en bordure d'île (Mike).
   P.spires(ctx, -17, -12, { height: 7, count: 5 })
-  P.spires(ctx, 16, 14, { height: 4.5, count: 3, spread: 1.1 })
+  P.spires(ctx, 11.5, 17.5, { height: 4.5, count: 3, spread: 1.1 })
   P.spires(ctx, -8.5, 19.5, { height: 4, count: 3, spread: 1 })
   P.spires(ctx, 19, 5.5, { height: 5, count: 4, spread: 1.2 })
 
@@ -179,7 +182,7 @@ export const satellites = {
   camp: {
     offset: [-45, 10],
     r: 13,
-    shape: { lobes: [[0, 0, 10, 0], [-6, -6, 7, 0], [5, 6, 6, 0], [-7, 6, 5, 0], [-9, -5, 4, 1.8]] },
+    shape: { lobes: [[0, 0, 10, 0], [-6, -6, 7, 0], [5, 6, 6, 0], [-7, 6, 5, 0], [-9, -5, 4, 1.8], [-15, 8, 6.8, 0], [-11, 9, 4, 0]], plazas: [[-15, 8, 5.6]] },
     build(ctx) {
       P.campfire(ctx, 0, 0)
       P.tent(ctx, -5, -5, { color: 0xc0392b, rotY: 0.8 })
@@ -193,7 +196,6 @@ export const satellites = {
       P.place(ctx, 'arenaBanner', -2, -10.5, { height: 2.4, r: 0.4 })
       P.banner(ctx, 6, -5, { color: 0xf1c40f })
       P.lantern(ctx, 2, -3.5)
-      P.mushroom(ctx, -9, 8, { scale: 1.4 })
       // Tour de guet (Kenney).
       P.place(ctx, 'tower', -10.5, -4.5, { width: 3.2, rotY: 0.8, r: 1.7, top: 20 })
       for (const [px, pz] of [[-10, 3], [8, 8]]) P.pine(ctx, px, pz, { height: 3.8, big: true })

@@ -175,9 +175,9 @@ export function createIslands(scene) {
   // Poteaux indicateurs : une flèche par destination (petites îles, intérieur, véhicules).
   const C = (era) => THEMES[era].center
   const SIGNPOSTS = {
-    past: { at: [3, 1], extra: [['Château', C('past').x, C('past').z - 10], ['Voiture ➜ Présent', C('past').x + 19, 0], ['Mes réseaux', C('past').x - 21, 21]] },
-    present: { at: [2, 8], extra: [['Studio', -12, 9.6], ['Voiture ➜ Passé', -19, 0], ['Fusée ➜ Futur', 17, 0]] },
-    future: { at: [2, 2], extra: [['Base lunaire', C('future').x, -10], ['Fusée ➜ Présent', C('future').x - 17, 0]] },
+    past: { at: [3, 1], extra: [['Château', C('past').x, C('past').z - 10], ['Voiture ➜ Présent', C('past').x + 19, 0], ['Mes réseaux', C('past').x - 21, 21], ['Bibliothèque', C('past').x + 22, 16]] },
+    present: { at: [2, 8], extra: [['Studio', -12, 9.6], ['Voiture ➜ Passé', -19, 0], ['Fusée ➜ Futur', 17, 0], ['Atelier web', 0, 25]] },
+    future: { at: [2, 2], extra: [['Base lunaire', C('future').x, -10], ['Fusée ➜ Présent', C('future').x - 17, 0], ['Le Labo', C('future').x - 21, 18]] },
   }
   for (const [eraId, def] of Object.entries(SIGNPOSTS)) {
     const main = mains[eraId]

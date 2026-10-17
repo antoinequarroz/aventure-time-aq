@@ -21,7 +21,8 @@ import { createQuest } from './quest.js'
 import { createTour } from './tour.js'
 import { createWeather } from './weather.js'
 import { createSocialPlaza, createPortfolioBanner } from './world/socials.js'
-import { socials, about } from './content.js'
+import { socials, about, showcases } from './content.js'
+import { createShowcases } from './world/showcases.js'
 import { THEMES } from './world/islands.js'
 
 const ui = createUI()
@@ -152,7 +153,8 @@ function updateFades(dt) {
 }
 const socialStones = createSocialPlaza(scene, world, { center: THEMES.past.center.clone().add(new THREE.Vector3(-21, 0, 21)), socials })
 const banner = createPortfolioBanner(scene, world, { x: world.spawn.x, z: world.spawn.z - 5.5 })
-const interactables = [...world.interactables, ...vehicles.interactables, ...socialStones.interactables]
+const projectPlaces = createShowcases(scene, world, { places: showcases, ui, sfx })
+const interactables = [...world.interactables, ...vehicles.interactables, ...socialStones.interactables, ...projectPlaces.interactables]
 const player = createPlayer(scene, world)
 const minimap = createMinimap({ world, player, interactables, eraOf: (x) => (x < -75 ? 'past' : x > 75 ? 'future' : 'present') })
 const games = createGames(scene, ui, player, sfx)
@@ -177,6 +179,8 @@ if (new URLSearchParams(location.search).has('debug')) {
     games,
     pushables,
     vehicles,
+    places: projectPlaces,
+    near: () => interactables.filter((i) => Math.hypot(player.position.x - i.x, player.position.z - i.z) < i.r + 3).map((i) => [i.type, i.title, Math.hypot(player.position.x - i.x, player.position.z - i.z).toFixed(2)]),
     state: () => ({ nearby: nearby?.title, doorCooldown, doorBusy, panel: ui.panelOpen(), discovered: discovered.size, total: signs.length, tour: tour.active, day: weather.state.day, character: player.character }),
     quest: () => quest,
     tour: () => tour,
@@ -327,6 +331,11 @@ function interact() {
   if (vehicles.driving) return vehicles.exit(player)
   if (ui.panelOpen()) return ui.closePanel()
   if (!nearby) return
+  if (nearby.showcase) {
+    discover(nearby)
+    sfx.blip('open')
+    return nearby.showcase.open()
+  }
   if (nearby.type === 'sign') {
     discover(nearby)
     sfx.blip('open')
@@ -461,6 +470,7 @@ function tick() {
   space.update(dt, t)
   quest.update(dt, t)
   socialStones.update(dt, t)
+  projectPlaces.update(dt, t, player)
   banner.update(dt, t)
   tour.update(dt)
 
@@ -492,7 +502,7 @@ function tick() {
   nearby = started && !vehicles.traveling && !vehicles.driving ? findNearby() : null
   doorCooldown -= dt
   if (nearby?.type === 'door' && nearby.auto && doorCooldown <= 0 && !ui.panelOpen() && Math.hypot(player.position.x - nearby.x, player.position.z - nearby.z) < 0.95) enterDoor(nearby)
-  ui.setPrompt(vehicles.driving ? vehicles.hint : nearby && !ui.panelOpen() && !tour.active ? ({ chest: quest.opened || discovered.size >= signs.length ? `E · Ouvrir « ${nearby.title} »` : `E · ${nearby.title} (${discovered.size} / ${signs.length})`, sign: `E · Lire « ${nearby.title} »`, vehicle: `E · ${nearby.id === 'car' ? nearby.title : `Monter : ${nearby.title}`}`, game: games.active ? null : `E · Jouer : ${nearby.title}`, door: `E · ${nearby.title}`, social: `E · ${nearby.title}` })[nearby.type] : null)
+  ui.setPrompt(vehicles.driving ? vehicles.hint : nearby && !ui.panelOpen() && !tour.active ? ({ chest: quest.opened || discovered.size >= signs.length ? `E · Ouvrir « ${nearby.title} »` : `E · ${nearby.title} (${discovered.size} / ${signs.length})`, sign: nearby.showcase ? `E · Voir « ${nearby.showcase.project.title} » · marche sur les flèches pour changer` : `E · Lire « ${nearby.title} »`, vehicle: `E · ${nearby.id === 'car' ? nearby.title : `Monter : ${nearby.title}`}`, game: games.active ? null : `E · Jouer : ${nearby.title}`, door: `E · ${nearby.title}`, social: `E · ${nearby.title}` })[nearby.type] : null)
 
   const island = here
   applyMood(island?.era, 1 - Math.exp(-dt * 2), day)

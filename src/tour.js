@@ -16,6 +16,7 @@ export function createTour({ ui, world, player, signs, quest, discover, onMove, 
 
   // Place libre à côté du point, face à lui, du côté de la caméra de préférence.
   function standNear(item) {
+    if (item.stand) return item.stand.clone()
     const tries = [[0, 2.4], [2.4, 1.2], [-2.4, 1.2], [0, 3.2], [2.6, 0], [-2.6, 0], [0, -2.4], [3.4, 2.4], [-3.4, 2.4]]
     for (const [dx, dz] of tries) {
       const x = item.x + dx
@@ -55,7 +56,8 @@ export function createTour({ ui, world, player, signs, quest, discover, onMove, 
       const item = stops[index]
       discover(item)
       sfx?.blip('open')
-      ui.openPanel({ ...item, side: true, count: `Étape ${index + 1} / ${stops.length + 1}` })
+      if (item.showcase) item.showcase.open()
+      else ui.openPanel({ ...item, side: true, count: `Étape ${index + 1} / ${stops.length + 1}` })
     } else {
       // Tous les points ont défilé : la visite compte comme une exploration complète.
       for (const item of stops) discover(item)

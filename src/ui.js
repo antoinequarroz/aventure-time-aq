@@ -51,6 +51,8 @@ export function createUI() {
         <div class="panel-icon"></div>
         <div><span class="panel-kicker"></span><h2></h2></div>
       </div>
+      <div class="panel-nav"><button class="panel-prev" aria-label="Projet précédent">‹</button><span class="panel-nav-label"></span><button class="panel-next" aria-label="Projet suivant">›</button></div>
+      <div class="panel-tags"></div>
       <div class="panel-text"></div>
       <div class="panel-links"></div>
       <div class="panel-foot"><small>E, Échap ou clic à côté pour fermer</small><span class="panel-count"></span></div>
@@ -73,6 +75,15 @@ export function createUI() {
   }
   backdrop.addEventListener('pointerdown', close)
   panel.querySelector('.panel-close').addEventListener('click', close)
+  // Navigation entre projets d'un même lieu (boutons ‹ › et flèches du clavier).
+  let nav = null
+  panel.querySelector('.panel-prev').addEventListener('click', () => nav?.prev())
+  panel.querySelector('.panel-next').addEventListener('click', () => nav?.next())
+  window.addEventListener('keydown', (e) => {
+    if (!nav || !panel.classList.contains('visible')) return
+    if (e.code === 'ArrowLeft') nav.prev()
+    if (e.code === 'ArrowRight') nav.next()
+  })
   const handlers = { character: null, start: null, tour: null, tourNext: null, tourStop: null, mute: null, music: null, about: null }
   root.querySelectorAll('.char').forEach((b) => b.addEventListener('click', () => {
     root.querySelectorAll('.char').forEach((o) => o.classList.toggle('active', o === b))
@@ -182,7 +193,15 @@ export function createUI() {
       prompt.classList.toggle('visible', !!text)
     },
     // Fiche d'un point d'intérêt : icône, lieu, titre, texte et liens, aux couleurs de l'île.
-    openPanel({ title, text, links = [], icon = '✦', kicker = '', era = 'present', count = '', side = false }) {
+    openPanel({ title, text, links = [], icon = '✦', kicker = '', era = 'present', count = '', side = false, tags = [], nav: navigation = null }) {
+      nav = navigation
+      panel.classList.toggle('has-nav', !!nav)
+      panel.querySelector('.panel-nav-label').textContent = nav?.label ?? ''
+      panel.querySelector('.panel-tags').replaceChildren(...tags.map((tag) => {
+        const span = document.createElement('span')
+        span.textContent = tag
+        return span
+      }))
       panel.dataset.era = era
       panel.classList.toggle('side', side)
       backdrop.classList.toggle('light', side)

@@ -43,6 +43,80 @@ export const socials = [
   { logo: 'web', label: 'Site web', color: '#6fffd2', text: 'antoinequarroz.ch : mes projets en détail, mes services et mes articles.', url: site() },
 ]
 
+// Lieux de projets : chaque lieu met en scène un groupe de projets sur un grand écran
+// (flèches au sol pour passer d'un projet à l'autre, E pour ouvrir la fiche).
+// `at` = position [x, z] relative au centre de l'île (ou du satellite `sat`).
+// `image` (optionnel) = capture dans public/projects/ ; sans image, l'écran dessine une maquette.
+// `kind` = web (fenêtre de navigateur), mobile (téléphones), app (logiciel de bureau), full (image seule).
+export const showcases = [
+  {
+    id: 'library',
+    era: 'past',
+    at: [22, 16],
+    theme: 'library',
+    icon: '📚',
+    title: 'La Bibliothèque',
+    kicker: 'Sites éditoriaux',
+    text: 'Des sites de contenu que je conçois, écris et fais vivre : guides, comparatifs et quiz.',
+    projects: [
+      { id: 'livrematch', title: 'LivreMatch', tagline: 'Le quiz qui te trouve ton prochain livre', color: '#e0703c', kind: 'web', domain: 'livrematch.fr', tech: ['Nuxt 4', 'Vue 3', 'TypeScript'], text: 'Une plateforme française de recommandation de livres : un quiz personnalisé, puis des fiches détaillées qui expliquent pourquoi chaque livre te correspond.', links: [{ label: 'livrematch.fr', url: 'https://livrematch.fr' }, { label: 'Fiche projet', url: project('livrematch') }] },
+      { id: 'chat-d-interieur', title: 'Chat d\'Intérieur', tagline: 'Le bien-être des chats d\'appartement', color: '#c78bd9', kind: 'web', domain: 'miaouchezmoi.fr', tech: ['Next.js 16', 'React 19', 'TypeScript'], text: 'Un site éditorial sur le bien-être des chats d\'intérieur, avec des guides et une sélection de produits vérifiés.', links: [{ label: 'miaouchezmoi.fr', url: 'https://miaouchezmoi.fr' }, { label: 'Fiche projet', url: project('chat-d-interieur') }] },
+      { id: 'bagage-malin', title: 'Bagage Malin', tagline: 'Voyager léger, bagage cabine bien choisi', color: '#3f8fd8', kind: 'web', domain: 'bagagemalin.fr', tech: ['Vinext', 'Next.js 16', 'React 19'], text: 'Un site pour choisir son bagage cabine et voyager léger : guides, comparateur et liens affiliés.', links: [{ label: 'bagagemalin.fr', url: 'https://bagagemalin.fr' }, { label: 'Fiche projet', url: project('bagage-malin') }] },
+      { id: 'rangements-malins', title: 'Rangements Malins', tagline: 'Ranger les petits espaces', color: '#3fb48f', kind: 'web', domain: 'rangements-malins.fr', tech: ['Vinext', 'React 19', 'TypeScript'], text: 'Des solutions de rangement pour petites cuisines, salles de bain et appartements, avec guides et comparatifs de produits.', links: [{ label: 'rangements-malins.fr', url: 'https://rangements-malins.fr' }, { label: 'Fiche projet', url: project('rangements-malins') }] },
+    ],
+  },
+  {
+    id: 'tavern',
+    era: 'past',
+    sat: 'camp',
+    at: [-15, 8],
+    theme: 'tavern',
+    icon: '🍺',
+    title: 'La Taverne du Val d\'Hérens',
+    kicker: 'Sites pour ma région',
+    text: 'Mes racines valaisannes : des sites pour le village, ses fêtes, ses passionnés et ses commerces.',
+    projects: [
+      { id: 'carnadzons', title: 'Carna\'dzons', tagline: 'Le carnaval de Saint-Martin', color: '#e8743b', kind: 'full', image: 'projects/carnadzons.jpg', tech: ['React 18', 'JavaScript', 'Sass'], text: 'Le site officiel du carnaval de Saint-Martin, en Valais : programme, thème, groupes, chars et infos pratiques.', links: [{ label: 'carnadzons.ch', url: 'https://www.carnadzons.ch' }, { label: 'Fiche projet', url: project('carnadzons') }] },
+      { id: 'rallye', title: 'Rallye Team Quarroz', tagline: 'L\'équipe de rallye familiale', color: '#d6402f', kind: 'web', domain: 'quarroz-rally-team.vercel.app', tech: ['Nuxt 4', 'Vue 3', 'TypeScript'], text: 'Le site officiel de l\'équipe : équipage, calendrier, résultats, partenaires et boutique des supporters.', links: [{ label: 'Voir le site', url: 'https://quarroz-rally-team.vercel.app' }, { label: 'Fiche projet', url: project('rallye-team-quarroz') }] },
+      { id: 'lesaintmartin', title: 'Le Saint-Martin RestObar', tagline: 'Bistronomie, ambiance, brunch', color: '#3fd6c8', kind: 'web', domain: 'lesaintmartin.ch', image: 'projects/lesaintmartin.jpg', tech: ['WordPress', 'WooCommerce', 'WPBakery'], text: 'Le site vitrine du restaurant-bar du village : ambiance, carte, événements et réservations.', links: [{ label: 'lesaintmartin.ch', url: 'https://lesaintmartin.ch' }, { label: 'Fiche projet', url: project('le-saint-martin-restobar') }] },
+      { id: 'physiobaur', title: 'PhysioBaur', tagline: 'Physiothérapie à Sion et Grimisuat', color: '#2f9bd8', kind: 'web', domain: 'physiobaur.ch', image: 'projects/physiobaur.jpg', tech: ['Nuxt 4', 'Vue 3', 'TypeScript'], text: ['Le site d\'un cabinet de physiothérapie : soins, équipe et lieux, avec un contact simple pour les patients.', '« J\'ai particulièrement apprécié son écoute, sa disponibilité et son souci du détail. » Christophe Baur'], links: [{ label: 'physiobaur.ch', url: 'https://physiobaur.ch/' }, { label: 'Fiche projet', url: project('physiobaur') }] },
+    ],
+  },
+  {
+    id: 'workshop',
+    era: 'present',
+    at: [0, 25],
+    theme: 'workshop',
+    icon: '💻',
+    title: 'L\'Atelier web',
+    kicker: 'Produits web',
+    text: 'Mes produits web : des outils que je conçois de A à Z, de l\'idée à la mise en ligne.',
+    projects: [
+      { id: 'velqora', title: 'VELQORA', tagline: 'Le studio IA qui apprend ta marque', color: '#8f5bff', kind: 'web', domain: 'velqora.antoinequarroz.ch', tech: ['Nuxt 4', 'Vue 3', 'TypeScript'], text: 'Un outil IA qui transforme un site et des visuels en profil de marque structuré, puis rédige des carrousels prêts à publier.', links: [{ label: 'VELQORA', url: 'https://velqora.antoinequarroz.ch' }, { label: 'Fiche projet', url: project('velqora') }] },
+      { id: 'orion', title: 'Orion', tagline: 'La santé de mes projets en un coup d\'œil', color: '#3fb4ff', kind: 'web', domain: 'orion-five-xi.vercel.app', dashboard: true, tech: ['Nuxt 4', 'Vue 3', 'TypeScript'], text: 'Un tableau de bord qui réunit les signaux HTTP, GitHub et Sentry en un score de santé expliqué, projet par projet.', links: [{ label: 'Orion', url: 'https://orion-five-xi.vercel.app' }, { label: 'Fiche projet', url: project('orion') }] },
+      { id: 'staq', title: 'STAQ', tagline: 'La boîte à outils du développeur', color: '#ffb347', kind: 'web', domain: 'staq.antoinequarroz.ch', tech: ['Nuxt 4', 'Vue 3', 'TypeScript'], text: 'Des boilerplates, skills et workflows prêts à l\'emploi, livrés automatiquement par invitation à un dépôt GitHub privé.', links: [{ label: 'STAQ', url: 'https://staq.antoinequarroz.ch' }, { label: 'Fiche projet', url: project('staq') }] },
+      { id: 'threejs-cv', title: 'Portfolio 3D', tagline: 'Mon CV en Three.js', color: '#915eff', kind: 'web', domain: 'antoinequarroz.vercel.app', tech: ['React 18', 'Vite', 'Three.js'], text: 'Un portfolio 3D interactif et expérimental : parcours, compétences et réalisations. Le grand frère de ce site.', links: [{ label: 'Voir le site', url: 'https://antoinequarroz.vercel.app' }, { label: 'Fiche projet', url: project('threejs-cv') }] },
+    ],
+  },
+  {
+    id: 'lab',
+    era: 'future',
+    at: [-21, 18],
+    theme: 'lab',
+    icon: '🧪',
+    title: 'Le Labo',
+    kicker: 'Applis mobiles et logiciels',
+    text: 'Mes applis iOS et Android et mes logiciels : ce que je prépare pour demain.',
+    projects: [
+      { id: 'remembeyes', title: 'Remembeyes', tagline: 'Un QR code, un album partagé', color: '#ff6fb1', kind: 'mobile', tech: ['Expo', 'React Native', 'TypeScript', 'Convex'], text: 'Une appli d\'événements : un QR code devient un album photo partagé et un diaporama en direct, les invités participent depuis le web sans compte. Bêta sur TestFlight.', links: [{ label: 'Fiche projet', url: project('remembeyes') }] },
+      { id: 'lifxp', title: 'LifXp', tagline: 'Level up your life', color: '#8fbf6f', kind: 'full', image: 'projects/lifxp.jpg', tech: ['Expo', 'React Native', 'TypeScript'], text: 'Le développement personnel version jeu vidéo : les objectifs du jour deviennent des quêtes, de l\'expérience et des niveaux. Bêta sur TestFlight.', links: [{ label: 'Fiche projet', url: project('lifxp') }] },
+      { id: 'respire', title: 'Respire', tagline: 'Arrêter de fumer, un jour après l\'autre', color: '#3fd6a8', kind: 'mobile', tech: ['Expo', 'React Native', 'TypeScript'], text: 'Une appli iOS et Android pour arrêter de fumer : temps sans fumer, économies, gains de santé, mode SOS pour les envies et widgets.', links: [{ label: 'Fiche projet', url: project('respire') }] },
+      { id: 'hermes', title: 'Hermes Cockpit', tagline: 'Piloter ses agents IA', color: '#ffb347', kind: 'app', tech: ['Swift', 'SwiftUI', 'Hermes Agent'], text: 'Une app macOS pour organiser ses agents IA par projet, suivre leurs missions et relire leurs résultats, avec un compagnon web privé pour iPhone.', links: [{ label: 'Fiche projet', url: project('hermes-cockpit') }] },
+      { id: 'envvault', title: 'EnvVault', tagline: 'Tes fichiers .env, chiffrés et versionnés', color: '#58d0ff', kind: 'app', terminal: true, tech: ['Rust', 'Tauri', 'React'], text: 'Un logiciel qui sauvegarde et chiffre les fichiers .env choisis, avec historique des versions, pour retrouver sa configuration en reprenant un projet. Projet personnel en développement.', links: [{ label: 'Fiche projet', url: project('envvault') }] },
+    ],
+  },
+]
+
 // Quête principale : découvrir tous les points ouvre le coffre final (place du Présent).
 export const quest = {
   title: 'Le coffre final',
@@ -81,7 +155,7 @@ export const islands = [
     tagline: 'Royaume médiéval fantastique',
     satellites: [
       { id: 'ruins', name: 'Les Ruines', tagline: 'Parcours des anciens', game: { title: 'Parcours des ruines', intro: 'Saute de pierre en pierre jusqu\'au coffre. Si tu tombes, retour au départ.' } },
-      { id: 'camp', name: 'Le Campement', tagline: 'Chasse au trésor', game: { title: 'Chasse aux pièces d\'or', intro: 'Ramasse toutes les pièces d\'or avant la fin du temps.' } },
+      { id: 'camp', name: 'Le Campement', tagline: 'Chasse au trésor · Taverne du Val d\'Hérens', game: { title: 'Chasse aux pièces d\'or', intro: 'Ramasse toutes les pièces d\'or avant la fin du temps.' } },
       { id: 'lake', name: 'Le Lac', tagline: 'Course des bannières', game: { title: 'Course des bannières', intro: 'Passe dans les anneaux dans l\'ordre, le plus vite possible.' } },
     ],
     signs: [
@@ -127,24 +201,6 @@ export const islands = [
         title: 'Ski',
         text: 'Grandir en Valais, c\'est grandir sur les skis. [à compléter : tes stations préférées, tes plus belles descentes]',
       },
-      {
-        sat: 'camp',
-        pos: [2, 4],
-        icon: '🏔️',
-        prop: 'flag',
-        title: 'Racines valaisannes',
-        text: [
-          'J\'ai réalisé plusieurs sites pour ma région, le Val d\'Hérens :',
-          'Carna\'dzons : le site du carnaval de Saint-Martin, programme, galerie et inscriptions (React 18).',
-          'Rallye Team Quarroz : le site de l\'équipe de rallye familiale, avec résultats, partenaires et boutique.',
-          'Le Saint-Martin RestObar : le site du restaurant-bar du village, sur WordPress et WooCommerce pour les commandes.',
-        ],
-        links: [
-          { label: 'Carna\'dzons', url: 'https://www.carnadzons.ch' },
-          { label: 'Rallye Team Quarroz', url: 'https://quarroz-rally-team.vercel.app' },
-          { label: 'Le Saint-Martin RestObar', url: 'https://lesaintmartin.ch' },
-        ],
-      },
     ],
   },
   {
@@ -175,17 +231,10 @@ export const islands = [
         prop: 'laptop',
         title: 'Projets web',
         text: [
-          'VELQORA : un studio IA qui construit le « Brand Brain » d\'une marque pour générer des contenus cohérents (Nuxt 4).',
-          'Orion : un tableau de bord qui surveille la santé de mes projets, disponibilité HTTP, GitHub et erreurs Sentry.',
-          'STAQ : ma boîte à outils de développeur, boilerplates, skills et workflows prêts à l\'emploi.',
-          'Portfolio 3D : mon CV en Three.js, le grand frère de ce site.',
+          'Sur cet écran, mes produits web : VELQORA, Orion, STAQ et mon portfolio 3D.',
+          'Ils sont exposés en grand à l\'Atelier web, au sud de la place du Présent : un écran, des flèches au sol, et chaque projet en détail.',
         ],
-        links: [
-          { label: 'VELQORA', url: 'https://velqora.antoinequarroz.ch' },
-          { label: 'Orion', url: 'https://orion-five-xi.vercel.app' },
-          { label: 'STAQ', url: 'https://staq.antoinequarroz.ch' },
-          { label: 'Portfolio 3D', url: project('threejs-cv') },
-        ],
+        links: [{ label: 'Tous les projets', url: site('/#portfolio') }],
       },
       {
         room: 'studio',
@@ -194,15 +243,10 @@ export const islands = [
         prop: 'phone',
         title: 'Applis mobiles',
         text: [
-          'Remembeyes : un QR code qui devient un album photo partagé et un diaporama en direct pour les mariages et les fêtes. Bêta sur TestFlight (Expo, React Native, TypeScript, Convex).',
-          'LifXp : le développement personnel, version jeu vidéo, avec quêtes, niveaux et expérience. Bêta sur TestFlight.',
-          'Respire : une appli pour arrêter de fumer, avec un mode SOS pour les envies et des widgets de progression.',
+          'Mes applis iOS et Android : Remembeyes, LifXp et Respire, testées sur ce téléphone.',
+          'Elles sont présentées en grand au Labo, sur l\'île du Futur, avec mes logiciels.',
         ],
-        links: [
-          { label: 'Remembeyes', url: project('remembeyes') },
-          { label: 'LifXp', url: project('lifxp') },
-          { label: 'Respire', url: project('respire') },
-        ],
+        links: [{ label: 'Tous les projets', url: site('/#portfolio') }],
       },
       {
         pos: [-5.5, -16.8],
@@ -211,15 +255,11 @@ export const islands = [
         text: [
           'Mon site, mon atelier en ligne : portfolio, projets, articles et contact.',
           'Tu y trouves le détail de chaque projet présenté sur ces îles, avec captures et technologies utilisées.',
-          'J\'y présente aussi mes sites éditoriaux : LivreMatch (un quiz qui te trouve ton prochain livre), Chat d\'Intérieur (le bien-être des chats d\'appartement, Next.js 16), Bagage Malin (guides et comparateur de bagages cabine) et Rangements Malins (ranger les petits espaces).',
+          'Mes sites éditoriaux t\'attendent à la Bibliothèque, sur l\'île du Passé.',
         ],
         links: [
           { label: 'Visiter antoinequarroz.ch', url: site() },
           { label: 'Tous les projets', url: site('/#portfolio') },
-          { label: 'LivreMatch', url: 'https://livrematch.fr' },
-          { label: 'Chat d\'Intérieur', url: 'https://miaouchezmoi.fr' },
-          { label: 'Bagage Malin', url: 'https://bagagemalin.fr' },
-          { label: 'Rangements Malins', url: 'https://rangements-malins.fr' },
         ],
       },
       {
@@ -278,7 +318,7 @@ export const islands = [
           'Indépendants, PME et startups en Suisse et ailleurs.',
           'PhysioBaur : le site du cabinet de physiothérapie de Sion et Grimisuat, en Nuxt 4, avec prise de rendez-vous claire.',
           '« J\'ai particulièrement apprécié son écoute, sa disponibilité et son souci du détail. » Christophe Baur, PhysioBaur',
-          'Et aussi le Saint-Martin RestObar, le carnaval Carna\'dzons et le Rallye Team Quarroz, à découvrir sur l\'île du Passé.',
+          'Leurs sites sont exposés à la Taverne du Val d\'Hérens, sur l\'île du Passé.',
         ],
         links: [
           { label: 'PhysioBaur', url: 'https://physiobaur.ch/' },
@@ -321,15 +361,10 @@ export const islands = [
         prop: 'console',
         title: 'Projets d\'avenir',
         text: [
-          'Hermes Cockpit : une app macOS pour piloter des agents IA, projet par projet.',
-          'EnvVault : un logiciel en Rust et Tauri pour chiffrer et versionner ses fichiers .env, en développement.',
-          'Et l\'IA au service des PME, avec des audits et des outils sur mesure.',
+          'Ce que je prépare : Hermes Cockpit pour piloter des agents IA, EnvVault pour protéger ses fichiers .env, et l\'IA au service des PME.',
+          'Mes applis et logiciels sont exposés au Labo, au sud-ouest de cette île.',
         ],
-        links: [
-          { label: 'Hermes Cockpit', url: project('hermes-cockpit') },
-          { label: 'EnvVault', url: project('envvault') },
-          { label: 'Audit IA pour PME', url: site('/audit-ia-pme') },
-        ],
+        links: [{ label: 'Audit IA pour PME', url: site('/audit-ia-pme') }],
       },
       {
         pos: [0, 10],

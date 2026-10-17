@@ -13,7 +13,10 @@ export const mainShape = {
     [0, 0, 14, 0], [0, -13, 9, 0], [10, -10, 7, 0], [-13, 2, 8, 0], [13, 3, 8, 0], [3, 14, 8, 0], [-10, 12, 7, 0], [11, 11, 6, 0],
     [-12, -8, 5.5, 1.6],
     [12, -4, 5, 1],
+    // Le Labo, au sud-ouest.
+    [-21, 18, 7.5, 0], [-15.5, 15, 5, 0],
   ],
+  plazas: [[-21, 18, 6.2]],
   ramps: [[-5.5, -3, 0, -8.8, -5.6, 1.6, 2.6]],
 }
 
@@ -111,7 +114,7 @@ export function decorateMain(ctx) {
   P.place(ctx, 'cyborg', 6.5, -8, { height: 2, rotY: 0.4, r: 0.5 })
   // Flèches de cristal néon, arbres et buissons extraterrestres, poussière qui scintille.
   P.spires(ctx, 18, 4, { height: 6, count: 4, color: 0x7f78e0, glow: 0x3fe8ff, spread: 1.2 })
-  P.spires(ctx, -14, 15, { height: 4.5, count: 3, color: 0x9a7bf0, glow: 0xff5fd0, spread: 1 })
+  P.spires(ctx, -6, 17, { height: 4.5, count: 3, color: 0x9a7bf0, glow: 0xff5fd0, spread: 1 })
   P.spires(ctx, 8, 18.5, { height: 4, count: 3, color: 0x7f78e0, glow: 0x3fe8ff, spread: 0.9 })
   P.leafTree(ctx, -16, -1, { palette: 'teal', size: 1 })
   P.leafTree(ctx, 5, 16, { palette: 'purple', size: 0.9 })
