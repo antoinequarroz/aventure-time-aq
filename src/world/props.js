@@ -354,14 +354,71 @@ export function footballPitch(ctx, x, z, { w = 16, l = 10 } = {}) {
   ctx.group.add(circle)
   for (const side of [-1, 1]) {
     const gx = x + side * (w / 2)
-    const goal = new THREE.Group()
+    const goal = soccerGoal({ width: 3.1, height: 1.6, depth: 1.1 })
     goal.position.set(gx, 0, z)
-    goal.add(mesh(new THREE.BoxGeometry(0.12, 1.6, 0.12), line, { y: 0.8, z: -1.5 }))
-    goal.add(mesh(new THREE.BoxGeometry(0.12, 1.6, 0.12), line, { y: 0.8, z: 1.5 }))
-    goal.add(mesh(new THREE.BoxGeometry(0.12, 0.12, 3.1), line, { y: 1.6 }))
+    goal.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2
     ctx.group.add(goal)
     for (const pz of [-1.5, 1.5]) ctx.addCollider(gx, z + pz, 0.15)
+    // Le filet arrête le joueur (et le ballon) derrière la ligne.
+    for (const pz of [-1.2, -0.4, 0.4, 1.2]) ctx.addCollider(gx + side * 1.15, z + pz, 0.3, 1.6)
   }
+}
+
+// Texture de filet : mailles blanches sur fond transparent.
+let netTexture = null
+function netMaterial() {
+  if (!netTexture) {
+    const c = document.createElement('canvas')
+    c.width = c.height = 64
+    const g = c.getContext('2d')
+    g.strokeStyle = '#ffffff'
+    g.lineWidth = 3
+    g.beginPath()
+    for (const k of [0, 32, 64]) {
+      g.moveTo(k, 0)
+      g.lineTo(k, 64)
+      g.moveTo(0, k)
+      g.lineTo(64, k)
+    }
+    g.stroke()
+    netTexture = new THREE.CanvasTexture(c)
+    netTexture.wrapS = netTexture.wrapT = THREE.RepeatWrapping
+  }
+  return (w, h) => {
+    const t = netTexture.clone()
+    t.repeat.set(w * 3, h * 3)
+    t.needsUpdate = true
+    return new THREE.MeshStandardMaterial({ map: t, alphaMap: t, transparent: true, alphaTest: 0.35, side: THREE.DoubleSide, color: 0xf4f4f4, roughness: 1 })
+  }
+}
+
+// But de foot avec poteaux, barre, cadre arrière et filet. L'ouverture regarde vers +z local.
+export function soccerGoal({ width = 3.6, height = 2, depth = 1.2, color = 0xffffff } = {}) {
+  const g = new THREE.Group()
+  const white = mat(color)
+  const half = width / 2
+  g.add(mesh(new THREE.BoxGeometry(0.14, height, 0.14), white, { x: -half, y: height / 2 }))
+  g.add(mesh(new THREE.BoxGeometry(0.14, height, 0.14), white, { x: half, y: height / 2 }))
+  g.add(mesh(new THREE.BoxGeometry(width + 0.14, 0.14, 0.14), white, { y: height }))
+  // Cadre arrière (tubes fins).
+  const tube = mat(0xd8d8d8)
+  for (const sx of [-half, half]) {
+    g.add(mesh(new THREE.BoxGeometry(0.06, 0.06, depth), tube, { x: sx, y: height, z: -depth / 2 }))
+    g.add(mesh(new THREE.BoxGeometry(0.06, 0.06, depth), tube, { x: sx, y: 0.03, z: -depth / 2 }))
+    g.add(mesh(new THREE.BoxGeometry(0.06, height, 0.06), tube, { x: sx, y: height / 2, z: -depth }))
+  }
+  g.add(mesh(new THREE.BoxGeometry(width, 0.06, 0.06), tube, { y: 0.03, z: -depth }))
+  const net = netMaterial()
+  const back = mesh(new THREE.PlaneGeometry(width, height), net(width, height), { y: height / 2, z: -depth, shadow: false })
+  const top = mesh(new THREE.PlaneGeometry(width, depth), net(width, depth), { y: height, z: -depth / 2, shadow: false })
+  top.rotation.x = -Math.PI / 2
+  g.add(back, top)
+  for (const sx of [-half, half]) {
+    const sideNet = mesh(new THREE.PlaneGeometry(depth, height), net(depth, height), { x: sx, y: height / 2, z: -depth / 2, shadow: false })
+    sideNet.rotation.y = Math.PI / 2
+    g.add(sideNet)
+  }
+  return g
 }
 
 export function bleachers(ctx, x, z, { w = 8, rotY = 0 } = {}) {

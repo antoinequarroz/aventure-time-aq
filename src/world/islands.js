@@ -84,7 +84,7 @@ export function createIslands(scene) {
 
     // Points d'intérêt : sur l'île principale, sur une petite île (`sat`) ou dans un intérieur (`room`).
     const addPoint = (ctx, sign, place) => {
-      buildPoint(ctx, sign.pos[0], sign.pos[1], { prop: sign.prop, title: sign.title, accent: theme.accent, rotY: sign.rotY ?? 0, labelY: sign.prop ? 3 : 3.2 })
+      buildPoint(ctx, sign.pos[0], sign.pos[1], { prop: sign.prop, title: sign.title, icon: sign.icon, accent: theme.accent, rotY: sign.rotY ?? 0, labelY: sign.prop ? 3 : 3.2 })
       interactables.push({
         type: 'sign',
         x: ctx.center.x + sign.pos[0],
@@ -163,7 +163,7 @@ export function createIslands(scene) {
     const door = DOORS[key]
     const accent = THEMES[room.era].accent
     const from = main.group.children.length
-    buildPoint(main, door.at[0], door.at[1], { title: door.label.replace('Entrer dans le', '').replace('Entrer dans la', '').trim().replace(/^./, (c) => c.toUpperCase()), accent, collide: false, labelY: 3.4 })
+    buildPoint(main, door.at[0], door.at[1], { icon: '🚪', title: door.label.replace('Entrer dans le', '').replace('Entrer dans la', '').trim().replace(/^./, (c) => c.toUpperCase()), accent, collide: false, labelY: 3.4 })
     settle(main.group, from, ground, warn)
     const outside = new THREE.Vector3(main.center.x + door.out[0], 0, main.center.z + door.out[1])
     outside.y = ground.heightAt(outside.x, outside.z, Infinity, true) ?? 0
@@ -248,30 +248,83 @@ function buildSign({ group, theme }, sign) {
   group.add(post, board, ring)
 }
 
-// Poteau indicateur avec des flèches en bois vers chaque destination.
+// Poteau indicateur avec des flèches vers chaque destination, au style de l'époque :
+// planches de bois peintes au Passé et au Présent, plaques de métal néon au Futur.
+const ARM_STYLE = {
+  wood: { plank: ['#8a5a34', '#6b4226'], text: '#fbe9c8', edge: 0x5a3a22, font: 'Georgia, serif' },
+  metal: { plank: ['#2f6fd8', '#1f4fa8'], text: '#ffffff', edge: 0xdddddd, font: 'Arial, sans-serif' },
+  energy: { plank: ['#1a1530', '#2a1f50'], text: '#d9ccff', edge: 0xb48cff, font: 'Arial, sans-serif' },
+}
+function armTexture(label, style) {
+  const canvas = document.createElement('canvas')
+  canvas.width = 512
+  canvas.height = 96
+  const g = canvas.getContext('2d')
+  const grad = g.createLinearGradient(0, 0, 0, 96)
+  grad.addColorStop(0, style.plank[0])
+  grad.addColorStop(1, style.plank[1])
+  g.fillStyle = grad
+  g.fillRect(0, 0, 512, 96)
+  // Veines du bois (ou lignes de la plaque).
+  g.strokeStyle = 'rgba(0,0,0,0.18)'
+  g.lineWidth = 2
+  for (let i = 0; i < 6; i++) {
+    g.beginPath()
+    const y = 12 + i * 15 + Math.sin(i * 3) * 4
+    g.moveTo(0, y)
+    g.bezierCurveTo(150, y + 6, 300, y - 6, 512, y + 3)
+    g.stroke()
+  }
+  g.fillStyle = style.text
+  g.textAlign = 'center'
+  g.textBaseline = 'middle'
+  let size = 50
+  do {
+    g.font = `bold ${size}px ${style.font}`
+    size -= 2
+  } while (g.measureText(label).width > 440 && size > 24)
+  g.shadowColor = 'rgba(0,0,0,0.5)'
+  g.shadowOffsetY = 3
+  g.fillText(label, 256, 50)
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  return texture
+}
+
 function signpost(ctx, x, z, targets, theme) {
+  const style = ARM_STYLE[theme.bridge]
   const g = new THREE.Group()
   g.position.set(x, 0, z)
   ctx.group.add(g)
-  const wood = mat(0x6b4226)
-  const top = 1.2 + targets.length * 0.55
-  g.add(mesh(new THREE.CylinderGeometry(0.1, 0.13, top + 0.3, 6), wood, { y: (top + 0.3) / 2 }))
-  g.add(mesh(new THREE.ConeGeometry(0.18, 0.3, 6), mat(theme.accent, { emissive: theme.accent, emissiveIntensity: 0.6 }), { y: top + 0.45 }))
+  const postMat = mat(theme.bridge === 'wood' ? 0x5a3a22 : theme.bridge === 'metal' ? 0x2b2b33 : 0x3a3d55)
+  const top = 1.3 + targets.length * 0.58
+  g.add(mesh(new THREE.CylinderGeometry(0.11, 0.15, top + 0.35, 6), postMat, { y: (top + 0.35) / 2 }))
+  g.add(mesh(new THREE.CylinderGeometry(0.4, 0.5, 0.25, 6), postMat, { y: 0.12 }))
+  const cap = mesh(new THREE.OctahedronGeometry(0.22, 0), mat(theme.accent, { emissive: theme.accent, emissiveIntensity: 0.9 }), { y: top + 0.6, shadow: false })
+  g.add(cap)
+  const shape = new THREE.Shape([new THREE.Vector2(0, -0.22), new THREE.Vector2(2.15, -0.22), new THREE.Vector2(2.5, 0), new THREE.Vector2(2.15, 0.22), new THREE.Vector2(0, 0.22)])
+  const armGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.08, bevelEnabled: true, bevelThickness: 0.015, bevelSize: 0.015, bevelSegments: 1 }).translate(0, 0, -0.04)
+  const edgeMat = mat(style.edge, theme.bridge === 'energy' ? { emissive: style.edge, emissiveIntensity: 1.2 } : {})
   targets.forEach(([label, tx, tz], i) => {
     const dx = tx - (ctx.center.x + x)
     const dz = tz - (ctx.center.z + z)
     const arm = new THREE.Group()
-    arm.position.y = top - i * 0.55
+    arm.position.y = top - i * 0.58
     arm.rotation.y = Math.atan2(-dz, dx)
-    const face = new THREE.MeshStandardMaterial({ map: textTexture(label, { bg: theme.signBg, fg: theme.signFg, width: 512, height: 96, font: 'bold 44px Georgia, serif' }) })
-    const board = mesh(new THREE.BoxGeometry(2.3, 0.42, 0.08), [wood, wood, wood, wood, face, face], { x: 1.3 })
-    const tip = mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.08, 3), wood, { x: 2.5 })
-    tip.rotation.x = Math.PI / 2
-    tip.rotation.y = Math.PI / 2
-    arm.add(board, tip)
+    arm.rotation.z = (i % 2 ? -1 : 1) * 0.03
+    arm.add(mesh(armGeo, edgeMat))
+    const face = new THREE.MeshStandardMaterial({ map: armTexture(label, style), roughness: 0.8, ...(theme.bridge === 'energy' ? { emissive: 0xffffff, emissiveIntensity: 0.35 } : {}) })
+    if (face.emissive && theme.bridge === 'energy') face.emissiveMap = face.map
+    const front = mesh(new THREE.PlaneGeometry(2.1, 0.4), face, { x: 1.12, z: 0.06, shadow: false })
+    const back = mesh(new THREE.PlaneGeometry(2.1, 0.4), face, { x: 1.12, z: -0.06, shadow: false })
+    back.rotation.y = Math.PI
+    arm.add(front, back)
+    // Clou décoratif.
+    arm.add(mesh(new THREE.SphereGeometry(0.035, 6, 4), mat(0xcfd3e0), { x: 0.12, z: 0.09, shadow: false }))
     g.add(arm)
   })
-  ctx.addCollider(x, z, 0.3)
+  ctx.animated.push((dt, t) => { cap.rotation.y = t * 1.2 })
+  ctx.addCollider(x, z, 0.4)
 }
 
 // Passerelle entre deux îles, de bord à bord, dans le style de l'époque.

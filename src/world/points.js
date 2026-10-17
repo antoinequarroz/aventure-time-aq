@@ -62,11 +62,41 @@ const phoneScreen = () => canvasTexture(128, 256, (g, w, h) => {
   }
 })
 
-const table = (g, { w = 1.4, d = 0.9, h = 0.82, color = 0x8a5a32 } = {}) => {
-  const wood = mat(color)
-  g.add(mesh(new THREE.BoxGeometry(w, 0.08, d), wood, { y: h }))
-  for (const [x, z] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) g.add(mesh(new THREE.BoxGeometry(0.08, h, 0.08), wood, { x: x * (w / 2 - 0.08), y: h / 2, z: z * (d / 2 - 0.08) }))
-  return h + 0.04
+// Style du mobilier selon l'époque (réglé par buildPoint avant de construire l'objet).
+let STYLE = 'present'
+
+const table = (g, { w = 1.4, d = 0.9, h = 0.82 } = {}) => {
+  if (STYLE === 'past') {
+    // Table de marché en grosses planches, pieds en X et nappe brodée.
+    const wood = mat(0x8a5a32)
+    for (const z of [-d / 4, d / 4]) g.add(mesh(new THREE.BoxGeometry(w, 0.1, d / 2 - 0.02), wood, { y: h, z }))
+    for (const x of [-w / 2 + 0.18, w / 2 - 0.18]) {
+      for (const a of [-0.5, 0.5]) {
+        const leg = mesh(new THREE.BoxGeometry(0.08, h * 1.12, 0.1), mat(0x6b4226), { x, y: h / 2, z: 0 })
+        leg.rotation.x = a
+        g.add(leg)
+      }
+    }
+    g.add(mesh(new THREE.BoxGeometry(0.4, 0.02, d + 0.24), mat(0x9b1d2a), { y: h + 0.06 }))
+    for (const z of [-d / 2 - 0.12, d / 2 + 0.12]) g.add(mesh(new THREE.BoxGeometry(0.4, 0.26, 0.02), mat(0x9b1d2a), { y: h - 0.07, z }))
+    return h + 0.06
+  }
+  if (STYLE === 'future') {
+    // Table flottante sur un pied unique, bord lumineux.
+    g.add(mesh(new THREE.CylinderGeometry(0.12, 0.3, h, 10), mat(0x3a3d55, { metalness: 0.6, roughness: 0.35 }), { y: h / 2 }))
+    g.add(mesh(new THREE.BoxGeometry(w, 0.06, d), mat(0xdfe3f0, { metalness: 0.3, roughness: 0.3 }), { y: h }))
+    g.add(mesh(new THREE.BoxGeometry(w + 0.06, 0.03, d + 0.06), mat(0x7df9ff, { emissive: 0x3ad0ff, emissiveIntensity: 2.2 }), { y: h - 0.04, shadow: false }))
+    return h + 0.03
+  }
+  // Présent : bureau moderne, plateau clair et cadre en métal noir.
+  const metal = mat(0x2b2b33, { metalness: 0.5, roughness: 0.4 })
+  g.add(mesh(new THREE.BoxGeometry(w, 0.05, d), mat(0xf2ede6), { y: h }))
+  for (const x of [-w / 2 + 0.06, w / 2 - 0.06]) {
+    g.add(mesh(new THREE.BoxGeometry(0.05, h, 0.05), metal, { x, y: h / 2, z: -d / 2 + 0.06 }))
+    g.add(mesh(new THREE.BoxGeometry(0.05, h, 0.05), metal, { x, y: h / 2, z: d / 2 - 0.06 }))
+    g.add(mesh(new THREE.BoxGeometry(0.05, 0.05, d - 0.1), metal, { x, y: 0.05, z: 0 }))
+  }
+  return h + 0.025
 }
 
 const BUILDERS = {
@@ -311,11 +341,11 @@ const BUILDERS = {
     g.add(mesh(new THREE.BoxGeometry(0.06, 0.9, 0.06), mat(0x555555), { x: 0.9, y: 0.45 }))
   },
   trophy(g) {
-    table(g, { w: 1, d: 0.7, color: 0x5a3a8a })
+    table(g, { w: 1, d: 0.7 })
     g.add(model('trophy', { height: 0.9, y: 0.86 }))
   },
   coffee(g) {
-    const y = table(g, { w: 1.2, d: 0.7, color: 0x3a2a22 })
+    const y = table(g, { w: 1.2, d: 0.7 })
     g.add(mesh(new THREE.BoxGeometry(0.45, 0.55, 0.4), mat(0x2b2b33, { metalness: 0.4 }), { y: y + 0.28, z: -0.1 }))
     g.add(mesh(new THREE.BoxGeometry(0.3, 0.1, 0.06), mat(0xffb347, { emissive: 0xff8a20, emissiveIntensity: 1.5 }), { y: y + 0.42, z: 0.11, shadow: false }))
     g.add(mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.1, 10), mat(0xffffff), { x: 0.35, y: y + 0.05, z: 0.1 }))
@@ -323,36 +353,168 @@ const BUILDERS = {
   },
 }
 
-// Construit un point d'intérêt à (x, z) local et renvoie ses animations.
-export function buildPoint(ctx, x, z, { prop, title, accent, rotY = 0, collide = true, labelY = 3 }) {
+const TABLE_PROPS = new Set(['camera', 'laptop', 'phone', 'trophy', 'coffee'])
+const hex = (c) => `#${new THREE.Color(c).getHexString()}`
+
+// Étiquette en forme de carte : pastille avec l'icône, titre, bordure aux couleurs de l'île.
+function labelTexture(title, icon, accent) {
+  return canvasTexture(640, 180, (g, w, h) => {
+    const r = 46
+    const bh = 132
+    g.beginPath()
+    g.roundRect(8, 8, w - 16, bh, r)
+    const grad = g.createLinearGradient(0, 0, 0, bh)
+    grad.addColorStop(0, 'rgba(34, 26, 70, 0.96)')
+    grad.addColorStop(1, 'rgba(16, 12, 36, 0.96)')
+    g.fillStyle = grad
+    g.fill()
+    g.lineWidth = 6
+    g.strokeStyle = accent
+    g.stroke()
+    // Petite pointe vers l'objet.
+    g.beginPath()
+    g.moveTo(w / 2 - 22, bh + 6)
+    g.lineTo(w / 2, h - 6)
+    g.lineTo(w / 2 + 22, bh + 6)
+    g.closePath()
+    g.fillStyle = accent
+    g.fill()
+    // Pastille de l'icône.
+    g.beginPath()
+    g.arc(78, 8 + bh / 2, 46, 0, Math.PI * 2)
+    g.fillStyle = accent
+    g.globalAlpha = 0.25
+    g.fill()
+    g.globalAlpha = 1
+    g.font = '58px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif'
+    g.textAlign = 'center'
+    g.textBaseline = 'middle'
+    g.fillText(icon || '✦', 78, 8 + bh / 2 + 3)
+    g.fillStyle = '#ffffff'
+    g.textAlign = 'left'
+    let size = 54
+    do {
+      g.font = `bold ${size}px Georgia, serif`
+      size -= 2
+    } while (g.measureText(title).width > w - 175 && size > 28)
+    g.fillText(title, 142, 8 + bh / 2 + 2)
+  })
+}
+
+// Socle du coin d'activité : pavés au Passé, terrasse en bois au Présent, plateforme au Futur.
+function platform(ctx, x, z, era, accent) {
   const g = new THREE.Group()
   g.position.set(x, 0, z)
+  if (era === 'past') {
+    g.add(mesh(new THREE.CylinderGeometry(2.15, 2.3, 0.1, 10), mat(0x6e6590), { y: 0.05 }))
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2
+      const rr = i % 2 ? 1.55 : 1.25
+      const stone = mesh(new THREE.CylinderGeometry(0.42, 0.45, 0.06, 6), mat(new THREE.Color(0x9a92c4).offsetHSL(0, 0, (Math.sin(i * 7) * 0.06))), { x: Math.cos(a) * rr, y: 0.12, z: Math.sin(a) * rr, shadow: false })
+      stone.rotation.y = a
+      g.add(stone)
+    }
+    g.add(mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.06, 8), mat(0x8a83ad), { y: 0.12, shadow: false }))
+  } else if (era === 'future') {
+    g.add(mesh(new THREE.CylinderGeometry(2.15, 2.3, 0.14, 6), mat(0x5b6078, { metalness: 0.5, roughness: 0.4 }), { y: 0.07 }))
+    const rim = mesh(new THREE.TorusGeometry(2.05, 0.04, 4, 6), mat(accent, { emissive: accent, emissiveIntensity: 2.2 }), { y: 0.15, shadow: false })
+    rim.rotation.x = Math.PI / 2
+    rim.rotation.z = Math.PI / 6
+    g.add(rim)
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 + Math.PI / 6
+      g.add(mesh(new THREE.BoxGeometry(0.08, 0.02, 1.4), mat(0x3b3f55), { x: Math.cos(a) * 1.2, y: 0.145, z: Math.sin(a) * 1.2, shadow: false }))
+    }
+  } else {
+    g.add(mesh(new THREE.CylinderGeometry(2.15, 2.15, 0.14, 8), mat(0xb07a4a), { y: 0.07 }))
+    for (let i = -3; i <= 3; i++) g.add(mesh(new THREE.BoxGeometry(0.03, 0.02, 4 * Math.cos(Math.asin(Math.min(1, Math.abs(i) / 3.6)))), mat(0x7a4f30), { x: i * 0.55, y: 0.145, shadow: false }))
+  }
+  ctx.group.add(g)
+  ctx.noGrass?.push({ type: 'circle', x, z, r: 2.4 })
+  return 0.15
+}
+
+// Décor autour de l'objet : étal de marché, parasol de terrasse ou arche lumineuse.
+function dressing(ctx, g, era, prop, accent) {
+  const isTable = TABLE_PROPS.has(prop)
+  if (era === 'past') {
+    if (isTable) {
+      const wood = mat(0x6b4226)
+      for (const [x, z] of [[-0.95, -0.75], [0.95, -0.75], [-0.95, 0.75], [0.95, 0.75]]) g.add(mesh(new THREE.BoxGeometry(0.1, z < 0 ? 2.5 : 2.1, 0.1), wood, { x, y: z < 0 ? 1.25 : 1.05, z }))
+      const stripes = canvasTexture(128, 64, (c) => {
+        for (let i = 0; i < 8; i++) {
+          c.fillStyle = i % 2 ? '#f3e4c8' : '#8e2a5a'
+          c.fillRect(i * 16, 0, 16, 64)
+        }
+      })
+      const awning = mesh(new THREE.BoxGeometry(2.2, 0.05, 1.8), new THREE.MeshStandardMaterial({ map: stripes, roughness: 0.9 }), { y: 2.35 })
+      awning.rotation.x = 0.22
+      g.add(awning)
+      for (let i = 0; i < 6; i++) g.add(mesh(new THREE.ConeGeometry(0.17, 0.25, 3), mat(i % 2 ? 0xf3e4c8 : 0x8e2a5a), { x: -0.92 + i * 0.37, y: 2.05, z: 0.9, shadow: false }))
+      g.add(mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.7, 10), mat(0x8a5a32), { x: 1.35, y: 0.35, z: -0.5 }))
+    } else {
+      g.add(mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), mat(0x9a6a3a), { x: -1.3, y: 0.25, z: -0.6 }))
+    }
+    // Lanterne sur poteau.
+    g.add(mesh(new THREE.BoxGeometry(0.1, 2, 0.1), mat(0x3a2a20), { x: 1.55, y: 1, z: 0.9 }))
+    g.add(mesh(new THREE.BoxGeometry(0.26, 0.32, 0.26), mat(0xffd27a, { emissive: 0xffa040, emissiveIntensity: 2.2 }), { x: 1.55, y: 2.1, z: 0.9, shadow: false }))
+  } else if (era === 'future') {
+    for (const x of [-1.6, 1.6]) {
+      g.add(mesh(new THREE.CylinderGeometry(0.1, 0.16, 2.4, 6), mat(0xcfd3e0, { metalness: 0.5 }), { x, y: 1.2, z: -0.8 }))
+      g.add(mesh(new THREE.OctahedronGeometry(0.16, 0), mat(accent, { emissive: accent, emissiveIntensity: 2.5 }), { x, y: 2.55, z: -0.8, shadow: false }))
+    }
+    const arc = mesh(new THREE.TorusGeometry(1.6, 0.05, 6, 24, Math.PI), mat(accent, { emissive: accent, emissiveIntensity: 2 }), { y: 2.4, z: -0.8, shadow: false })
+    g.add(arc)
+    g.add(mesh(new THREE.OctahedronGeometry(0.35, 0), mat(0x7df9ff, { emissive: 0x3ad0ff, emissiveIntensity: 1, transparent: true, opacity: 0.85 }), { x: -1.4, y: 0.35, z: 1, shadow: false }))
+  } else {
+    if (isTable) {
+      // Parasol et tabouret.
+      g.add(mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.5, 6), mat(0xdddddd), { x: 1.05, y: 1.25, z: -0.6 }))
+      g.add(mesh(new THREE.ConeGeometry(1.5, 0.5, 8), mat(accent), { x: 1.05, y: 2.55, z: -0.6 }))
+      g.add(mesh(new THREE.CylinderGeometry(0.22, 0.2, 0.55, 10), mat(0x2b2b33), { x: -0.2, y: 0.28, z: 0.85 }))
+    }
+    // Plante en pot.
+    g.add(mesh(new THREE.CylinderGeometry(0.25, 0.2, 0.45, 8), mat(0xd9cbe8), { x: -1.45, y: 0.22, z: -0.7 }))
+    g.add(mesh(new THREE.IcosahedronGeometry(0.42, 0), mat(0x5aa04a), { x: -1.45, y: 0.75, z: -0.7 }))
+  }
+}
+
+// Construit un point d'intérêt à (x, z) local et renvoie ses animations.
+// En extérieur, l'objet est posé sur un petit socle décoré aux couleurs de l'époque.
+export function buildPoint(ctx, x, z, { prop, title, icon, accent, rotY = 0, collide = true, labelY = 3, setting = true }) {
+  const era = ctx.era ?? 'present'
+  STYLE = era
+  const outdoor = setting && !ctx.room && prop
+  const base = outdoor ? platform(ctx, x, z, era, accent) : 0
+  const g = new THREE.Group()
+  g.position.set(x, base, z)
   g.rotation.y = rotY
   if (prop && BUILDERS[prop]) BUILDERS[prop](g)
+  if (outdoor) dressing(ctx, g, era, prop, accent)
   ctx.group.add(g)
-  if (prop && collide) ctx.addCollider(x, z, prop === 'flag' || prop === 'dish' ? 0.5 : 0.75, 2)
+  if (prop && collide) ctx.addCollider(x, z, prop === 'flag' || prop === 'dish' ? 0.5 : TABLE_PROPS.has(prop) ? 1.0 : 0.75, 2)
 
   const ring = mesh(
     new THREE.RingGeometry(1.25, 1.5, 40),
     new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false }),
-    { x, y: 0.04, z, shadow: false },
+    { x, y: base + 0.04, z, shadow: false },
   )
   ring.rotation.x = -Math.PI / 2
   ctx.group.add(ring)
 
-  // Étiquette flottante.
-  const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: textTexture(title, { bg: 'rgba(20,16,44,0.85)', fg: '#ffffff', font: 'bold 50px Georgia, serif' }), transparent: true, depthWrite: false }))
-  label.scale.set(2.6, 0.65, 1)
-  label.position.set(x, labelY, z)
+  // Étiquette flottante en forme de carte.
+  const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTexture(title, icon, hex(accent)), transparent: true, depthWrite: false }))
+  label.scale.set(2.9, 0.82, 1)
+  const top = labelY + (outdoor && TABLE_PROPS.has(prop) ? 0.4 : 0)
+  label.position.set(x, top, z)
   label.renderOrder = 5
   ctx.group.add(label)
-  label.userData.terrain = false
 
   const phase = x * 0.7 + z * 0.3
   ctx.animated.push((dt, t) => {
     ring.material.opacity = 0.45 + Math.sin(t * 2.5 + phase) * 0.2
     ring.scale.setScalar(1 + Math.sin(t * 2.5 + phase) * 0.04)
-    label.position.y = labelY + Math.sin(t * 1.8 + phase) * 0.08 + (label.userData.base ?? 0)
+    label.position.y = top + Math.sin(t * 1.8 + phase) * 0.08
     if (g.userData.spin) g.userData.spin.rotation.y += dt * 0.9
     if (g.userData.spin2) g.userData.spin2.rotation.y -= dt * 2
     if (g.userData.wave) g.userData.wave.rotation.y = Math.sin(t * 2 + phase) * 0.18

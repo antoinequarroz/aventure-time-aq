@@ -47,16 +47,13 @@ export function decorateMain(ctx) {
   addCollider(16, -12, 4.6)
   for (const [px, pz, h] of [[11, -16, 4], [20, -7, 3.2], [12, -9, 3.6], [19.5, -15, 2.8]]) P.pine(ctx, px, pz, { height: h, big: h > 3.5, collide: false })
 
-  // But de foot.
-  const white = mat(0xffffff)
-  const goal = new THREE.Group()
+  // But de foot avec filet, ouvert vers l'intérieur de l'île.
+  const goal = P.soccerGoal({ width: 3.6, height: 2, depth: 1.3 })
   goal.position.set(-15, 0, 10)
-  goal.add(mesh(new THREE.BoxGeometry(0.15, 2, 0.15), white, { x: -1.8, y: 1 }))
-  goal.add(mesh(new THREE.BoxGeometry(0.15, 2, 0.15), white, { x: 1.8, y: 1 }))
-  goal.add(mesh(new THREE.BoxGeometry(3.75, 0.15, 0.15), white, { y: 2 }))
-  goal.rotation.y = Math.PI / 4
+  goal.rotation.y = Math.atan2(0.83, -0.55)
   group.add(goal)
-  for (const side of [-1, 1]) addCollider(-15 + side * 1.27, 10 - side * 1.27, 0.2)
+  for (const k of [-1.2, 0, 1.2]) addCollider(-15 - 0.83 * 1.3 + 0.55 * k, 10 + 0.55 * 1.3 + 0.83 * k, 0.35, 2)
+  for (const side of [-1, 1]) addCollider(-15 - side * 0.55 * 1.8, 10 - side * 0.83 * 1.8, 0.2)
   // Ballon à pousser jusque dans la cage.
   ctx.addPushable('ball', -12, 8, { goal: [-15, 10, 1.1] })
 
