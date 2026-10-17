@@ -31,6 +31,7 @@ export function createUI() {
     <div class="hud-right" id="hud-right">
       <div class="quest-chip" id="quest-chip" title="Quête : découvre tous les points pour ouvrir le coffre final"><b>🗝️</b><span></span></div>
       <div class="hud-chip" id="day-chip"></div>
+      <button class="hud-btn trophy-btn" id="btn-trophies" title="Trophées : succès et classements">🏆<i></i></button>
       <button class="hud-btn" id="btn-tour" title="Visite guidée">🧭</button>
       <button class="hud-btn off" id="btn-music" title="Activer la musique">🎵</button>
       <button class="hud-btn" id="btn-mute" title="Couper le son">🔊</button>
@@ -60,6 +61,7 @@ export function createUI() {
     <div class="fade" id="fade"></div>
     <div class="game-hud" id="game-hud"><strong></strong><span class="status"></span><span class="record"></span><small></small></div>
     <div class="toast" id="toast"></div>
+    <div class="achievement" id="achievement"><b></b><div><small>Succès débloqué</small><strong></strong><span></span></div></div>
     <div class="bigtext" id="bigtext"></div>
     <div class="help">${intro.controls}</div>
   `
@@ -98,6 +100,7 @@ export function createUI() {
   $('start').addEventListener('click', () => begin(false))
   $('start-tour').addEventListener('click', () => begin(true))
   $('btn-tour').addEventListener('click', () => handlers.tour?.())
+  $('btn-trophies').addEventListener('click', () => handlers.trophies?.())
   $('btn-mute').addEventListener('click', () => handlers.mute?.())
   $('btn-music').addEventListener('click', () => handlers.music?.())
   $('brand').addEventListener('click', () => handlers.about?.())
@@ -108,6 +111,8 @@ export function createUI() {
   })
   let islandTimer = null
   let toastTimer = null
+  let achTimer = null
+  const achQueue = []
 
   return {
     // cb(tour) : tour = true si le visiteur a choisi la visite guidée.
@@ -173,6 +178,31 @@ export function createUI() {
       clearTimeout(toastTimer)
       toastTimer = setTimeout(() => toast.classList.remove('visible'), 4000)
     },
+    // Petite carte « Succès débloqué » en haut de l'écran (une à la fois).
+    achievement(a) {
+      achQueue.push(a)
+      if (achQueue.length > 1) return
+      const show = () => {
+        const next = achQueue[0]
+        const el = $('achievement')
+        el.querySelector('b').textContent = next.icon
+        el.querySelector('strong').textContent = next.title
+        el.querySelector('span').textContent = next.text
+        el.classList.add('visible')
+        clearTimeout(achTimer)
+        achTimer = setTimeout(() => {
+          el.classList.remove('visible')
+          setTimeout(() => {
+            achQueue.shift()
+            if (achQueue.length) show()
+          }, 400)
+        }, 3200)
+      }
+      show()
+    },
+    setTrophies(count) {
+      $('btn-trophies').querySelector('i').textContent = count ? String(count) : ''
+    },
     setLoading(progress) {
       $('start').textContent = `Chargement… ${Math.round(progress * 100)} %`
     },
@@ -193,7 +223,7 @@ export function createUI() {
       prompt.classList.toggle('visible', !!text)
     },
     // Fiche d'un point d'intérêt : icône, lieu, titre, texte et liens, aux couleurs de l'île.
-    openPanel({ title, text, links = [], icon = '✦', kicker = '', era = 'present', count = '', side = false, tags = [], nav: navigation = null }) {
+    openPanel({ title, text, links = [], icon = '✦', kicker = '', era = 'present', count = '', side = false, tags = [], nav: navigation = null, extra = null }) {
       nav = navigation
       panel.classList.toggle('has-nav', !!nav)
       panel.querySelector('.panel-nav-label').textContent = nav?.label ?? ''
@@ -217,6 +247,7 @@ export function createUI() {
         p.textContent = todo ? paragraph.replace(/^\[|\]$/g, '') : paragraph
         return p
       }))
+      if (extra) body.append(extra)
       panel.querySelector('.panel-links').replaceChildren(...links.map(({ label, url, primary }) => {
         const a = document.createElement('a')
         if (primary) a.className = 'primary'

@@ -2,12 +2,52 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Aventure Time AQ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Antoine Quarroz · Portfolio 3D interactif</title>
+    <meta name="description" content="Le portfolio d'Antoine Quarroz, développeur web et mobile en Valais, en forme de jeu d'aventure 3D : trois îles à explorer, ses projets, son parcours et ses passions." />
+    <meta name="author" content="Antoine Quarroz" />
+    <meta name="theme-color" content="#231a4a" />
+    <link rel="canonical" href="https://aventuretime.antoinequarroz.ch/" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="./favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./site.webmanifest" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="fr_CH" />
+    <meta property="og:site_name" content="Aventure Time AQ" />
+    <meta property="og:url" content="https://aventuretime.antoinequarroz.ch/" />
+    <meta property="og:title" content="Antoine Quarroz · Portfolio 3D interactif" />
+    <meta property="og:description" content="Explore mon portfolio comme un jeu d'aventure : trois îles, mes projets web et mobile, mon parcours et mes passions." />
+    <meta property="og:image" content="https://aventuretime.antoinequarroz.ch/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Une île médiévale de nuit, avec le titre Antoine Quarroz, portfolio 3D interactif" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@AntoineQuarroz" />
+    <meta name="twitter:title" content="Antoine Quarroz · Portfolio 3D interactif" />
+    <meta name="twitter:description" content="Explore mon portfolio comme un jeu d'aventure : trois îles, mes projets web et mobile, mon parcours et mes passions." />
+    <meta name="twitter:image" content="https://aventuretime.antoinequarroz.ch/og-image.jpg" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Antoine Quarroz",
+        "jobTitle": "Développeur web et mobile",
+        "url": "https://www.antoinequarroz.ch",
+        "address": { "@type": "PostalAddress", "addressLocality": "Saint-Martin", "addressRegion": "Valais", "addressCountry": "CH" },
+        "sameAs": ["https://www.linkedin.com/in/antoinequarroz/", "https://github.com/antoinequarroz", "https://www.instagram.com/antoinequarroz.dev/", "https://x.com/AntoineQuarroz"]
+      }
+    </script>
   </head>
   <body>
     <div id="app"></div>
     <div id="ui"></div>
+    <noscript>
+      <p>Portfolio 3D d'Antoine Quarroz, développeur web et mobile en Valais. Ce site a besoin de JavaScript et de WebGL. Version classique : <a href="https://www.antoinequarroz.ch">antoinequarroz.ch</a>.</p>
+    </noscript>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

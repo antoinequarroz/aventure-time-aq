@@ -235,3 +235,50 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #070a1f; fon
 .minimap-tip { position: absolute; transform: translate(-50%, -150%); padding: 4px 10px; border-radius: 999px; background: #fff; color: #1a1530; font: 700 0.8rem var(--font-ui); white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.15s; }
 .minimap-tip.visible { opacity: 1; }
 .minimap:not(.big) .minimap-tip { display: none; }
+
+/* Trophées : succès et classement local */
+.trophy-btn { position: relative; }
+.trophy-btn i { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: #ffb347; color: #1a1530; font: 700 0.68rem/18px var(--font-ui); font-style: normal; }
+.trophy-btn i:empty { display: none; }
+.trophies h3 { font: 600 1.05rem var(--font-title); margin: 18px 0 10px; color: var(--a); }
+.ach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.ach { display: grid; grid-template-columns: 34px 1fr; column-gap: 8px; align-items: center; padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); opacity: 0.55; }
+.ach.done { opacity: 1; background: color-mix(in srgb, var(--a) 14%, transparent); border-color: color-mix(in srgb, var(--a) 45%, transparent); }
+.ach b { grid-row: span 2; font-size: 1.5rem; text-align: center; }
+.ach strong { font-size: 0.85rem; }
+.ach small { font-size: 0.72rem; opacity: 0.75; line-height: 1.3; }
+.board { display: flex; flex-direction: column; gap: 4px; }
+.board-row { display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; align-items: center; padding: 7px 10px; border-radius: 10px; background: rgba(255,255,255,0.05); font-size: 0.9rem; }
+.board-medal { text-align: center; }
+.board-best { font-variant-numeric: tabular-nums; color: #ffd27a; font-weight: 700; }
+.board-note { font-size: 0.75rem; opacity: 0.6 !important; margin-top: 10px !important; }
+.achievement {
+  position: absolute; top: 72px; left: 50%; transform: translate(-50%, -16px); display: flex; align-items: center; gap: 12px;
+  padding: 10px 18px 10px 12px; border-radius: 16px; background: rgba(24, 18, 52, 0.94); border: 1px solid rgba(255, 179, 71, 0.6);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.45); opacity: 0; transition: opacity 0.3s, transform 0.35s cubic-bezier(.2,1.4,.4,1); max-width: calc(100% - 32px);
+}
+.achievement.visible { opacity: 1; transform: translate(-50%, 0); }
+.achievement b { font-size: 1.9rem; }
+.achievement small { display: block; font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: #ffb347; }
+.achievement strong { display: block; font: 600 1.05rem var(--font-title); }
+.achievement span { display: block; font-size: 0.8rem; opacity: 0.75; }
+
+/* Téléphone : panneaux au-dessus de tout, commandes masquées pendant la lecture */
+.panel-backdrop { z-index: 20; }
+.panel { z-index: 21; }
+.fade { z-index: 30; }
+.panel-backdrop.visible ~ .stick, .panel-backdrop.visible ~ .touch-btn { display: none !important; }
+#ui.touch .help { display: none; }
+.achievement { z-index: 25; }
+@media (max-width: 600px) {
+  .toast { top: auto; bottom: 190px; font-size: 0.9rem; }
+  .game-hud { top: 62px; right: 12px; min-width: 0; max-width: 210px; padding: 8px 12px; }
+  .game-hud .status { font-size: 1.15rem; }
+  #ui.touch .game-hud small { display: none; }
+  .achievement { top: auto; bottom: 240px; }
+  .panel { max-height: calc(100% - 24px); width: calc(100% - 20px); border-radius: 18px; }
+  .panel-hero { padding: 20px 18px 16px; }
+  .panel-text { padding: 16px 18px 4px; }
+  .panel h2 { font-size: 1.4rem; }
+  .ach-grid { grid-template-columns: 1fr 1fr; }
+}

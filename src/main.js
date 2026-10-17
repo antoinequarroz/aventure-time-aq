@@ -16,10 +16,11 @@ import { createPushables } from './world/pushables.js'
 import { loadModels } from './world/models.js'
 import { createPlayer } from './player.js'
 import { createUI } from './ui.js'
-import { createGames } from './games.js'
+import { createGames, medalFor } from './games.js'
 import { createControls } from './controls.js'
 import { createAudio } from './audio.js'
 import { createQuest } from './quest.js'
+import { createRewards, trophiesView } from './rewards.js'
 import { createTour } from './tour.js'
 import { createWeather } from './weather.js'
 import { createSocialPlaza, createPortfolioBanner } from './world/socials.js'
@@ -59,6 +60,7 @@ scene.add(hemi)
 const sun = new THREE.DirectionalLight(0xffe2b8, 2.8)
 sun.castShadow = true
 sun.shadow.mapSize.set(2048, 2048)
+if (matchMedia('(pointer: coarse)').matches) sun.shadow.mapSize.set(1024, 1024)
 sun.shadow.bias = -0.0005
 sun.shadow.radius = 3
 sun.shadow.blurSamples = 10
@@ -69,12 +71,12 @@ rim.position.set(-30, 20, -40)
 scene.add(rim)
 
 // Post-traitement : léger bloom sur les éléments lumineux.
-// Cible multi-échantillonnée : garde l'anticrénelage malgré le post-traitement.
-const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, { type: THREE.HalfFloatType, samples: 4 }))
-composer.addPass(new RenderPass(scene, camera))
-// Occlusion ambiante : ombres de contact au pied des objets et dans les recoins (désactivée sur mobile).
 const params = new URLSearchParams(location.search)
 const lowEnd = matchMedia('(pointer: coarse)').matches || params.has('lite')
+// Cible multi-échantillonnée : garde l'anticrénelage malgré le post-traitement.
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, { type: THREE.HalfFloatType, samples: lowEnd ? 2 : 4 }))
+composer.addPass(new RenderPass(scene, camera))
+// Occlusion ambiante : ombres de contact au pied des objets et dans les recoins (désactivée sur mobile).
 let ao = null
 if (!lowEnd && !params.has('noao')) {
   ao = new GTAOPass(scene, camera, window.innerWidth, window.innerHeight)
@@ -163,12 +165,20 @@ const banner = createPortfolioBanner(scene, world, { x: world.spawn.x, z: world.
 const projectPlaces = createShowcases(scene, world, { places: showcases, ui, sfx })
 const interactables = [...world.interactables, ...vehicles.interactables, ...socialStones.interactables, ...projectPlaces.interactables]
 const player = createPlayer(scene, world)
-const minimap = createMinimap({ world, player, interactables, eraOf: (x) => (x < -75 ? 'past' : x > 75 ? 'future' : 'present'), onPick: (item) => goTo(item) })
-const games = createGames(scene, ui, player, sfx)
+const eraOf = (x) => (x < -75 ? 'past' : x > 75 ? 'future' : 'present')
+const minimap = createMinimap({ world, player, interactables, eraOf, onPick: (item) => goTo(item) })
+const rewards = createRewards(ui, sfx)
+const games = createGames(scene, ui, player, sfx, rewards, () => world.games)
 const weather = createWeather(scene)
 const pushables = createPushables(scene, world, world.pushables, {
-  onStrike: () => ui.toast('STRIKE ! Toutes les quilles sont tombées 🎳'),
-  onGoal: () => ui.toast('BUUUT ! ⚽'),
+  onStrike: () => {
+    ui.toast('STRIKE ! Toutes les quilles sont tombées 🎳')
+    rewards.unlock('strike')
+  },
+  onGoal: () => {
+    ui.toast('BUUUT ! ⚽')
+    rewards.unlock('goal')
+  },
 })
 // Lumières ponctuelles regroupées dans une réserve fixe (voir lightPool.js).
 const lights = createLightPool(scene, 8)
@@ -290,6 +300,9 @@ function discover(item, silent = false) {
   if (discovered.has(item.title)) return
   discovered.add(item.title)
   saveDiscovered()
+  rewards.unlock('first-steps')
+  const era = eraOf(item.x)
+  if (signs.filter((s) => eraOf(s.x) === era).every((s) => discovered.has(s.title))) rewards.unlock(era)
   ui.setQuest(quest.progress())
   if (discovered.size === signs.length && !silent && !tour.active) {
     sfx.jingle()
@@ -347,6 +360,29 @@ ui.on('about', () => {
   sfx.blip('open')
   ui.openPanel({ ...about, icon: '🧭', kicker: 'Bienvenue', era: 'present' })
 })
+ui.on('trophies', () => {
+  if (!started) return
+  if (tour.active) tour.stop()
+  sfx.blip('open')
+  ui.openPanel({ title: 'Trophées', icon: '🏆', kicker: 'Succès et classements', era: 'present', text: 'Débloque des succès en explorant les îles et bats tes records dans les mini-jeux.', extra: trophiesView(rewards, world.games, medalFor) })
+})
+ui.setTrophies(rewards.count())
+rewards.onChange(() => ui.setTrophies(rewards.count()))
+// Succès liés à l'état du jeu, vérifiés deux fois par seconde.
+let rewardClock = 0
+const LIB = { x: -150, z: 580 }
+function checkRewards(dt) {
+  rewardClock += dt
+  if (rewardClock < 0.5 || !started) return
+  rewardClock = 0
+  if (vehicles.driving) rewards.unlock('driver')
+  if (vehicles.traveling && vehicles.driving) rewards.unlock('flight')
+  if (vehicles.traveling && !vehicles.driving) rewards.unlock('rocket')
+  if (quest.opened) rewards.unlock('chest')
+  if (tour.completed) rewards.unlock('tour')
+  if (weather.state.day < 0.15) rewards.unlock('night')
+  if (Math.abs(player.position.x - LIB.x) < 9 && Math.abs(player.position.z - LIB.z) < 7) rewards.unlock('library')
+}
 ui.on('tourStop', () => {
   tour.stop()
   ui.closePanel()
@@ -383,6 +419,7 @@ function interact() {
   if (nearby.type === 'chest') quest.open(player)
   if (nearby.type === 'social') {
     sfx.blip('open')
+    rewards.unlock('social')
     ui.openPanel({ title: nearby.title, icon: '🪨', kicker: 'Mes réseaux', era: 'past', text: nearby.text, links: [{ label: `Ouvrir ${nearby.title}`, url: nearby.url, primary: true }] })
   }
   if (nearby.type === 'vehicle') {
@@ -422,6 +459,16 @@ function findNearby() {
 const focus = new THREE.Vector3()
 let camGround = player.position.y
 let zoom = 1
+// Téléphone en portrait : champ de vision plus large et un peu plus de recul, pour voir autour de soi.
+let portraitZoom = 1
+function fitCamera() {
+  const aspect = window.innerWidth / window.innerHeight
+  camera.aspect = aspect
+  camera.fov = aspect < 1 ? 55 : 45
+  portraitZoom = aspect < 0.8 ? 1.25 : aspect < 1 ? 1.12 : 1
+  camera.updateProjectionMatrix()
+}
+fitCamera()
 const indoorOffset = new THREE.Vector3(0, 10.5, 8.5)
 const viewOffset = new THREE.Vector3(0, 14, 19)
 let wasInside = false
@@ -438,7 +485,7 @@ function updateCamera(dt) {
   }
   // Au volant, la caméra prend un peu de recul ; dans un intérieur, elle se rapproche et plonge.
   const inside = player.currentIsland()?.interior
-  zoom += ((vehicles.driving || vehicles.traveling ? 1.3 : 1) - zoom) * (1 - Math.exp(-dt * 2))
+  zoom += ((vehicles.driving || vehicles.traveling ? 1.3 : 1) * portraitZoom - zoom) * (1 - Math.exp(-dt * 2))
   viewOffset.lerp(inside ? indoorOffset : cameraOffset, 1 - Math.exp(-dt * 5))
   if (cameraTarget.distanceToSquared(focus) < 0.01 && inside !== wasInside) viewOffset.copy(inside ? indoorOffset : cameraOffset)
   wasInside = inside
@@ -465,7 +512,8 @@ const headPos = new THREE.Vector3()
 // l'occlusion ambiante, puis on baisse la résolution, pour garder un mouvement fluide.
 let frameAvg = 1 / 60
 let frameCount = 0
-let quality = params.has('q') ? +params.get('q') : params.has('lite') ? 2 : 0
+// Téléphone : on démarre un cran plus bas (moins de pixels), l'adaptation fait le reste.
+let quality = params.has('q') ? +params.get('q') : params.has('lite') ? 2 : lowEnd ? 1 : 0
 const fixedQuality = params.has('q')
 const applyQuality = () => {
   if (ao) ao.enabled = quality < 1
@@ -516,6 +564,7 @@ function tick() {
   games.update(dt, t)
   space.update(dt, t)
   quest.update(dt, t)
+  checkRewards(dt)
   socialStones.update(dt, t)
   projectPlaces.update(dt, t, player)
   banner.update(dt, t)
@@ -574,8 +623,7 @@ function tick() {
 tick()
 
 window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight
-  camera.updateProjectionMatrix()
+  fitCamera()
   renderer.setSize(window.innerWidth, window.innerHeight)
   composer.setSize(window.innerWidth, window.innerHeight)
 })

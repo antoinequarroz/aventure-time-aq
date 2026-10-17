@@ -83,7 +83,9 @@ export function createIslands(scene) {
     }
 
     // Île principale.
-    const mainShape = module.mainShape ?? { lobes: [[0, 0, ISLAND_RADIUS, 0]] }
+    const baseShape = module.mainShape ?? { lobes: [[0, 0, ISLAND_RADIUS, 0]] }
+    // L'arène des dalles a son propre dallage (pas d'herbe qui cacherait les dalles).
+    const mainShape = era.arena ? { ...baseShape, plazas: [...(baseShape.plazas ?? []), [...era.arena.at, 4.4]] } : baseShape
     const main = makeCtx(theme.center, mainShape)
     module.decorateMain(main)
     mains[era.id] = main
@@ -107,6 +109,16 @@ export function createIslands(scene) {
     }
     for (const sign of era.signs) if (!sign.sat && !sign.room) addPoint(main, sign, era.name)
     pending.push(...era.signs.filter((sign) => sign.room).map((sign) => ({ sign, addPoint })))
+    // Arène du mini-jeu des dalles, sur l'île principale.
+    if (era.arena) {
+      const [ax, az] = era.arena.at
+      buildStartPad(main, era.arena.at, theme.accent, main.animated)
+      const y = main.heightAt(ax, az)
+      const at = new THREE.Vector3(theme.center.x + ax, y, theme.center.z + az)
+      const def = { id: `${era.id}-arena`, era: era.id, type: 'tiles', score: true, time: 30, radius: 3.4, medals: [45, 25], title: era.arena.title, intro: era.arena.intro, accent: theme.accent, start: at, center: at }
+      interactables.push({ type: 'game', x: at.x, z: at.z, r: 2.2, title: def.title, game: def })
+      games.push(def)
+    }
     settle(main.group, main.decorFrom, ground, warn)
     finish(main)
 

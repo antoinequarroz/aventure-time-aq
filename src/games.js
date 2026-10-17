@@ -46,6 +46,34 @@ function makeItem(kind) {
   return g
 }
 
+// Dalle lumineuse du jeu « tiles », posée au hasard autour du centre de l'arène.
+const tileGeo = new THREE.CylinderGeometry(0.95, 0.95, 0.08, 28)
+const ringGeo = new THREE.RingGeometry(1.0, 1.15, 32).rotateX(-Math.PI / 2)
+const beamGeo = new THREE.CylinderGeometry(0.75, 0.95, 2.6, 24, 1, true).translate(0, 1.3, 0)
+function spawnTile(def, others) {
+  for (let tries = 0; tries < 12; tries++) {
+    const a = Math.random() * Math.PI * 2
+    const r = Math.sqrt(Math.random()) * def.radius
+    const x = def.center.x + Math.cos(a) * r
+    const z = def.center.z + Math.sin(a) * r
+    if (others.some((o) => Math.hypot(o.position.x - x, o.position.z - z) < 2.3)) continue
+    const gold = Math.random() < 0.16
+    const color = gold ? 0xffd34f : def.accent
+    const g = new THREE.Group()
+    const glow = mesh(tileGeo, mat(color, { emissive: color, emissiveIntensity: 2 }), { shadow: false })
+    const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false }))
+    ring.position.y = 0.06
+    // Colonne de lumière : la dalle se repère de loin, même derrière le décor.
+    const beam = new THREE.Mesh(beamGeo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.28, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }))
+    g.add(glow, ring, beam)
+    g.position.set(x, def.center.y + 0.05, z)
+    const max = gold ? 1.7 : 2.4
+    g.userData = { life: max, max, gold, glow, ring }
+    return g
+  }
+  return null
+}
+
 function makeRing(color) {
   const ring = new THREE.Group()
   const torus = mesh(new THREE.TorusGeometry(1.6, 0.14, 8, 40), mat(color, { emissive: color, emissiveIntensity: 1.5 }), { shadow: false })
@@ -54,8 +82,29 @@ function makeRing(color) {
   return ring
 }
 
-export function createGames(scene, ui, player, sfx = null) {
-  const records = loadRecords()
+// Médailles : or, argent, bronze selon le temps (ou le score pour les jeux à points).
+export function medalThresholds(def) {
+  if (def.medals) return def.medals
+  if (def.type === 'parkour') return [20, 35]
+  return [def.time * 0.55, def.time * 0.8]
+}
+
+export function medalFor(def, value) {
+  const [gold, silver] = medalThresholds(def)
+  const better = (a, b) => (def.score ? a >= b : a <= b)
+  if (better(value, gold)) return { icon: '🥇', label: 'Médaille d\'or', rank: 3 }
+  if (better(value, silver)) return { icon: '🥈', label: 'Médaille d\'argent', rank: 2 }
+  return { icon: '🥉', label: 'Médaille de bronze', rank: 1 }
+}
+
+export function createGames(scene, ui, player, sfx = null, rewards = null, allGames = () => []) {
+  // Anciens records (avant le classement) : repris une fois dans le classement local.
+  const legacy = loadRecords()
+  const records = {
+    get(id) {
+      return rewards?.board[id]?.[0]?.v ?? legacy[id]
+    },
+  }
   const burst = createBurst(scene)
   const arrow = new THREE.Group()
   const arrowMat = mat(0xffd27a, { emissive: 0xffb347, emissiveIntensity: 2 })
@@ -63,45 +112,55 @@ export function createGames(scene, ui, player, sfx = null) {
   arrow.add(head, mesh(new THREE.BoxGeometry(0.2, 0.12, 0.7), arrowMat, { z: -0.1, shadow: false }))
   let active = null
 
-  // Médailles : or, argent, bronze selon le temps (seuils propres à chaque type de jeu).
-  function medalFor(def, time) {
-    const [gold, silver] = def.medals ?? (def.type === 'parkour' ? [20, 35] : [def.time * 0.55, def.time * 0.8])
-    if (time <= gold) return { icon: '🥇', label: 'Médaille d\'or' }
-    if (time <= silver) return { icon: '🥈', label: 'Médaille d\'argent' }
-    return { icon: '🥉', label: 'Médaille de bronze' }
-  }
-
   function finish(success, message) {
     const game = active.def
-    const time = active.time
+    const value = game.score ? active.score : active.time
     cleanup()
     if (!success) {
       sfx?.blip('locked')
       ui.openPanel({ title: `${game.title} : raté !`, icon: '💥', kicker: 'Mini-jeu', era: game.era, text: [message, 'Retourne sur le point de départ et appuie sur E pour réessayer.'] })
       return
     }
-    const previous = records[game.id]
-    const best = previous === undefined || time < previous
-    if (best) {
-      records[game.id] = time
-      saveRecords(records)
+    const previous = records.get(game.id)
+    const fmt = (v) => (game.score ? `${v} points` : `${v.toFixed(1)} s`)
+    const best = previous === undefined || (game.score ? value > previous : value < previous)
+    if (rewards && previous !== undefined && !rewards.board[game.id]) rewards.record(game, previous, 'Ancien record')
+    const rank = rewards ? rewards.record(game, value, ({ rogue: 'Aventurier', knight: 'Chevalier', mage: 'Mage', barbarian: 'Barbare' })[player.character] ?? 'Toi') : 0
+    if (!rewards && best) {
+      legacy[game.id] = value
+      saveRecords(legacy)
     }
-    const medal = medalFor(game, time)
-    const [gold] = game.medals ?? (game.type === 'parkour' ? [20, 35] : [game.time * 0.55, game.time * 0.8])
+    const medal = medalFor(game, value)
+    const [gold] = medalThresholds(game)
     burst.confetti(player.position)
     player.cheer?.()
     sfx?.jingle()
+    if (rewards) {
+      rewards.unlock('first-game')
+      if (medal.rank === 3) rewards.unlock('gold')
+      const list = allGames()
+      if (list.length && list.every((g) => rewards.best(g) !== undefined)) rewards.unlock('all-games')
+      if (list.length && list.every((g) => rewards.best(g) !== undefined && medalFor(g, rewards.best(g)).rank === 3)) rewards.unlock('all-gold')
+    }
+    const board = rewards?.lines(game, rank) ?? []
     ui.openPanel({
       title: `${game.title} : bravo !`,
       icon: medal.icon,
       kicker: medal.label,
       era: game.era,
       text: [
-        `Ton temps : ${time.toFixed(1)} s.`,
-        best ? (previous === undefined ? 'Premier record enregistré !' : `Nouveau record ! L'ancien était de ${previous.toFixed(1)} s.`) : `Ton record reste de ${previous.toFixed(1)} s.`,
-        medal.icon === '🥇' ? 'Imbattable. Tu peux quand même essayer de faire encore mieux !' : `Pour l'or, il faut finir en moins de ${gold.toFixed(1)} s.`,
+        game.score ? `Ton score : ${fmt(value)}.` : `Ton temps : ${fmt(value)}.`,
+        best ? (previous === undefined ? 'Premier record enregistré !' : `Nouveau record ! L'ancien était de ${fmt(previous)}.`) : `Ton record reste de ${fmt(previous)}.`,
+        medal.rank === 3 ? 'Imbattable. Tu peux quand même essayer de faire encore mieux !' : game.score ? `Pour l'or, il faut au moins ${gold} points.` : `Pour l'or, il faut finir en moins de ${gold.toFixed(1)} s.`,
+        ...(board.length ? ['Classement sur cet appareil :', ...board] : []),
       ],
     })
+  }
+
+  function recordText(def) {
+    const r = records.get(def.id)
+    if (r === undefined) return 'Pas encore de record'
+    return def.score ? `Record : ${r} pts` : `Record : ${r.toFixed(1)} s`
   }
 
   function cleanup() {
@@ -152,6 +211,7 @@ export function createGames(scene, ui, player, sfx = null) {
         })
       }
       if (def.type === 'parkour') player.setCheckpoint(def.start)
+      if (def.type === 'tiles') Object.assign(active, { tiles: [], score: 0, spawn: 0.2 })
       ui.toast(def.intro)
       ui.bigText?.('3')
     },
@@ -170,8 +230,7 @@ export function createGames(scene, ui, player, sfx = null) {
         active.countdown -= dt
         const now = Math.ceil(active.countdown)
         if (now !== before) ui.bigText?.(now > 0 ? String(now) : 'Partez !')
-        const record = records[def.id]
-        ui.setGameHud(def.title, 'Prêt ?', record !== undefined ? `Record : ${record.toFixed(1)} s` : 'Pas encore de record', 'Échap pour abandonner')
+        ui.setGameHud(def.title, 'Prêt ?', recordText(def), 'Échap pour abandonner')
         return
       }
       active.t += dt
@@ -210,6 +269,7 @@ export function createGames(scene, ui, player, sfx = null) {
             active.combo = active.t - active.lastPick < 1.8 ? active.combo + 1 : 1
             active.lastPick = active.t
             if (active.combo >= 2) ui.bigText?.(`Combo ×${active.combo} !`, true)
+            if (active.combo >= 5) rewards?.unlock('combo')
           }
         }
         const left = def.time - active.t
@@ -247,6 +307,54 @@ export function createGames(scene, ui, player, sfx = null) {
         if (left <= 0) return finish(false, 'Le temps est écoulé.')
       }
 
+      if (def.type === 'tiles') {
+        // Dalles lumineuses : marche dessus avant qu'elles s'éteignent. Les dorées valent 3 points.
+        const left = def.time - active.t
+        const pace = 1 - Math.min(1, active.t / def.time)
+        active.spawn -= dt
+        if (active.spawn <= 0 && active.tiles.length < 3) {
+          active.spawn = 0.45 + pace * 0.55
+          const tile = spawnTile(def, active.tiles)
+          if (tile) {
+            scene.add(tile)
+            active.objects.push(tile)
+            active.tiles.push(tile)
+          }
+        }
+        for (let i = active.tiles.length - 1; i >= 0; i--) {
+          const tile = active.tiles[i]
+          const u = tile.userData
+          u.life -= dt
+          const k = Math.max(0, u.life / u.max)
+          tile.scale.setScalar(0.35 + 0.65 * k)
+          u.glow.material.emissiveIntensity = (u.gold ? 2.6 : 1.8) + Math.sin(t * 10) * 0.5
+          u.ring.scale.setScalar(1 + (1 - k) * 0.6)
+          u.ring.material.opacity = 0.9 * k
+          const stepped = Math.hypot(tile.position.x - p.x, tile.position.z - p.z) < 0.95 * tile.scale.x + 0.25 && Math.abs(p.y - tile.position.y) < 0.8
+          if (stepped || u.life <= 0) {
+            scene.remove(tile)
+            active.tiles.splice(i, 1)
+            if (!stepped) {
+              active.combo = 0
+              continue
+            }
+            active.combo = active.t - active.lastPick < 1.6 ? active.combo + 1 : 1
+            active.lastPick = active.t
+            const gain = (u.gold ? 3 : 1) + (active.combo >= 3 ? 1 : 0)
+            active.score += gain
+            burst.emit(tile.position.clone().setY(tile.position.y + 0.4), u.gold ? 0xffd34f : def.accent)
+            sfx?.blip('coin')
+            ui.bigText?.(active.combo >= 3 ? `+${gain} · combo ×${active.combo}` : `+${gain}`, true)
+            if (active.combo >= 5) rewards?.unlock('combo')
+          }
+        }
+        status = `${active.score} pts · ${Math.max(0, left).toFixed(1)} s`
+        if (left <= 0) {
+          if (active.score > 0) return finish(true)
+          return finish(false, 'Aucune dalle attrapée : marche sur les dalles qui s\'allument !')
+        }
+      }
+
       if (def.type === 'parkour') {
         status = `Chrono : ${active.t.toFixed(1)} s`
         if (Math.hypot(def.goal.x - p.x, def.goal.z - p.z) < 1.6 && p.y > def.goal.y - 0.3) {
@@ -256,8 +364,7 @@ export function createGames(scene, ui, player, sfx = null) {
         }
       }
 
-      const record = records[def.id]
-      ui.setGameHud(def.title, status, record !== undefined ? `Record : ${record.toFixed(1)} s` : 'Pas encore de record', 'Échap pour abandonner')
+      ui.setGameHud(def.title, status, recordText(def), 'Échap pour abandonner')
     },
   }
 }

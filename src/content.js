@@ -77,9 +77,9 @@ export const showcases = [
     text: 'Mes racines valaisannes : des sites pour le village, ses fêtes, ses passionnés et ses commerces.',
     projects: [
       { id: 'carnadzons', title: 'Carna\'dzons', tagline: 'Le carnaval de Saint-Martin', color: '#e8743b', kind: 'full', image: 'projects/carnadzons.jpg', tech: ['React 18', 'JavaScript', 'Sass'], text: 'Le site officiel du carnaval de Saint-Martin, en Valais : programme, thème, groupes, chars et infos pratiques.', links: [{ label: 'carnadzons.ch', url: 'https://www.carnadzons.ch' }, { label: 'Fiche projet', url: project('carnadzons') }] },
-      { id: 'rallye', title: 'Rallye Team Quarroz', tagline: 'L\'équipe de rallye familiale', color: '#d6402f', kind: 'web', domain: 'quarroz-rally-team.vercel.app', tech: ['Nuxt 4', 'Vue 3', 'TypeScript'], text: 'Le site officiel de l\'équipe : équipage, calendrier, résultats, partenaires et boutique des supporters.', links: [{ label: 'Voir le site', url: 'https://quarroz-rally-team.vercel.app' }, { label: 'Fiche projet', url: project('rallye-team-quarroz') }] },
+      { id: 'rallye', title: 'Rallye Team Quarroz', tagline: 'L\'équipe de rallye familiale', color: '#d6402f', kind: 'web', domain: 'quarroz-rally-team.vercel.app', image: 'projects/rallye.jpg', tech: ['Nuxt 4', 'Vue 3', 'TypeScript'], text: 'Le site officiel de l\'équipe : équipage, calendrier, résultats, partenaires et boutique des supporters.', links: [{ label: 'Voir le site', url: 'https://quarroz-rally-team.vercel.app' }, { label: 'Fiche projet', url: project('rallye-team-quarroz') }] },
       { id: 'lesaintmartin', title: 'Le Saint-Martin RestObar', tagline: 'Bistronomie, ambiance, brunch', color: '#3fd6c8', kind: 'web', domain: 'lesaintmartin.ch', image: 'projects/lesaintmartin.jpg', tech: ['WordPress', 'WooCommerce', 'WPBakery'], text: 'Le site vitrine du restaurant-bar du village : ambiance, carte, événements et réservations.', links: [{ label: 'lesaintmartin.ch', url: 'https://lesaintmartin.ch' }, { label: 'Fiche projet', url: project('le-saint-martin-restobar') }] },
-      { id: 'physiobaur', title: 'PhysioBaur', tagline: 'Physiothérapie à Sion et Grimisuat', color: '#2f9bd8', kind: 'web', domain: 'physiobaur.ch', image: 'projects/physiobaur.jpg', tech: ['Nuxt 4', 'Vue 3', 'TypeScript'], text: ['Le site d\'un cabinet de physiothérapie : soins, équipe et lieux, avec un contact simple pour les patients.', '« J\'ai particulièrement apprécié son écoute, sa disponibilité et son souci du détail. » Christophe Baur'], links: [{ label: 'physiobaur.ch', url: 'https://physiobaur.ch/' }, { label: 'Fiche projet', url: project('physiobaur') }] },
+      { id: 'physiobaur', title: 'PhysioBaur', tagline: 'Physiothérapie à Sion et Grimisuat', color: '#2f9bd8', kind: 'web', domain: 'physiobaur.ch', image: 'projects/physiobaur.jpg', overlay: true, tech: ['Nuxt 4', 'Vue 3', 'TypeScript'], text: ['Le site d\'un cabinet de physiothérapie : soins, équipe et lieux, avec un contact simple pour les patients.', '« J\'ai particulièrement apprécié son écoute, sa disponibilité et son souci du détail. » Christophe Baur'], links: [{ label: 'physiobaur.ch', url: 'https://physiobaur.ch/' }, { label: 'Fiche projet', url: project('physiobaur') }] },
     ],
   },
   {
@@ -112,7 +112,7 @@ export const showcases = [
       { id: 'lifxp', title: 'LifXp', tagline: 'Level up your life', color: '#8fbf6f', kind: 'full', image: 'projects/lifxp.jpg', tech: ['Expo', 'React Native', 'TypeScript'], text: 'Le développement personnel version jeu vidéo : les objectifs du jour deviennent des quêtes, de l\'expérience et des niveaux. Bêta sur TestFlight.', links: [{ label: 'Fiche projet', url: project('lifxp') }] },
       { id: 'respire', title: 'Respire', tagline: 'Arrêter de fumer, un jour après l\'autre', color: '#3fd6a8', kind: 'mobile', tech: ['Expo', 'React Native', 'TypeScript'], text: 'Une appli iOS et Android pour arrêter de fumer : temps sans fumer, économies, gains de santé, mode SOS pour les envies et widgets.', links: [{ label: 'Fiche projet', url: project('respire') }] },
       { id: 'hermes', title: 'Hermes Cockpit', tagline: 'Piloter ses agents IA', color: '#ffb347', kind: 'app', tech: ['Swift', 'SwiftUI', 'Hermes Agent'], text: 'Une app macOS pour organiser ses agents IA par projet, suivre leurs missions et relire leurs résultats, avec un compagnon web privé pour iPhone.', links: [{ label: 'Fiche projet', url: project('hermes-cockpit') }] },
-      { id: 'envvault', title: 'EnvVault', tagline: 'Tes fichiers .env, chiffrés et versionnés', color: '#58d0ff', kind: 'app', terminal: true, tech: ['Rust', 'Tauri', 'React'], text: 'Un logiciel qui sauvegarde et chiffre les fichiers .env choisis, avec historique des versions, pour retrouver sa configuration en reprenant un projet. Projet personnel en développement.', links: [{ label: 'Fiche projet', url: project('envvault') }] },
+      { id: 'envvault', title: 'EnvVault', tagline: 'Tes fichiers .env, chiffrés et versionnés', color: '#58d0ff', kind: 'app', terminal: true, image: 'projects/envvault.jpg', tech: ['Rust', 'Tauri', 'React'], text: 'Un logiciel qui sauvegarde et chiffre les fichiers .env choisis, avec historique des versions, pour retrouver sa configuration en reprenant un projet. Projet personnel en développement.', links: [{ label: 'Fiche projet', url: project('envvault') }] },
     ],
   },
 ]
@@ -125,7 +125,7 @@ export const quest = {
     title: 'Mon CV',
     text: [
       'Antoine Quarroz, développeur web et mobile freelance depuis 2026, basé à Saint-Martin (Valais) et disponible à distance. « Je crée des expériences digitales qui marquent. »',
-      'Formation : médiamaticien. Je combine design, communication et technique pour livrer des choses qui ont du style et qui fonctionnent vraiment.',
+      'Formation : médiamaticien. Expérience : médiamaticien à la HES-SO Valais-Wallis, puis freelance depuis 2026. Je combine design, communication et technique pour livrer des choses qui ont du style et qui fonctionnent vraiment.',
       'Services : sites vitrines, solutions CMS, applications iOS et Android, outils métier pour PME (tableaux de bord, CRM, facturation, devis), audit IA pour PME et premier avis gratuit sur un projet.',
       'Front et 3D : Vue 3, Nuxt, React, Next.js, Three.js, Vite, Sass. Mobile : SwiftUI, Flutter, Dart, Expo. Back : Rust, Tauri, Node.js, Supabase, PostgreSQL, Convex. Outils : Git, GitHub, Docker, Cloudflare, Caddy, Figma, Stripe, Sentry, WordPress, WooCommerce.',
       '17 projets publiés, dont Remembeyes, LifXp, Respire, VELQORA, Orion, STAQ, LivreMatch, EnvVault, Hermes Cockpit, PhysioBaur, Carna\'dzons et le Rallye Team Quarroz.',
@@ -151,6 +151,7 @@ export const vehicles = {
 export const islands = [
   {
     id: 'past',
+    arena: { at: [-10, 2], title: 'Les dalles runiques', intro: 'Marche sur les runes qui s\'allument avant qu\'elles s\'éteignent. Les dorées valent 3 points !' },
     name: 'L\'île du Passé',
     tagline: 'Royaume médiéval fantastique',
     satellites: [
@@ -192,7 +193,8 @@ export const islands = [
         text: [
           'Médiamaticien de formation, j\'ai appris à mélanger design, communication et technique.',
           'C\'est là qu\'est née mon envie de créer des choses fiables, claires et mémorables.',
-          '[à compléter : ton école, tes diplômes, tes stages, le déclic pour le code]',
+          'Ensuite, j\'ai travaillé comme médiamaticien à la HES-SO Valais-Wallis, où le développement web, la réalité virtuelle et la réalité augmentée sont devenus mes terrains de jeu.',
+          '[à compléter : ton école, l\'année du CFC, les dates à la HES-SO, le déclic pour le code]',
         ],
       },
       {
@@ -229,6 +231,7 @@ export const islands = [
   },
   {
     id: 'present',
+    arena: { at: [-4, 13], title: 'Les dalles du dancefloor', intro: 'Attrape les dalles qui s\'allument, le plus possible en 30 secondes. Les dorées valent 3 points !' },
     name: 'L\'île du Présent',
     tagline: 'Le village du développeur',
     satellites: [
@@ -353,6 +356,7 @@ export const islands = [
   },
   {
     id: 'future',
+    arena: { at: [8.5, 10], title: 'Les signaux stellaires', intro: 'Capte les signaux lumineux avant qu\'ils disparaissent. En apesanteur, anticipe tes sauts !' },
     name: 'L\'île du Futur',
     tagline: 'Base lunaire et étoiles',
     satellites: [

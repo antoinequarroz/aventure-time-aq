@@ -65,6 +65,7 @@ export function createTour({ ui, world, player, signs, quest, discover, onMove, 
     }
   }
 
+  let completed = false
   function stop() {
     if (!active) return
     active = false
@@ -76,6 +77,9 @@ export function createTour({ ui, world, player, signs, quest, discover, onMove, 
     standNear,
     get active() {
       return active
+    },
+    get completed() {
+      return completed
     },
     start() {
       active = true
@@ -97,6 +101,7 @@ export function createTour({ ui, world, player, signs, quest, discover, onMove, 
         if (timer > per - 0.6) {
           if (index >= stops.length) {
             // Fin de la visite : la fiche du coffre reste ouverte.
+            completed = true
             active = false
             phase = 'idle'
             ui.setTour(null)

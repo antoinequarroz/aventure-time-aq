@@ -69,7 +69,7 @@ export function drawVisual(g, project, x, y, w, h, redraw) {
     if (img) cover(g, img, 0, 0, VISUAL_W, VISUAL_H)
     else placeholder(g, project)
   } else if (project.kind === 'mobile') mobile(g, project)
-  else if (project.kind === 'app') desktopApp(g, project)
+  else if (project.kind === 'app') desktopApp(g, project, img)
   else browser(g, project, img)
   g.restore()
 }
@@ -106,7 +106,7 @@ function browser(g, p, img) {
   const top = 50
   if (img) {
     cover(g, img, 0, top, W, H - top)
-    if (p.id !== 'lesaintmartin') {
+    if (p.overlay) {
       // Photo en fond : bandeau du site par-dessus.
       const grad = g.createLinearGradient(0, 0, W * 0.75, 0)
       grad.addColorStop(0, 'rgba(10, 20, 40, 0.85)')
@@ -324,7 +324,7 @@ function phone(g, p, x, y, tilt, screenIndex) {
 }
 
 // Logiciel de bureau : fenêtre macOS avec barre latérale.
-function desktopApp(g, p) {
+function desktopApp(g, p, img) {
   const W = VISUAL_W
   const H = VISUAL_H
   const bg = g.createLinearGradient(0, 0, W, H)
@@ -351,6 +351,12 @@ function desktopApp(g, p) {
   g.textBaseline = 'middle'
   g.fillText(p.title, W / 2, 62)
   g.textAlign = 'left'
+  if (img) {
+    // Vraie capture du logiciel dans la fenêtre.
+    cover(g, img, 60, 84, W - 120, H - 124)
+    g.restore()
+    return
+  }
   if (p.terminal) {
     // EnvVault : terminal et historique de versions chiffrées.
     g.fillStyle = '#0f0d1c'
