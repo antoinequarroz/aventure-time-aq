@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { mergeStatic } from './merge.js'
 import { islands as content } from '../content.js'
 import { jitter, mat, mesh, textTexture } from './helpers.js'
 import { model } from './models.js'
@@ -22,10 +23,15 @@ export const THEMES = {
   future: { center: new THREE.Vector3(SPACING, 0, 0), top: 0xaeb2c2, lip: 0x9a9eb2, dirt: 0x7b7f8e, rock: 0x5a5c78, accent: 0xb48cff, signBg: '#1a1530', signFg: '#d9ccff', bridge: 'energy', gravity: 0.45 },
 }
 
+const REGION_RANGE = 75
+
 export function createIslands(scene) {
   const colliders = []
   const interactables = []
   const animated = []
+  // Zones (îles, petites îles, intérieurs) : retirées de la scène et figées quand elles
+  // sont loin de la caméra, pour ne dessiner et n'animer que ce qu'on voit.
+  const regions = []
   const islandsInfo = []
   const games = []
   const fadeables = []
@@ -61,7 +67,7 @@ export function createIslands(scene) {
         era: era.id,
         colliders,
         radius: shapeRadius(shape),
-        animated,
+        animated: [],
         // Hauteur du terrain en coordonnées locales.
         heightAt: (x, z) => ground.heightAt(center.x + x, center.z + z, Infinity, true) ?? 0,
         addCollider: (x, z, r, top = 6) => colliders.push({ x: center.x + x, z: center.z + z, r, top: top + ctx.heightAt(x, z) }),
@@ -72,6 +78,7 @@ export function createIslands(scene) {
       }
       buildTerrain(ctx, shape, ground, { lunar, stairs, era: era.id })
       ctx.decorFrom = group.children.length
+      regions.push({ group, x: center.x, z: center.z, r: ctx.radius, animated: ctx.animated, active: true })
       return ctx
     }
 
@@ -126,7 +133,7 @@ export function createIslands(scene) {
       }
 
       for (const sign of era.signs) if (sign.sat === sat.id) addPoint(ctx, sign, sat.name)
-      buildStartPad(ctx, game.start, theme.accent, animated)
+      buildStartPad(ctx, game.start, theme.accent, ctx.animated)
       settle(ctx.group, ctx.decorFrom, ground, warn)
       finish(ctx)
 
@@ -156,7 +163,9 @@ export function createIslands(scene) {
   }
   const rooms = {}
   for (const key of Object.keys(ROOMS)) {
-    const room = buildRoom(scene, ground, colliders, animated, key)
+    const roomAnimated = []
+    const room = buildRoom(scene, ground, colliders, roomAnimated, key)
+    regions.push({ group: room.group, x: room.center.x, z: room.center.z, r: room.info.radius, animated: roomAnimated, active: true })
     rooms[key] = room
     islandsInfo.push(room.info)
     const main = mains[room.era]
@@ -196,31 +205,55 @@ export function createIslands(scene) {
   }
 
   // Nuages qui dérivent sous et entre les îles.
+  // Un seul maillage instancié pour tous les nuages : un appel de dessin au lieu de 26.
+  const cloudModel = model('cloud', { width: 1 })
+  cloudModel.updateMatrixWorld(true)
+  let cloudMesh = null
+  cloudModel.traverse((o) => {
+    if (o.isMesh && !cloudMesh) cloudMesh = o
+  })
+  const cloudGeo = cloudMesh.geometry.clone().applyMatrix4(cloudMesh.matrixWorld)
+  const cloudMat = cloudMesh.material.clone()
+  cloudMat.transparent = true
+  cloudMat.opacity = 0.7
+  const cloudInst = new THREE.InstancedMesh(cloudGeo, cloudMat, 26)
+  cloudInst.frustumCulled = false
+  scene.add(cloudInst)
   const clouds = []
   for (let i = 0; i < 26; i++) {
-    const cloud = model('cloud', { width: 3 + Math.random() * 4 })
-    cloud.scale.y = 0.6
-    cloud.position.set(-230 + Math.random() * 460, -16 - Math.random() * 26, -90 + Math.random() * 100)
-    cloud.userData.speed = 0.6 + Math.random() * 1.2
-    cloud.traverse((o) => {
-      if (o.isMesh) {
-        o.castShadow = false
-        o.material = o.material.clone()
-        o.material.transparent = true
-        o.material.opacity = 0.7
-      }
+    clouds.push({
+      x: -230 + Math.random() * 460,
+      y: -16 - Math.random() * 26,
+      z: -90 + Math.random() * 100,
+      w: 3 + Math.random() * 4,
+      speed: 0.6 + Math.random() * 1.2,
     })
-    clouds.push(cloud)
-    scene.add(cloud)
   }
+  const cloudM = new THREE.Matrix4()
   animated.push((dt) => {
-    for (const cloud of clouds) {
-      cloud.position.x += cloud.userData.speed * dt
-      if (cloud.position.x > 240) cloud.position.x = -240
-    }
+    clouds.forEach((c, i) => {
+      c.x += c.speed * dt
+      if (c.x > 240) c.x = -240
+      cloudM.makeScale(c.w, c.w * 0.6, c.w).setPosition(c.x, c.y, c.z)
+      cloudInst.setMatrixAt(i, cloudM)
+    })
+    cloudInst.instanceMatrix.needsUpdate = true
   })
 
+  // Décor fixe fusionné, zone par zone. Les bâtiments qui s'effacent devant le joueur
+  // sont d'abord fusionnés chacun de leur côté (ils s'effacent d'un bloc).
+  for (const f of fadeables) {
+    const region = regions.find((r) => { let p = f.parent; while (p && p !== r.group) p = p.parent; return !!p })
+    mergeStatic(f, region?.animated ?? [])
+  }
+  let mergeStats = { merged: 0, removed: 0 }
+  for (const region of regions) {
+    const r = mergeStatic(region.group, region.animated, { exclude: fadeables })
+    mergeStats = { merged: mergeStats.merged + r.merged, removed: mergeStats.removed + r.removed }
+  }
+
   return {
+    mergeStats,
     fadeables,
     pushables,
     colliders,
@@ -234,9 +267,24 @@ export function createIslands(scene) {
     rails: ground.rails,
     addRamp: (r) => ground.ramps.push(r),
     surfaces: ground.surfaces,
-    update(dt, t) {
+    regions,
+    // Objet ajouté à la scène hors des îles (places, vitrines) : retiré lui aussi quand il est loin.
+    addRegion(group, x, z, r) {
+      regions.push({ group, x, z, r, animated: [], active: true, external: true })
+    },
+    // `focus` : point regardé par la caméra. Une zone reste active jusqu'à RANGE mètres de son bord.
+    update(dt, t, focus) {
       updateNature(t)
       for (const fn of animated) fn(dt, t)
+      for (const region of regions) {
+        const active = !focus || Math.hypot(focus.x - region.x, focus.z - region.z) - region.r < REGION_RANGE
+        if (active !== region.active) {
+          region.active = active
+          if (active) scene.add(region.group)
+          else region.group.removeFromParent()
+        }
+        if (active) for (const fn of region.animated) fn(dt, t)
+      }
     },
   }
 }
@@ -336,7 +384,8 @@ function signpost(ctx, x, z, targets, theme) {
 }
 
 // Passerelle entre deux îles, de bord à bord, dans le style de l'époque.
-function buildBridge(scene, theme, start, end, surfaces, animated) {
+function buildBridge(scene, theme, start, end, surfaces, globalAnimated) {
+  const animated = []
   const dir = new THREE.Vector3().subVectors(end, start).setY(0).normalize()
   const length = start.distanceTo(end)
   const width = 3
@@ -382,6 +431,8 @@ function buildBridge(scene, theme, start, end, surfaces, animated) {
     }
     animated.push((dt, t) => { deck.material.emissiveIntensity = 0.5 + Math.sin(t * 3) * 0.2 })
   }
+  mergeStatic(group, animated)
+  globalAnimated.push(...animated)
 }
 
 // Plateforme de parcours, style selon l'époque.

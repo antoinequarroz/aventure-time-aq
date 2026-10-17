@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { mergeStatic } from './merge.js'
 import { mat, mesh } from './helpers.js'
 import { canvasTexture, codeScreen } from './points.js'
 import { npc } from './characters.js'
@@ -204,6 +205,9 @@ function buildPlace(scene, world, place, { ui, sfx }) {
     },
   }
   interactable.showcase = api
+  // Décor fixe fusionné (les écrans, dont l'image change, restent à part).
+  mergeStatic(group, animated, { noMaps: true })
+  world.addRegion?.(group, center.x, center.z, 9)
 
   return {
     interactable,

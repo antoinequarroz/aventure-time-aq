@@ -8,6 +8,7 @@ import './fonts.css'
 import './style.css'
 import { createSpace } from './world/space.js'
 import { createIslands } from './world/islands.js'
+import { createLightPool } from './lightPool.js'
 import { createVehicles } from './world/vehicles.js'
 import { createMinimap } from './minimap.js'
 import { focus as npcFocus } from './world/characters.js'
@@ -39,7 +40,7 @@ await Promise.all(['400 32px "Inter Variable"', '700 32px "Inter Variable"', '60
 await loadModels((progress) => ui.setLoading(progress))
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
 renderer.setSize(window.innerWidth, window.innerHeight)
 renderer.toneMapping = THREE.ACESFilmicToneMapping
 renderer.toneMappingExposure = 1.15
@@ -124,10 +125,7 @@ const fades = world.fadeables.map((object) => {
   object.traverse((o) => {
     if (!o.isMesh) return
     o.material = Array.isArray(o.material) ? o.material.map((m) => m.clone()) : o.material.clone()
-    for (const m of [o.material].flat()) {
-      m.transparent = true
-      materials.add(m)
-    }
+    for (const m of [o.material].flat()) materials.add(m)
   })
   object.updateWorldMatrix(true, true)
   const sphere = new THREE.Box3().setFromObject(object).getBoundingSphere(new THREE.Sphere())
@@ -148,9 +146,15 @@ function updateFades(dt) {
     const target = hidden ? 0.25 : 1
     if (Math.abs(f.opacity - target) < 0.01) continue
     f.opacity += (target - f.opacity) * Math.min(1, dt * 8)
+    // Transparent seulement pendant le fondu : un objet opaque se dessine plus vite.
+    const transparent = f.opacity < 0.99
     for (const m of f.materials) {
       m.opacity = f.opacity
       m.depthWrite = f.opacity > 0.95
+      if (m.transparent !== transparent) {
+        m.transparent = transparent
+        m.needsUpdate = true
+      }
     }
   }
 }
@@ -166,6 +170,12 @@ const pushables = createPushables(scene, world, world.pushables, {
   onStrike: () => ui.toast('STRIKE ! Toutes les quilles sont tombées 🎳'),
   onGoal: () => ui.toast('BUUUT ! ⚽'),
 })
+// Lumières ponctuelles regroupées dans une réserve fixe (voir lightPool.js).
+const lights = createLightPool(scene, 8)
+lights.scan()
+// Shaders compilés pendant le chargement plutôt qu'au premier passage devant chaque objet
+// (évite les saccades en explorant).
+await renderer.compileAsync(scene, camera).catch(() => {})
 ui.setReady()
 
 // Caméra fixe en trois-quarts, qui suit le joueur en douceur.
@@ -189,6 +199,15 @@ if (new URLSearchParams(location.search).has('debug')) {
     tour: () => tour,
     weather,
     sfx,
+    perf() {
+      const n = Math.max(1, perf.frames)
+      let objects = 0
+      scene.traverse(() => objects++)
+      return { frames: perf.frames, calls: Math.round(perf.calls / n), tris: Math.round(perf.tris / n), updateMs: +(perf.update / n).toFixed(2), renderMs: +(perf.render / n).toFixed(2), objects, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures, programs: renderer.info.programs?.length, quality }
+    },
+    perfReset() {
+      Object.assign(perf, { frames: 0, calls: 0, tris: 0, update: 0, render: 0 })
+    },
     discoverAll() {
       for (const s of signs) discover(s, true)
     },
@@ -446,10 +465,11 @@ const headPos = new THREE.Vector3()
 // l'occlusion ambiante, puis on baisse la résolution, pour garder un mouvement fluide.
 let frameAvg = 1 / 60
 let frameCount = 0
-let quality = params.has('lite') ? 2 : 0
+let quality = params.has('q') ? +params.get('q') : params.has('lite') ? 2 : 0
+const fixedQuality = params.has('q')
 const applyQuality = () => {
   if (ao) ao.enabled = quality < 1
-  const ratio = [Math.min(devicePixelRatio, 2), Math.min(devicePixelRatio, 1.5), 1, 0.8][quality]
+  const ratio = [Math.min(devicePixelRatio, 1.5), Math.min(devicePixelRatio, 1.25), 1, 0.8][quality]
   renderer.setPixelRatio(ratio)
   composer.setPixelRatio(ratio)
   if (quality >= 3 && sun.shadow.mapSize.x !== 1024) {
@@ -461,7 +481,7 @@ const applyQuality = () => {
 function adaptQuality() {
   const frame = timer.getDelta()
   frameAvg += (Math.min(frame, 0.1) - frameAvg) * 0.05
-  if (++frameCount < 90 || quality >= 3 || frame <= 0) return
+  if (fixedQuality || ++frameCount < 90 || quality >= 3 || frame <= 0) return
   if (frameAvg > 1 / 45) {
     quality++
     frameCount = 0
@@ -472,9 +492,16 @@ if (quality) applyQuality()
 
 let lastIsland = null
 let dayTick = -1
+let lightScan = 0
 const timer = new THREE.Timer()
 
+// Mesures de performance (avec ?debug) : appels de dessin, triangles, temps CPU par image.
+const debugPerf = params.has('debug')
+const perf = { frames: 0, calls: 0, tris: 0, update: 0, render: 0 }
+if (debugPerf) renderer.info.autoReset = false
+
 function tick() {
+  const tStart = performance.now()
   timer.update()
   const dt = Math.min(timer.getDelta(), 0.05)
   const t = timer.getElapsed()
@@ -485,7 +512,7 @@ function tick() {
   pushables.update(dt, player)
   controls.update(dt)
   if (started) minimap.update(dt)
-  world.update(dt, t)
+  world.update(dt, t, cameraTarget)
   games.update(dt, t)
   space.update(dt, t)
   quest.update(dt, t)
@@ -529,7 +556,18 @@ function tick() {
   if (island && island !== lastIsland && started) ui.showIsland(island.name, island.tagline)
   if (island && started) lastIsland = island
 
+  if (++lightScan % 240 === 1) lights.scan()
+  lights.update(cameraTarget)
+  const tRender = performance.now()
   composer.render()
+  if (debugPerf) {
+    perf.frames++
+    perf.calls += renderer.info.render.calls
+    perf.tris += renderer.info.render.triangles
+    perf.update += tRender - tStart
+    perf.render += performance.now() - tRender
+    renderer.info.reset()
+  }
   adaptQuality()
   requestAnimationFrame(tick)
 }

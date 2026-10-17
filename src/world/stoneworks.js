@@ -3,6 +3,7 @@ import { mat, mesh } from './helpers.js'
 import { character, spaceSuit } from './characters.js'
 import { animate } from './models.js'
 import * as P from './props.js'
+import { bakeSkinned } from './merge.js'
 
 // Pierre sculptée, dans le même style que la place des réseaux : socles octogonaux
 // en deux paliers, statues de héros figées, piliers à runes lumineuses, lanternes.
@@ -65,6 +66,8 @@ export function statue(ctx, x, z, { key = 'knight', anim = 'Idle', time = 0.4, k
       o.castShadow = true
     }
   })
+  // Pose figée une fois pour toutes : plus d'animation à calculer, et fusionnable.
+  bakeSkinned(body)
   body.position.y = top
   g.add(body)
   ctx.addCollider(x, z, r * 1.3, 4)

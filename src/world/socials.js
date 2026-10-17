@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { mergeStatic, bakeSkinned } from './merge.js'
 import { SVGLoader } from 'three/addons/loaders/SVGLoader.js'
 import { mat, mesh } from './helpers.js'
 import { canvasTexture } from './points.js'
@@ -149,6 +150,7 @@ export function createSocialPlaza(scene, world, { center, socials }) {
       o.castShadow = true
     }
   })
+  bakeSkinned(statue)
   statue.position.set(0, 1.2, 0.9)
   group.add(statue)
   col(0, 0.9, 2.1, 4)
@@ -251,7 +253,7 @@ export function createSocialPlaza(scene, world, { center, socials }) {
   title.position.y = 6.3
   group.add(title)
 
-  return {
+  const api = {
     interactables,
     update(dt, t) {
       for (const { marker, phase } of markers) {
@@ -261,6 +263,9 @@ export function createSocialPlaza(scene, world, { center, socials }) {
       title.position.y = 6.3 + Math.sin(t * 1.3) * 0.08
     },
   }
+  mergeStatic(group, [(dt, t) => api.update(dt, t)])
+  world.addRegion?.(group, center.x, center.z, 10)
+  return api
 }
 
 // Grande bannière flottante à l'arrivée : on comprend tout de suite qu'on est sur un portfolio.
