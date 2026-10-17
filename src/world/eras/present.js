@@ -52,11 +52,17 @@ export function decorateMain(ctx) {
   // Habitants qui flânent autour de la fontaine.
   C.npc(ctx, 'mage', 4.2, 4.2, { keep: [], path: [[4.2, 4.2], [-4.2, 4.2], [-4.2, -4.2], [4.2, -4.2]], walk: 1.2, pause: 1.5 })
   C.npc(ctx, 'knight', -2, 11, { keep: [], path: [[-2, 11], [2, 10], [0, 6.5]], walk: 1, pause: 3 })
-  C.npc(ctx, 'barbarian', 9, -3, { keep: ['Mug'], anim: 'Cheer', speed: 0.4, path: [[9, -3], [7.5, -1]], walk: 0.8, pause: 5 })
+  C.npc(ctx, 'barbarian', 9, -3, { keep: ['Mug'], anim: 'Cheer', speed: 0.4, path: [[9.5, -2.5], [10, 0]], walk: 0.8, pause: 5 })
   addCollider(0, -12.8, 1.6)
   animated.push((dt, t) => {
     glow.material.color.setHSL(0.55, 0.8, 0.55 + Math.sin(t * 4) * 0.08)
   })
+
+  // Statues de grès autour de la fontaine : le développeur et le formateur.
+  S.useTheme('present')
+  S.statue(ctx, -6.8, -2.4, { key: 'rogue', anim: 'Interact', time: 0.7, keep: ['Rogue_Cape'], height: 2.3, rotY: 0.5, r: 0.8 })
+  S.statue(ctx, 6.8, -2.4, { key: 'mage', anim: 'Idle', time: 0.3, keep: ['Spellbook_open'], height: 2.3, rotY: -0.5, r: 0.8 })
+  for (const sx of [-1, 1]) S.leaves(ctx, sx * 6.8, -2.4, { r: 2.4, inner: 1.1, count: 40 })
 
   // Mobilier urbain.
   for (const [lx, lz] of [[-6, -6], [6, -6], [-6, 6], [6, 6]]) P.streetLamp(ctx, lx, lz)

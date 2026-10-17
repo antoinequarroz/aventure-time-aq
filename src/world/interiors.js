@@ -3,6 +3,7 @@ import { mat, mesh, textTexture } from './helpers.js'
 import { canvasTexture, codeScreen } from './points.js'
 import { torch } from './buildings.js'
 import * as C from './characters.js'
+import * as S from './stoneworks.js'
 
 // Intérieurs façon « maison dans Pokémon » : une pièce posée loin des îles, sur fond noir,
 // vue de plus près et plus en plongée. On y entre par une porte (château, maison du
@@ -486,11 +487,14 @@ const DECOR = {
     box(ctx, 2, 1.6, 0.4, 0x6b4226, 6.5, 0.8, 3.8)
     for (const x of [5.8, 6.3, 6.8, 7.2]) box(ctx, 0.08, 1.4, 0.08, 0xcfd3e0, x, 1.1, 3.6, { metalness: 0.7 })
     ctx.addCollider(6.5, 3.8, 1.1, 2)
+    // Gardiens de pierre de part et d'autre de l'entrée.
+    S.useTheme('past')
+    for (const sx of [-1, 1]) S.statue(ctx, sx * 2.3, d / 2 - 3.3, { key: 'knight', anim: 'Idle', time: 0.2, keep: ['2H_Sword', 'Knight_Helmet', 'Knight_Cape'], height: 2, rotY: Math.PI - sx * 0.4 + Math.PI, r: 0.6 })
     // Le roi sur son trône, un mage et un garde qui fait sa ronde.
     const king = C.npc(ctx, 'knight', 0, -d / 2 + 1.35, { keep: ['Knight_Cape', 'Knight_Helmet'], anim: 'Sit_Chair_Idle', r: 0, greet: false })
     king.object.position.y = 0.8
-    C.npc(ctx, 'mage', -3, -3.5, { keep: ['Spellbook_open', 'Mage_Hat'], anim: 'Spellcasting', speed: 0.5, path: [[-3, -3.5], [-2.5, 2.5]], walk: 0.8, pause: 4 })
-    C.npc(ctx, 'barbarian', 3, 3, { keep: ['1H_Axe', 'Barbarian_Hat'], path: [[3, 3], [3, -3], [5.5, 0]], walk: 1, pause: 2.5 })
+    C.npc(ctx, 'mage', -3, -3.5, { keep: ['Spellbook_open', 'Mage_Hat'], anim: 'Spellcasting', speed: 0.5, path: [[-3, -3.5], [-3, 1.2]], walk: 0.8, pause: 4 })
+    C.npc(ctx, 'barbarian', 3.6, 3, { keep: ['1H_Axe', 'Barbarian_Hat'], path: [[3.6, 3], [3.6, -3], [5.5, 0]], walk: 1, pause: 2.5 })
   },
 
   studio(ctx, w, d) {
@@ -755,6 +759,10 @@ const DECOR = {
       const a = C.npc(ctx, 'knight', x, z, { keep: [], path: route, walk: 0.9, pause: 3 })
       C.spaceSuit(a.object)
     }
+    // Statue de marbre du premier cosmonaute, entre deux piliers néon.
+    S.useTheme('future')
+    S.statue(ctx, -4.6, 3.6, { key: 'rogue', anim: 'Cheer', time: 0.5, keep: [], height: 2, suit: true, rotY: 0.3, r: 0.7 })
+    for (const sx of [-1, 1]) S.runePillar(ctx, -4.6 + sx * 1.7, 4.3, { h: 1.3, color: S.theme().runes[sx < 0 ? 0 : 1] })
     const pilot = C.npc(ctx, 'rogue', 2.5, -d / 2 + 1.6, { rotY: Math.PI, anim: 'Interact', speed: 0.6, r: 0, greet: false })
     C.spaceSuit(pilot.object)
     box(ctx, 2.2, 1, 0.7, 0x3a3d55, 2.5, 0.5, -d / 2 + 0.8, { metalness: 0.5 })

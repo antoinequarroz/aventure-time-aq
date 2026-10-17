@@ -215,9 +215,14 @@ export const satellites = {
       ctx.addPushable('crate', 5.2, 3.2, { rotY: 0.5 })
       ctx.addPushable('barrel', 3, 5.5)
       P.place(ctx, 'horse', 9.5, 4.5, { height: 2, rotY: 2.2, r: 0.9 })
-      P.place(ctx, 'cannon', 7.5, -5.5, { height: 1.2, rotY: -0.8, r: 0.8 })
+      // Arrivée du pont : lanternes de pierre et statue du barbare.
+      S.useTheme('past')
+      S.statue(ctx, 6.6, -6.6, { key: 'barbarian', anim: 'Cheer', time: 0.5, keep: ['2H_Axe', 'Barbarian_Hat'], height: 2.4, rotY: -0.6, r: 0.9 })
+      S.lanternPost(ctx, 8.8, 0.4)
+      S.lanternPost(ctx, 8.6, -4.4)
+      S.leaves(ctx, 0, 0, { r: 6, inner: 2.2, count: 120 })
       P.place(ctx, 'arenaBanner', -2, -10.5, { height: 2.4, r: 0.4 })
-      P.banner(ctx, 6, -5, { color: 0xf1c40f })
+      P.banner(ctx, 4, -4.5, { color: 0xf1c40f })
       P.lantern(ctx, 2, -3.5)
       // Tour de guet (Kenney).
       P.place(ctx, 'tower', -10.5, -4.5, { width: 3.2, rotY: 0.8, r: 1.7, top: 20 })
