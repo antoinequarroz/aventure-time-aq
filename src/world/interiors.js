@@ -135,7 +135,7 @@ const box = (ctx, sx, sy, sz, color, x, y, z, extra) => {
   return m
 }
 
-const poster = (text, bg, fg) => new THREE.MeshStandardMaterial({ map: textTexture(text, { bg, fg, width: 256, height: 340, font: 'bold 40px "Fredoka Variable", "Nunito Variable", sans-serif' }) })
+const poster = (text, bg, fg) => new THREE.MeshStandardMaterial({ map: textTexture(text, { bg, fg, width: 256, height: 340, font: 'bold 40px "Outfit Variable", "Inter Variable", sans-serif' }) })
 
 
 // ---------- Mobilier du studio ----------
@@ -479,7 +479,7 @@ const DECOR = {
     arch.add(ring)
     // Lueur chaude qui vient de la bibliothèque.
     arch.add(mesh(new THREE.PlaneGeometry(1.2, 1.7), new THREE.MeshBasicMaterial({ color: 0xffb347, transparent: true, opacity: 0.18 }), { y: 1, z: 0.03, shadow: false }))
-    const sign = mesh(new THREE.PlaneGeometry(1.9, 0.5), new THREE.MeshBasicMaterial({ map: textTexture('📚 Bibliothèque', { bg: '#2a1a3a', fg: '#ffd27a', width: 512, height: 136, font: 'bold 56px "Fredoka Variable", "Nunito Variable", sans-serif' }) }), { y: 3.15, z: 0.08, shadow: false })
+    const sign = mesh(new THREE.PlaneGeometry(1.9, 0.5), new THREE.MeshBasicMaterial({ map: textTexture('📚 Bibliothèque', { bg: '#2a1a3a', fg: '#ffd27a', width: 512, height: 136, font: 'bold 56px "Outfit Variable", "Inter Variable", sans-serif' }) }), { y: 3.15, z: 0.08, shadow: false })
     arch.add(sign)
     group.add(arch)
     // Râtelier d'armes et armure.
@@ -539,7 +539,7 @@ const DECOR = {
       group.add(p)
     }
     // Néon « Code · Café · Commit » au-dessus du coin café.
-    const neon = mesh(new THREE.PlaneGeometry(3, 0.6), new THREE.MeshBasicMaterial({ map: textTexture('Code · Café · Commit', { bg: '#1a1530', fg: '#ff9ad9', font: 'bold 46px "Nunito Variable", system-ui, sans-serif' }) }), { x: w / 2 - 0.05, y: 2.6, z: 0.8, shadow: false })
+    const neon = mesh(new THREE.PlaneGeometry(3, 0.6), new THREE.MeshBasicMaterial({ map: textTexture('Code · Café · Commit', { bg: '#1a1530', fg: '#ff9ad9', font: 'bold 46px "Inter Variable", system-ui, sans-serif' }) }), { x: w / 2 - 0.05, y: 2.6, z: 0.8, shadow: false })
     neon.rotation.y = -Math.PI / 2
     group.add(neon)
   },

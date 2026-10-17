@@ -263,13 +263,13 @@ function drawScreen(g, place, style, index, redraw) {
   g.textBaseline = 'alphabetic'
   g.textAlign = 'left'
   g.fillStyle = '#ffffff'
-  g.font = 'bold 68px "Nunito Variable", system-ui, sans-serif'
+  g.font = 'bold 68px "Inter Variable", system-ui, sans-serif'
   g.fillText(p.title, ix + 44, iy + ih - 92)
-  g.font = '32px "Nunito Variable", system-ui, sans-serif'
+  g.font = '32px "Inter Variable", system-ui, sans-serif'
   g.fillStyle = 'rgba(255,255,255,0.85)'
   g.fillText(p.tagline, ix + 46, iy + ih - 46)
   let tx = ix + iw - 40
-  g.font = 'bold 24px "Nunito Variable", system-ui, sans-serif'
+  g.font = 'bold 24px "Inter Variable", system-ui, sans-serif'
   for (const tech of [...p.tech].reverse().slice(0, 3)) {
     const w = g.measureText(tech).width + 32
     tx -= w
@@ -287,7 +287,7 @@ function drawScreen(g, place, style, index, redraw) {
   g.fillStyle = 'rgba(8,6,20,0.75)'
   g.fill()
   g.fillStyle = style.accent
-  g.font = 'bold 30px "Nunito Variable", system-ui, sans-serif'
+  g.font = 'bold 30px "Inter Variable", system-ui, sans-serif'
   g.textAlign = 'center'
   g.fillText(`${index + 1} / ${projects.length}`, ix + iw - 86, iy + 58)
   // Flèches sur les côtés de l'image.
@@ -302,7 +302,7 @@ function drawScreen(g, place, style, index, redraw) {
     g.lineWidth = 3
     g.stroke()
     g.fillStyle = '#ffffff'
-    g.font = 'bold 44px "Nunito Variable", system-ui, sans-serif'
+    g.font = 'bold 44px "Inter Variable", system-ui, sans-serif'
     g.fillText(dir < 0 ? '‹' : '›', cx - dir * 2, cy + 15)
   }
   // Miniatures des projets du lieu.
@@ -349,7 +349,7 @@ function titleTexture(place, style) {
     g.textBaseline = 'middle'
     let size = 62
     do {
-      g.font = `bold ${size}px "Fredoka Variable", "Nunito Variable", sans-serif`
+      g.font = `bold ${size}px "Outfit Variable", "Inter Variable", sans-serif`
       size -= 2
     } while (g.measureText(`${place.icon} ${place.title}`).width > w - 70)
     g.fillText(`${place.icon} ${place.title}`, w / 2, h / 2 + 2)
@@ -465,12 +465,12 @@ function buildBoard(theme, style) {
     const ink = style.chalk ? '#f2efe6' : theme === 'lab' ? '#7df9ff' : '#1d2b4a'
     c.fillStyle = ink
     c.strokeStyle = ink
-    c.font = style.chalk ? 'bold 46px "Comic Sans MS", "Chalkboard SE", cursive' : 'bold 44px "Nunito Variable", system-ui, sans-serif'
+    c.font = style.chalk ? 'bold 46px "Comic Sans MS", "Chalkboard SE", cursive' : 'bold 44px "Inter Variable", system-ui, sans-serif'
     c.textBaseline = 'middle'
     c.textAlign = 'center'
     c.fillText('Commandes', w / 2, 56)
     c.textAlign = 'left'
-    c.font = style.chalk ? '34px "Comic Sans MS", "Chalkboard SE", cursive' : '32px "Nunito Variable", system-ui, sans-serif'
+    c.font = style.chalk ? '34px "Comic Sans MS", "Chalkboard SE", cursive' : '32px "Inter Variable", system-ui, sans-serif'
     lines.forEach(([key, label], i) => {
       const y = 130 + i * 70
       c.lineWidth = 3
@@ -531,7 +531,7 @@ function buildFrame(add, theme, style, w, h, y, z, animated) {
         g.lineWidth = 8
         g.strokeRect(8, 8, cw - 16, ch - 16)
         g.fillStyle = '#f0c27a'
-        g.font = 'bold 54px "Fredoka Variable", "Nunito Variable", sans-serif'
+        g.font = 'bold 54px "Outfit Variable", "Inter Variable", sans-serif'
         g.textAlign = 'center'
         g.textBaseline = 'middle'
         g.fillText('Val d\'Hérens', cw / 2, ch / 2 + 2)

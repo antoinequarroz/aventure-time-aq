@@ -35,7 +35,7 @@ ui.on('mute', () => {
 })
 ui.on('music', () => sfx.toggleMusic())
 // Les textes dessinés dans la scène (panneaux, écrans) attendent les polices embarquées.
-await Promise.all(['400 32px "Nunito Variable"', '700 32px "Nunito Variable"', '600 32px "Fredoka Variable"'].map((f) => document.fonts.load(f))).catch(() => {})
+await Promise.all(['400 32px "Inter Variable"', '700 32px "Inter Variable"', '600 32px "Outfit Variable"'].map((f) => document.fonts.load(f))).catch(() => {})
 await loadModels((progress) => ui.setLoading(progress))
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })

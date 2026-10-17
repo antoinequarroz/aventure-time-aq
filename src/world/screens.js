@@ -100,7 +100,7 @@ function browser(g, p, img) {
   }
   rr(g, 120, 11, 620, 28, 14, '#3d3758')
   g.fillStyle = '#c9c3e6'
-  g.font = '18px "Nunito Variable", system-ui, sans-serif'
+  g.font = '18px "Inter Variable", system-ui, sans-serif'
   g.textBaseline = 'middle'
   g.fillText(`🔒 ${p.domain ?? 'antoinequarroz.ch'}`, 138, 26)
   const top = 50
@@ -114,13 +114,13 @@ function browser(g, p, img) {
       g.fillStyle = grad
       g.fillRect(0, top, W, H - top)
       g.fillStyle = '#ffffff'
-      g.font = 'bold 30px "Nunito Variable", system-ui, sans-serif'
+      g.font = 'bold 30px "Inter Variable", system-ui, sans-serif'
       g.fillText(p.title, 60, top + 50)
-      g.font = 'bold 64px "Nunito Variable", system-ui, sans-serif'
+      g.font = 'bold 64px "Inter Variable", system-ui, sans-serif'
       wrap(g, p.tagline, 60, top + 170, 620, 72)
       rr(g, 60, top + 340, 260, 64, 32, p.color)
       g.fillStyle = '#ffffff'
-      g.font = 'bold 24px "Nunito Variable", system-ui, sans-serif'
+      g.font = 'bold 24px "Inter Variable", system-ui, sans-serif'
       g.fillText('Prendre rendez-vous', 82, top + 373)
     }
     return
@@ -134,14 +134,14 @@ function browser(g, p, img) {
   g.fillRect(0, top, W, H - top)
   const ink = dark ? '#ffffff' : '#1d1830'
   g.fillStyle = p.color
-  g.font = 'bold 30px "Nunito Variable", system-ui, sans-serif'
+  g.font = 'bold 30px "Inter Variable", system-ui, sans-serif'
   g.fillText(p.title, 50, top + 44)
   g.globalAlpha = 0.6
   for (let i = 0; i < 4; i++) rr(g, 640 + i * 120, top + 34, 90, 18, 9, ink)
   g.globalAlpha = 1
   if (p.dashboard) return dashboard(g, p, top, r)
   g.fillStyle = ink
-  g.font = 'bold 58px "Nunito Variable", system-ui, sans-serif'
+  g.font = 'bold 58px "Inter Variable", system-ui, sans-serif'
   wrap(g, p.tagline, 50, top + 150, 560, 66)
   g.globalAlpha = 0.55
   for (let i = 0; i < 3; i++) rr(g, 50, top + 300 + i * 26, 440 - i * 90, 14, 7, ink)
@@ -152,7 +152,7 @@ function browser(g, p, img) {
   g.lineWidth = 3
   g.stroke()
   g.fillStyle = '#ffffff'
-  g.font = 'bold 22px "Nunito Variable", system-ui, sans-serif'
+  g.font = 'bold 22px "Inter Variable", system-ui, sans-serif'
   g.fillText('Commencer', 92, top + 430)
   // Illustration : cartes empilées et formes douces.
   g.globalAlpha = 0.9
@@ -178,7 +178,7 @@ function browser(g, p, img) {
 function icon(g, p, x, y) {
   const glyph = { livrematch: '📖', 'chat-d-interieur': '🐈', 'bagage-malin': '🧳', 'rangements-malins': '📦', rallye: '🏁', velqora: '✨', staq: '🧰', 'threejs-cv': '🪐' }[p.id]
   if (!glyph) return
-  g.font = '120px "Nunito Variable", system-ui, sans-serif'
+  g.font = '120px "Inter Variable", system-ui, sans-serif'
   g.textAlign = 'center'
   g.fillText(glyph, x - 70, y - 90)
   g.textAlign = 'left'
@@ -196,10 +196,10 @@ function dashboard(g, p, top, r) {
   g.arc(200, top + 280, 120, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * 0.92)
   g.stroke()
   g.fillStyle = '#ffffff'
-  g.font = 'bold 76px "Nunito Variable", system-ui, sans-serif'
+  g.font = 'bold 76px "Inter Variable", system-ui, sans-serif'
   g.textAlign = 'center'
   g.fillText('92', 200, top + 280)
-  g.font = '22px "Nunito Variable", system-ui, sans-serif'
+  g.font = '22px "Inter Variable", system-ui, sans-serif'
   g.fillText('santé globale', 200, top + 335)
   g.textAlign = 'left'
   const names = ['VELQORA', 'STAQ', 'LivreMatch', 'PhysioBaur']
@@ -208,11 +208,11 @@ function dashboard(g, p, top, r) {
     const y = top + 100 + Math.floor(i / 2) * 220
     rr(g, x, y, 360, 190, 16, '#1d1934')
     g.fillStyle = '#ffffff'
-    g.font = 'bold 26px "Nunito Variable", system-ui, sans-serif'
+    g.font = 'bold 26px "Inter Variable", system-ui, sans-serif'
     g.fillText(name, x + 22, y + 36)
     rr(g, x + 250, y + 22, 88, 30, 15, i === 2 ? '#ffbd2e' : '#27c93f')
     g.fillStyle = '#10121e'
-    g.font = 'bold 16px "Nunito Variable", system-ui, sans-serif'
+    g.font = 'bold 16px "Inter Variable", system-ui, sans-serif'
     g.fillText(i === 2 ? 'LENT' : 'EN LIGNE', x + 262, y + 38)
     g.strokeStyle = p.color
     g.lineWidth = 4
@@ -237,17 +237,17 @@ function mobile(g, p) {
   g.fillStyle = bg
   g.fillRect(0, 0, W, H)
   g.fillStyle = '#ffffff'
-  g.font = 'bold 64px "Nunito Variable", system-ui, sans-serif'
+  g.font = 'bold 64px "Inter Variable", system-ui, sans-serif'
   g.textBaseline = 'middle'
   g.fillText(p.title, 60, 200)
-  g.font = '30px "Nunito Variable", system-ui, sans-serif'
+  g.font = '30px "Inter Variable", system-ui, sans-serif'
   g.globalAlpha = 0.85
   wrap(g, p.tagline, 60, 270, 440, 40)
   g.globalAlpha = 1
   rr(g, 60, 380, 200, 56, 14, '#000000')
   rr(g, 280, 380, 200, 56, 14, '#000000')
   g.fillStyle = '#ffffff'
-  g.font = 'bold 20px "Nunito Variable", system-ui, sans-serif'
+  g.font = 'bold 20px "Inter Variable", system-ui, sans-serif'
   g.fillText(' App Store', 90, 408)
   g.fillText('▶ Google Play', 300, 408)
   phone(g, p, 620, 40, -0.06, 0)
@@ -270,7 +270,7 @@ function phone(g, p, x, y, tilt, screenIndex) {
     g.fillStyle = '#1a1424'
     g.fillRect(10, 10, 220, 480)
     g.fillStyle = '#ffffff'
-    g.font = 'bold 20px "Nunito Variable", system-ui, sans-serif'
+    g.font = 'bold 20px "Inter Variable", system-ui, sans-serif'
     g.fillText(screenIndex ? 'Diaporama' : 'Mariage de Léa', 26, 60)
     if (screenIndex) {
       const grad = g.createLinearGradient(10, 90, 230, 400)
@@ -278,7 +278,7 @@ function phone(g, p, x, y, tilt, screenIndex) {
       grad.addColorStop(1, c)
       g.fillStyle = grad
       g.fillRect(20, 90, 200, 300)
-      g.font = '80px "Nunito Variable", system-ui, sans-serif'
+      g.font = '80px "Inter Variable", system-ui, sans-serif'
       g.fillText('📸', 70, 240)
     } else {
       const colors = ['#ff6fb1', '#ffb347', '#6fd3ff', '#9b6bff', '#3fd6a8', '#ff8a5c', '#ffd34f', '#b48cff', '#58d0ff']
@@ -292,7 +292,7 @@ function phone(g, p, x, y, tilt, screenIndex) {
     g.fillStyle = shade(c, 0.85)
     g.fillRect(10, 10, 220, 480)
     g.fillStyle = '#1d2b28'
-    g.font = 'bold 20px "Nunito Variable", system-ui, sans-serif'
+    g.font = 'bold 20px "Inter Variable", system-ui, sans-serif'
     g.fillText(screenIndex ? 'Mes progrès' : p.title, 26, 60)
     g.strokeStyle = shade(c, 0.5)
     g.lineWidth = 16
@@ -305,16 +305,16 @@ function phone(g, p, x, y, tilt, screenIndex) {
     g.stroke()
     g.textAlign = 'center'
     g.fillStyle = '#1d2b28'
-    g.font = 'bold 34px "Nunito Variable", system-ui, sans-serif'
+    g.font = 'bold 34px "Inter Variable", system-ui, sans-serif'
     g.fillText(screenIndex ? '214 CHF' : '12 j', 120, 182)
-    g.font = '14px "Nunito Variable", system-ui, sans-serif'
+    g.font = '14px "Inter Variable", system-ui, sans-serif'
     g.fillText(screenIndex ? 'économisés' : 'sans fumer', 120, 214)
     g.textAlign = 'left'
     for (let i = 0; i < 3; i++) {
       rr(g, 24, 280 + i * 64, 192, 52, 12, '#ffffff')
       rr(g, 36, 292 + i * 64, 28, 28, 14, i === 0 && !screenIndex ? '#ff5f56' : c)
       g.fillStyle = '#1d2b28'
-      g.font = 'bold 15px "Nunito Variable", system-ui, sans-serif'
+      g.font = 'bold 15px "Inter Variable", system-ui, sans-serif'
       g.fillText(screenIndex ? ['Souffle +18 %', 'Goût retrouvé', 'Cœur au calme'][i] : ['SOS envie', 'Respiration', 'Widgets'][i], 76, 307 + i * 64)
     }
   }
@@ -346,7 +346,7 @@ function desktopApp(g, p) {
     g.fill()
   }
   g.fillStyle = '#d9d4f5'
-  g.font = 'bold 18px "Nunito Variable", system-ui, sans-serif'
+  g.font = 'bold 18px "Inter Variable", system-ui, sans-serif'
   g.textAlign = 'center'
   g.textBaseline = 'middle'
   g.fillText(p.title, W / 2, 62)
@@ -376,13 +376,13 @@ function desktopApp(g, p) {
   // Hermes Cockpit : projets à gauche, missions des agents à droite.
   g.fillStyle = '#211d38'
   g.fillRect(60, 84, 250, H - 124)
-  g.font = 'bold 16px "Nunito Variable", system-ui, sans-serif'
+  g.font = 'bold 16px "Inter Variable", system-ui, sans-serif'
   g.fillStyle = '#8f88b8'
   g.fillText('PROJETS', 84, 116)
   for (const [i, name] of ['Portfolio 3D', 'VELQORA', 'LivreMatch', 'Orion', 'STAQ'].entries()) {
     if (i === 0) rr(g, 72, 136, 226, 40, 10, shade(p.color, -0.3))
     g.fillStyle = '#ece8ff'
-    g.font = '20px "Nunito Variable", system-ui, sans-serif'
+    g.font = '20px "Inter Variable", system-ui, sans-serif'
     g.fillText(name, 92, 157 + i * 48)
   }
   const missions = [
@@ -395,16 +395,16 @@ function desktopApp(g, p) {
     rr(g, 340, y, 740, 112, 16, '#28233f')
     rr(g, 362, y + 22, 64, 64, 32, shade(color, -0.2))
     g.fillStyle = '#ffffff'
-    g.font = '34px "Nunito Variable", system-ui, sans-serif'
+    g.font = '34px "Inter Variable", system-ui, sans-serif'
     g.fillText('🤖', 375, y + 56)
-    g.font = 'bold 24px "Nunito Variable", system-ui, sans-serif'
+    g.font = 'bold 24px "Inter Variable", system-ui, sans-serif'
     g.fillText(agent, 450, y + 40)
     g.fillStyle = '#b9b2dd'
-    g.font = '20px "Nunito Variable", system-ui, sans-serif'
+    g.font = '20px "Inter Variable", system-ui, sans-serif'
     g.fillText(task, 450, y + 76)
     rr(g, 920, y + 38, 136, 36, 18, color)
     g.fillStyle = '#121022'
-    g.font = 'bold 17px "Nunito Variable", system-ui, sans-serif'
+    g.font = 'bold 17px "Inter Variable", system-ui, sans-serif'
     g.fillText(state, 940, y + 57)
   })
   g.restore()

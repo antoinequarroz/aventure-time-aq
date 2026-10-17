@@ -19,3 +19,7 @@ Tous les modèles de `public/models/` sont dans le domaine public ([CC0 1.0](htt
 Les modèles du pmndrs market ont été décompressés (Draco retiré) et optimisés avec [glTF Transform](https://gltf-transform.dev).
 
 Les packs complets (Castle Kit, Space Kit, Nature Kit…) se téléchargent sur [kenney.nl](https://kenney.nl/assets) et [quaternius.com](https://quaternius.com), eux aussi en CC0.
+
+## Polices
+
+- Inter (texte) et Outfit (titres), SIL Open Font License 1.1, fichiers dans src/assets/fonts.

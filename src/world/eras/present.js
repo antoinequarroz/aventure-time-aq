@@ -87,7 +87,7 @@ export function decorateMain(ctx) {
   sign.position.set(4.6, 0, 17.5)
   sign.rotation.y = -0.45
   const board = mesh(new THREE.BoxGeometry(4.2, 2, 0.25), mat(0x1a1530), { y: 2.2 })
-  const face = mesh(new THREE.PlaneGeometry(3.8, 1.6), new THREE.MeshBasicMaterial({ map: textTexture('STRIKE !', { bg: '#1a1530', fg: '#f3e8ff', font: 'bold 92px "Nunito Variable", system-ui, sans-serif' }) }), { y: 2.2, z: 0.14, shadow: false })
+  const face = mesh(new THREE.PlaneGeometry(3.8, 1.6), new THREE.MeshBasicMaterial({ map: textTexture('STRIKE !', { bg: '#1a1530', fg: '#f3e8ff', font: 'bold 92px "Inter Variable", system-ui, sans-serif' }) }), { y: 2.2, z: 0.14, shadow: false })
   const frame = mesh(new THREE.BoxGeometry(4.4, 2.2, 0.1), mat(0xd96bff, { emissive: 0xc04dff, emissiveIntensity: 2.5 }), { y: 2.2, z: -0.05, shadow: false })
   for (const x of [-1.5, 1.5]) sign.add(mesh(new THREE.BoxGeometry(0.2, 1.3, 0.2), mat(0x333344), { x, y: 0.65 }))
   sign.add(frame, board, face)

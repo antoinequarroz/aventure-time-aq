@@ -259,9 +259,9 @@ function buildSign({ group, theme }, sign) {
 // Poteau indicateur avec des flèches vers chaque destination, au style de l'époque :
 // planches de bois peintes au Passé et au Présent, plaques de métal néon au Futur.
 const ARM_STYLE = {
-  wood: { plank: ['#8a5a34', '#6b4226'], text: '#fbe9c8', edge: 0x5a3a22, font: '"Fredoka Variable", "Nunito Variable", sans-serif' },
-  metal: { plank: ['#2f6fd8', '#1f4fa8'], text: '#ffffff', edge: 0xdddddd, font: '"Nunito Variable", system-ui, sans-serif' },
-  energy: { plank: ['#1a1530', '#2a1f50'], text: '#d9ccff', edge: 0xb48cff, font: '"Nunito Variable", system-ui, sans-serif' },
+  wood: { plank: ['#8a5a34', '#6b4226'], text: '#fbe9c8', edge: 0x5a3a22, font: '"Outfit Variable", "Inter Variable", sans-serif' },
+  metal: { plank: ['#2f6fd8', '#1f4fa8'], text: '#ffffff', edge: 0xdddddd, font: '"Inter Variable", system-ui, sans-serif' },
+  energy: { plank: ['#1a1530', '#2a1f50'], text: '#d9ccff', edge: 0xb48cff, font: '"Inter Variable", system-ui, sans-serif' },
 }
 function armTexture(label, style) {
   const canvas = document.createElement('canvas')
