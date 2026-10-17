@@ -323,7 +323,7 @@ export function billboard(ctx, x, z, { text = 'antoinequarroz.ch', rotY = 0, bg 
   g.rotation.y = rotY
   g.add(mesh(new THREE.BoxGeometry(0.2, 3, 0.2), mat(0x333333), { x: -1.6, y: 1.5 }))
   g.add(mesh(new THREE.BoxGeometry(0.2, 3, 0.2), mat(0x333333), { x: 1.6, y: 1.5 }))
-  const face = new THREE.MeshStandardMaterial({ map: textTexture(text, { bg, fg, font: 'bold 52px sans-serif' }), emissive: 0xffffff, emissiveIntensity: 0.25 })
+  const face = new THREE.MeshStandardMaterial({ map: textTexture(text, { bg, fg, font: 'bold 52px "Nunito Variable", system-ui, sans-serif' }), emissive: 0xffffff, emissiveIntensity: 0.25 })
   face.emissiveMap = face.map
   g.add(mesh(new THREE.BoxGeometry(4, 1.3, 0.15), [mat(0x222222), mat(0x222222), mat(0x222222), mat(0x222222), face, mat(0x222222)], { y: 3.4 }))
   ctx.group.add(g)

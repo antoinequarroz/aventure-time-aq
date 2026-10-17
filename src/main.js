@@ -4,6 +4,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js'
+import './fonts.css'
 import './style.css'
 import { createSpace } from './world/space.js'
 import { createIslands } from './world/islands.js'
@@ -33,6 +34,8 @@ ui.on('mute', () => {
   sfx.toggle()
 })
 ui.on('music', () => sfx.toggleMusic())
+// Les textes dessinés dans la scène (panneaux, écrans) attendent les polices embarquées.
+await Promise.all(['400 32px "Nunito Variable"', '700 32px "Nunito Variable"', '600 32px "Fredoka Variable"'].map((f) => document.fonts.load(f))).catch(() => {})
 await loadModels((progress) => ui.setLoading(progress))
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
@@ -156,7 +159,7 @@ const banner = createPortfolioBanner(scene, world, { x: world.spawn.x, z: world.
 const projectPlaces = createShowcases(scene, world, { places: showcases, ui, sfx })
 const interactables = [...world.interactables, ...vehicles.interactables, ...socialStones.interactables, ...projectPlaces.interactables]
 const player = createPlayer(scene, world)
-const minimap = createMinimap({ world, player, interactables, eraOf: (x) => (x < -75 ? 'past' : x > 75 ? 'future' : 'present') })
+const minimap = createMinimap({ world, player, interactables, eraOf: (x) => (x < -75 ? 'past' : x > 75 ? 'future' : 'present'), onPick: (item) => goTo(item) })
 const games = createGames(scene, ui, player, sfx)
 const weather = createWeather(scene)
 const pushables = createPushables(scene, world, world.pushables, {
@@ -292,6 +295,23 @@ const tour = createTour({
     camGround = player.position.y
   },
 })
+// Téléportation depuis la grande carte : fondu, puis on arrive devant le point choisi.
+function goTo(item) {
+  if (!started || vehicles.traveling || doorBusy) return
+  if (tour.active) tour.stop()
+  games.abort()
+  if (vehicles.driving) vehicles.exit(player)
+  ui.closePanel()
+  sfx.blip('whoosh')
+  ui.fade(() => {
+    const spot = tour.standNear(item)
+    player.teleport(spot)
+    player.face(Math.atan2(item.x - spot.x, item.z - spot.z))
+    cameraTarget.copy(player.position)
+    camGround = player.position.y
+    doorCooldown = 1.2
+  })
+}
 function startTour() {
   games.abort()
   if (vehicles.driving) vehicles.exit(player)

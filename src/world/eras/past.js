@@ -5,6 +5,7 @@ import * as P from '../props.js'
 import { fireflies } from '../nature.js'
 import * as B from '../buildings.js'
 import * as C from '../characters.js'
+import * as S from '../stoneworks.js'
 
 // Le Passé : royaume médiéval fantastique.
 
@@ -145,24 +146,39 @@ export const satellites = {
   ruins: {
     offset: [-32, -34],
     r: 14,
-    shape: { lobes: [[0, 2, 11, 0], [6, -8, 8, 0], [-5, -8, 6, 0], [-8, 4, 6, 0], [7, -1, 4, 1]] },
+    shape: { lobes: [[0, 2, 11, 0], [6, -8, 8, 0], [-5, -8, 6, 0], [-8, 4, 6, 0], [7, -1, 4, 1]], plazas: [[3, -3.6, 5]], paths: [{ pts: [[0.4, 9], [0.6, 5.4], [1.8, 1.2]], w: 2.2 }] },
     build(ctx) {
-      P.arch(ctx, 1, 4, { rotY: 0.2 })
-      P.place(ctx, 'columnBroken', -6, 6, { height: 2.6, r: 0.7 })
-      P.place(ctx, 'columnBroken', 6, 5, { height: 2, rotY: 1.3, r: 0.7 })
-      P.place(ctx, 'column', 9, 0, { height: 3.6, r: 0.7 })
-      P.place(ctx, 'columnBroken', -3, -3, { height: 1.6, rotY: 2.2, r: 0.7 })
-      P.place(ctx, 'statue', 5, 9, { height: 3.2, rotY: Math.PI + 0.3, r: 0.8 })
+      // Sanctuaire des anciens, même pierre sculptée que la place des réseaux :
+      // grande arche à l'entrée, gardiens sur leurs socles, cercle de piliers à runes
+      // autour de la statue du mage, colonnes et lanternes.
+      S.grandArch(ctx, 0.6, 5.4, { width: 4.4, h: 3.4, color: 0x7df9ff })
+      for (const [lx, lz] of [[-2.4, 6.6], [3.6, 6.6]]) S.lanternPost(ctx, lx, lz)
+      S.statue(ctx, -6.2, 5.6, { key: 'knight', anim: 'Idle', keep: ['1H_Sword', 'Round_Shield', 'Knight_Helmet', 'Knight_Cape'], rotY: 0.45, height: 2.5 })
+      S.statue(ctx, 7.4, 4.2, { key: 'barbarian', anim: 'Cheer', time: 0.5, keep: ['1H_Axe', 'Barbarian_Hat'], rotY: -0.5, height: 2.5 })
+      // Cercle de piliers à runes autour du mage (ouvert vers l'arche).
+      S.statue(ctx, 3, -3.6, { key: 'mage', anim: 'Spellcasting', time: 0.6, keep: ['Spellbook_open', 'Mage_Hat'], height: 2.7, r: 1.1 })
+      const runes = [0x9b6bff, 0x58d0ff, 0xff7ad9]
+      for (let i = 0; i < 6; i++) {
+        const a = Math.PI / 2 + ((i + 0.5) / 7) * Math.PI * 2 + 0.45
+        S.runePillar(ctx, 3 + Math.cos(a) * 3.7, -3.6 + Math.sin(a) * 3.7, { color: runes[i % 3], rotY: -a + Math.PI / 2 })
+      }
+      S.column(ctx, 9.4, -0.6, { h: 3.4 })
+      S.column(ctx, -8.6, -3, { broken: true, rotY: 0.6 })
+      S.column(ctx, -3.6, -9.6, { h: 3, rotY: 0.3 })
+      S.column(ctx, 6.4, -10.6, { broken: true, h: 3.2, rotY: 1.2 })
+      S.leaves(ctx, 3, -3.6, { r: 6, inner: 1.6, count: 160 })
+      S.leaves(ctx, 0.6, 6.2, { r: 3, count: 50 })
       P.place(ctx, 'wallCorner', -11, 1, { height: 2.4, rotY: 0.9, r: 1.3 })
       P.place(ctx, 'stairs', 0, -7, { height: 1, rotY: Math.PI, r: 0 })
-      P.standingStones(ctx, 3, -4, { r: 3 })
       P.crystals(ctx, -10, 7, { color: 0x9b6bff, glow: true })
-      P.crystals(ctx, 8, 6, { color: 0x58d0ff, size: 0.8 })
-      P.rocks(ctx, -8, -3, { count: 4 })
-      P.pine(ctx, 9, 8, { height: 3.5, big: true })
+      P.crystals(ctx, 8, 7, { color: 0x58d0ff, size: 0.8, glow: true })
+      P.crystals(ctx, -7, -8, { color: 0xff7ad9, size: 0.7, glow: true })
+      P.rocks(ctx, -8, 1, { count: 3 })
+      P.pine(ctx, 10, 8.5, { height: 3.5, big: true })
       P.leafTree(ctx, -6, 10, { palette: 'purple' })
       P.bush(ctx, -9, 7, { palette: 'pink' })
-      fireflies(ctx, { count: 40 })
+      P.bush(ctx, 5, 9.5, { palette: 'purple' })
+      fireflies(ctx, { count: 50 })
       // Coffre au trésor sur la dernière pierre.
       P.place(ctx, 'chest', 11, -7.8, { height: 0.9, y: 6, rotY: Math.PI })
       return {

@@ -6,7 +6,7 @@ import { buildTerrain, createGround, edgeAlong, settle, shapeRadius } from './te
 import { buildLeaves, growGrass, scatterConfetti, updateNature } from './nature.js'
 import * as P from './props.js'
 import { buildPoint } from './points.js'
-import { buildRoom, ROOMS } from './interiors.js'
+import { buildRoom, ROOMS, LIBRARY_DOOR } from './interiors.js'
 import * as past from './eras/past.js'
 import * as present from './eras/present.js'
 import * as future from './eras/future.js'
@@ -161,6 +161,7 @@ export function createIslands(scene) {
     islandsInfo.push(room.info)
     const main = mains[room.era]
     const door = DOORS[key]
+    if (!door) continue
     const accent = THEMES[room.era].accent
     const from = main.group.children.length
     buildPoint(main, door.at[0], door.at[1], { icon: '🚪', title: door.label.replace('Entrer dans le', '').replace('Entrer dans la', '').trim().replace(/^./, (c) => c.toUpperCase()), accent, collide: false, labelY: 3.4 })
@@ -169,6 +170,13 @@ export function createIslands(scene) {
     outside.y = ground.heightAt(outside.x, outside.z, Infinity, true) ?? 0
     interactables.push({ type: 'door', x: main.center.x + door.at[0], z: main.center.z + door.at[1], r: 2, title: door.label, to: room.arrival.clone(), auto: true })
     interactables.push({ type: 'door', x: room.exit.x, z: room.exit.z, r: 1.6, title: 'Sortir', to: outside, auto: true })
+  }
+  // Bibliothèque : on y entre depuis la grande salle du château, pas depuis l'extérieur.
+  {
+    const hall = rooms.castle.center
+    const lib = rooms.library
+    interactables.push({ type: 'door', x: hall.x + LIBRARY_DOOR.x, z: hall.z + LIBRARY_DOOR.z, r: 1.6, title: 'Entrer dans la bibliothèque', to: lib.arrival.clone(), auto: true })
+    interactables.push({ type: 'door', x: lib.exit.x, z: lib.exit.z, r: 1.6, title: 'Retour à la grande salle', to: new THREE.Vector3(hall.x + LIBRARY_DOOR.x - 2, 0, hall.z + LIBRARY_DOOR.z), auto: true })
   }
   for (const { sign, addPoint } of pending) addPoint(rooms[sign.room], sign, rooms[sign.room].room.name)
 
@@ -251,9 +259,9 @@ function buildSign({ group, theme }, sign) {
 // Poteau indicateur avec des flèches vers chaque destination, au style de l'époque :
 // planches de bois peintes au Passé et au Présent, plaques de métal néon au Futur.
 const ARM_STYLE = {
-  wood: { plank: ['#8a5a34', '#6b4226'], text: '#fbe9c8', edge: 0x5a3a22, font: 'Georgia, serif' },
-  metal: { plank: ['#2f6fd8', '#1f4fa8'], text: '#ffffff', edge: 0xdddddd, font: 'Arial, sans-serif' },
-  energy: { plank: ['#1a1530', '#2a1f50'], text: '#d9ccff', edge: 0xb48cff, font: 'Arial, sans-serif' },
+  wood: { plank: ['#8a5a34', '#6b4226'], text: '#fbe9c8', edge: 0x5a3a22, font: '"Fredoka Variable", "Nunito Variable", sans-serif' },
+  metal: { plank: ['#2f6fd8', '#1f4fa8'], text: '#ffffff', edge: 0xdddddd, font: '"Nunito Variable", system-ui, sans-serif' },
+  energy: { plank: ['#1a1530', '#2a1f50'], text: '#d9ccff', edge: 0xb48cff, font: '"Nunito Variable", system-ui, sans-serif' },
 }
 function armTexture(label, style) {
   const canvas = document.createElement('canvas')
@@ -397,17 +405,23 @@ function buildPlatform(ctx, x, z, y, r, style, base = 0) {
     return
   }
   const asteroid = style === 'asteroid'
-  group.add(mesh(jitter(new THREE.CylinderGeometry(r, r * 0.85, 0.5, 9), 0.08, x + z), mat(asteroid ? 0x6e6a7a : 0xa8a090), { x, y: y - 0.25, z }))
+  group.add(mesh(asteroid ? jitter(new THREE.CylinderGeometry(r, r * 0.85, 0.5, 9), 0.08, x + z) : new THREE.CylinderGeometry(r, r * 0.9, 0.5, 8), mat(asteroid ? 0x6e6a7a : 0x8f88c8), { x, y: y - 0.25, z }))
   const under = jitter(new THREE.ConeGeometry(r * 0.85, r * 1.6, 8), r * 0.12, x * 3 + z)
   under.rotateX(Math.PI)
-  group.add(mesh(under, mat(asteroid ? 0x4f4b5c : 0x7a7264), { x, y: y - 0.5 - r * 0.8, z }))
+  group.add(mesh(under, mat(asteroid ? 0x4f4b5c : 0x6a6398), { x, y: y - 0.5 - r * 0.8, z }))
   if (asteroid) {
     const glow = mesh(new THREE.TorusGeometry(r * 0.9, 0.05, 4, 24), mat(0xb48cff, { emissive: 0xb48cff, emissiveIntensity: 2 }), { x, y: y + 0.02, z, shadow: false })
     glow.rotation.x = Math.PI / 2
     group.add(glow)
   } else {
-    // Mousse sur les pierres des ruines.
-    group.add(mesh(new THREE.CylinderGeometry(r * 0.7, r * 0.7, 0.06, 9), mat(0x5f9e3c), { x, y: y + 0.01, z, shadow: false }))
+    // Dalle sculptée avec un cercle de runes, et un cristal suspendu sous la pierre.
+    group.add(mesh(new THREE.CylinderGeometry(r * 0.72, r * 0.72, 0.06, 8), mat(0x6a6398), { x, y: y + 0.01, z, shadow: false }))
+    const rune = mesh(new THREE.TorusGeometry(r * 0.5, 0.04, 4, 24), mat(0x9b6bff, { emissive: 0x9b6bff, emissiveIntensity: 2 }), { x, y: y + 0.06, z, shadow: false })
+    rune.rotation.x = Math.PI / 2
+    group.add(rune)
+    const gem = mesh(new THREE.OctahedronGeometry(r * 0.22), mat(0x58d0ff, { emissive: 0x58d0ff, emissiveIntensity: 1.6 }), { x, y: y - 0.7 - r * 1.75, z, shadow: false })
+    gem.scale.y = 1.6
+    group.add(gem)
   }
 }
 

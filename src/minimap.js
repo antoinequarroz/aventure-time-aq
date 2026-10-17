@@ -4,7 +4,7 @@
 const COLORS = { past: '#7a62c9', present: '#d9823f', future: '#8f93b5' }
 const DOTS = { sign: '#ffd27a', game: '#6dff9a', vehicle: '#ff5a5a', chest: '#ff7ad9', social: '#7fd8ff' }
 
-export function createMinimap({ world, player, interactables, eraOf }) {
+export function createMinimap({ world, player, interactables, eraOf, onPick }) {
   const ui = document.getElementById('ui')
   const wrap = document.createElement('div')
   wrap.className = 'minimap'
@@ -22,9 +22,54 @@ export function createMinimap({ world, player, interactables, eraOf }) {
     wrap.classList.toggle('big', big)
     timer = 0
   }
+  // Grande carte : un clic sur un point téléporte le joueur là-bas.
+  let view = null
+  let hover = null
+  const tip = document.createElement('div')
+  tip.className = 'minimap-tip'
+  wrap.appendChild(tip)
+  const pick = (e) => {
+    if (!big || !view) return null
+    const rect = canvas.getBoundingClientRect()
+    const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
+    let best = null
+    let bestD = 18
+    for (const it of interactables) {
+      if (it.z > 400 || it.title === 'Sortir') continue
+      const d = Math.hypot(view.w / 2 + (it.x - view.cx) * view.scale - mx, view.h / 2 + (it.z - view.cz) * view.scale - my)
+      if (d < bestD) {
+        bestD = d
+        best = it
+      }
+    }
+    return best
+  }
   wrap.addEventListener('pointerdown', (e) => {
     e.preventDefault()
+    const it = pick(e)
+    if (it && onPick) {
+      onPick(it)
+      toggle()
+      return
+    }
     toggle()
+  })
+  wrap.addEventListener('pointermove', (e) => {
+    hover = pick(e)
+    wrap.classList.toggle('pointing', !!hover)
+    if (hover) {
+      const rect = wrap.getBoundingClientRect()
+      tip.textContent = `Aller à : ${hover.title}`
+      tip.style.left = `${e.clientX - rect.left}px`
+      tip.style.top = `${e.clientY - rect.top}px`
+    }
+    tip.classList.toggle('visible', !!hover)
+    timer = 0
+  })
+  wrap.addEventListener('pointerleave', () => {
+    hover = null
+    tip.classList.remove('visible')
   })
   window.addEventListener('keydown', (e) => {
     if (e.code === 'KeyM') toggle()
@@ -50,6 +95,7 @@ export function createMinimap({ world, player, interactables, eraOf }) {
     const cz = big ? 0 : p.z
     const X = (x) => (w / 2 + (x - cx) * scale) * dpr
     const Z = (z) => (h / 2 + (z - cz) * scale) * dpr
+    view = { w, h, scale, cx, cz }
     g.clearRect(0, 0, canvas.width, canvas.height)
 
     g.lineCap = 'round'
@@ -74,8 +120,13 @@ export function createMinimap({ world, player, interactables, eraOf }) {
       if (!big && (Math.abs(it.x - p.x) > 40 || Math.abs(it.z - p.z) > 40)) continue
       g.fillStyle = DOTS[it.type] ?? '#fff'
       g.beginPath()
-      g.arc(X(it.x), Z(it.z), (big ? 2.5 : 3.2) * dpr, 0, Math.PI * 2)
+      g.arc(X(it.x), Z(it.z), (big ? (it === hover ? 6 : 3.6) : 3.2) * dpr, 0, Math.PI * 2)
       g.fill()
+      if (big && it === hover) {
+        g.lineWidth = 2 * dpr
+        g.strokeStyle = '#ffffff'
+        g.stroke()
+      }
     }
     // Le joueur : flèche blanche.
     g.save()
@@ -98,7 +149,7 @@ export function createMinimap({ world, player, interactables, eraOf }) {
     g.restore()
 
     const island = player.currentIsland()
-    label.textContent = big ? 'Passé · Présent · Futur  —  M pour fermer' : island ? island.name : 'Entre les îles'
+    label.textContent = big ? 'Clique sur un point pour t\'y rendre · M pour fermer' : island ? island.name : 'Entre les îles'
   }
 
   return {

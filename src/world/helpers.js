@@ -31,7 +31,7 @@ export function jitter(geometry, amount, seed = 1) {
   return geometry
 }
 
-export function textTexture(text, { width = 512, height = 128, bg = '#3b2a1a', fg = '#fbe9c8', font = 'bold 54px Georgia, serif' } = {}) {
+export function textTexture(text, { width = 512, height = 128, bg = '#3b2a1a', fg = '#fbe9c8', font = 'bold 54px "Fredoka Variable", "Nunito Variable", sans-serif' } = {}) {
   const canvas = document.createElement('canvas')
   canvas.width = width
   canvas.height = height

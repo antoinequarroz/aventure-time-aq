@@ -199,11 +199,11 @@ const BUILDERS = {
       c.fillStyle = grad
       c.fillRect(0, 0, w, h)
       c.fillStyle = '#ffd34f'
-      c.font = 'bold 34px Georgia, serif'
+      c.font = 'bold 34px "Fredoka Variable", "Nunito Variable", sans-serif'
       c.textAlign = 'center'
       c.fillText('AZEROTH', w / 2, 60)
       c.fillStyle = '#c792ea'
-      c.font = 'bold 18px sans-serif'
+      c.font = 'bold 18px "Nunito Variable", system-ui, sans-serif'
       c.fillText('Pour la Horde !', w / 2, 92)
       c.fillStyle = '#3ddc84'
       c.fillRect(30, 130, 196, 12)
@@ -297,12 +297,12 @@ const BUILDERS = {
       c.lineTo(160, 120)
       c.stroke()
       c.fillStyle = '#333'
-      c.font = 'bold 18px sans-serif'
+      c.font = 'bold 18px "Nunito Variable", system-ui, sans-serif'
       c.fillText('Front', 34, 58)
       c.fillText('API', 244, 58)
       c.fillText('Base', 140, 148)
       c.fillStyle = '#27ae60'
-      c.font = 'bold 20px sans-serif'
+      c.font = 'bold 20px "Nunito Variable", system-ui, sans-serif'
       c.fillText('Atelier du jour ✓', 90, 20)
     })
     g.add(mesh(new THREE.PlaneGeometry(1.8, 1.05), new THREE.MeshStandardMaterial({ map: tex }), { y: 1.35, z: 0.03, shadow: false }))
@@ -394,7 +394,7 @@ export function labelTexture(title, icon, accent) {
     g.textAlign = 'left'
     let size = 54
     do {
-      g.font = `bold ${size}px Georgia, serif`
+      g.font = `bold ${size}px "Fredoka Variable", "Nunito Variable", sans-serif`
       size -= 2
     } while (g.measureText(title).width > w - 175 && size > 28)
     g.fillText(title, 142, 8 + bh / 2 + 2)

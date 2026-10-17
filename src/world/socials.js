@@ -240,7 +240,7 @@ export function createSocialPlaza(scene, world, { center, socials }) {
       g.strokeStyle = '#ffb347'
       g.stroke()
       g.fillStyle = '#ffffff'
-      g.font = 'bold 64px Georgia, serif'
+      g.font = 'bold 64px "Fredoka Variable", "Nunito Variable", sans-serif'
       g.textAlign = 'center'
       g.textBaseline = 'middle'
       g.fillText('Mes réseaux', w / 2, h / 2 + 2)
@@ -278,13 +278,13 @@ export function createPortfolioBanner(scene, world, { x, z, height = 4.6 }) {
     g.stroke()
     g.textAlign = 'center'
     g.fillStyle = '#ffb347'
-    g.font = 'bold 38px system-ui, sans-serif'
+    g.font = 'bold 38px "Nunito Variable", system-ui, sans-serif'
     g.fillText('PORTFOLIO', w / 2, 82)
     g.fillStyle = '#ffffff'
-    g.font = 'bold 92px Georgia, serif'
+    g.font = 'bold 92px "Fredoka Variable", "Nunito Variable", sans-serif'
     g.fillText('Antoine Quarroz', w / 2, 175)
     g.fillStyle = '#d9ccff'
-    g.font = '40px system-ui, sans-serif'
+    g.font = '40px "Nunito Variable", system-ui, sans-serif'
     g.fillText('Développeur web & mobile · Valais', w / 2, 240)
   })
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthWrite: false, fog: false }))

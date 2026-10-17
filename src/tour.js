@@ -73,6 +73,7 @@ export function createTour({ ui, world, player, signs, quest, discover, onMove, 
   }
 
   return {
+    standNear,
     get active() {
       return active
     },
