@@ -1,13 +1,43 @@
 import { intro } from './content.js'
 
+const CHARACTERS = [
+  { key: 'rogue', icon: '🧭', name: 'Aventurier' },
+  { key: 'knight', icon: '🛡️', name: 'Chevalier' },
+  { key: 'mage', icon: '🪄', name: 'Mage' },
+  { key: 'barbarian', icon: '🪓', name: 'Barbare' },
+]
+
 export function createUI() {
   const root = document.getElementById('ui')
   root.innerHTML = `
     <div class="intro" id="intro">
-      <h1>${intro.title}</h1>
-      <p>${intro.subtitle}</p>
-      <p class="controls">${intro.controls}</p>
-      <button id="start" disabled>Chargement…</button>
+      <div class="intro-card">
+        <span class="intro-kicker">Portfolio interactif</span>
+        <h1>${intro.title}</h1>
+        <p>${intro.subtitle}</p>
+        <div class="pick">
+          <span>Choisis ton personnage</span>
+          <div class="chars">${CHARACTERS.map((c) => `<button class="char" data-key="${c.key}"><b>${c.icon}</b>${c.name}</button>`).join('')}</div>
+        </div>
+        <div class="intro-actions">
+          <button id="start" disabled>Chargement…</button>
+          <button id="start-tour" class="ghost" disabled>🧭 Visite guidée (2 min)</button>
+        </div>
+        <p class="controls">${intro.controls}</p>
+      </div>
+    </div>
+    <div class="hello" id="hello">Salut, moi c'est Antoine ! 👋</div>
+    <div class="hud-right" id="hud-right">
+      <div class="quest-chip" id="quest-chip" title="Quête : découvre tous les points pour ouvrir le coffre final"><b>🗝️</b><span></span></div>
+      <div class="hud-chip" id="day-chip"></div>
+      <button class="hud-btn" id="btn-tour" title="Visite guidée">🧭</button>
+      <button class="hud-btn" id="btn-mute" title="Couper le son">🔊</button>
+    </div>
+    <div class="tour-bar" id="tour-bar">
+      <span class="tour-step"></span>
+      <div class="tour-progress"><i></i></div>
+      <button data-act="next">Suivant ›</button>
+      <button data-act="stop">Arrêter</button>
     </div>
     <div class="island-name" id="island-name"><strong></strong><span></span></div>
     <div class="prompt" id="prompt"></div>
@@ -40,16 +70,65 @@ export function createUI() {
   }
   backdrop.addEventListener('pointerdown', close)
   panel.querySelector('.panel-close').addEventListener('click', close)
+  const handlers = { character: null, start: null, tour: null, tourNext: null, tourStop: null, mute: null }
+  root.querySelectorAll('.char').forEach((b) => b.addEventListener('click', () => {
+    root.querySelectorAll('.char').forEach((o) => o.classList.toggle('active', o === b))
+    handlers.character?.(b.dataset.key)
+  }))
+  const begin = (tour) => {
+    $('intro').classList.add('hidden')
+    $('hello').classList.remove('visible')
+    root.classList.add('playing')
+    handlers.start?.(tour)
+  }
+  $('start').addEventListener('click', () => begin(false))
+  $('start-tour').addEventListener('click', () => begin(true))
+  $('btn-tour').addEventListener('click', () => handlers.tour?.())
+  $('btn-mute').addEventListener('click', () => handlers.mute?.())
+  $('tour-bar').addEventListener('click', (e) => {
+    const act = e.target.closest('button')?.dataset.act
+    if (act === 'next') handlers.tourNext?.()
+    if (act === 'stop') handlers.tourStop?.()
+  })
   let islandTimer = null
   let toastTimer = null
 
   return {
+    // cb(tour) : tour = true si le visiteur a choisi la visite guidée.
     onStart(cb) {
-      $('start').addEventListener('click', () => {
-        $('intro').classList.add('hidden')
-        root.classList.add('playing')
-        cb()
-      })
+      handlers.start = cb
+    },
+    on(name, cb) {
+      handlers[name] = cb
+    },
+    selectCharacter(key) {
+      root.querySelectorAll('.char').forEach((o) => o.classList.toggle('active', o.dataset.key === key))
+    },
+    // Bulle « Salut » au-dessus de l'avatar sur l'écran d'accueil (coordonnées écran).
+    setHello(x, y, visible) {
+      const el = $('hello')
+      el.classList.toggle('visible', visible)
+      if (visible) el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, -100%)`
+    },
+    setMuted(muted) {
+      $('btn-mute').textContent = muted ? '🔇' : '🔊'
+      $('btn-mute').title = muted ? 'Remettre le son' : 'Couper le son'
+    },
+    setQuest({ found, total, ready, opened }) {
+      const chip = $('quest-chip')
+      chip.querySelector('span').textContent = opened ? 'Quête accomplie' : ready ? 'Le coffre est prêt !' : `${found} / ${total}`
+      chip.classList.toggle('ready', ready && !opened)
+    },
+    setDay({ icon, text }) {
+      $('day-chip').textContent = `${icon} ${text}`
+    },
+    setTour(state) {
+      const bar = $('tour-bar')
+      bar.classList.toggle('visible', !!state)
+      root.classList.toggle('touring', !!state)
+      if (!state) return
+      bar.querySelector('.tour-step').textContent = `Visite guidée · ${state.index} / ${state.total}`
+      bar.querySelector('.tour-progress i').style.width = `${Math.round(state.progress * 100)}%`
     },
     setGameHud(title, status, record, hint) {
       const hud = $('game-hud')
@@ -81,6 +160,7 @@ export function createUI() {
     },
     setReady() {
       $('start').disabled = false
+      $('start-tour').disabled = false
       $('start').textContent = 'Commencer l\'aventure'
     },
     showIsland(name, tagline) {
@@ -95,8 +175,10 @@ export function createUI() {
       prompt.classList.toggle('visible', !!text)
     },
     // Fiche d'un point d'intérêt : icône, lieu, titre, texte et liens, aux couleurs de l'île.
-    openPanel({ title, text, links = [], icon = '✦', kicker = '', era = 'present', count = '' }) {
+    openPanel({ title, text, links = [], icon = '✦', kicker = '', era = 'present', count = '', side = false }) {
       panel.dataset.era = era
+      panel.classList.toggle('side', side)
+      backdrop.classList.toggle('light', side)
       panel.querySelector('h2').textContent = title
       panel.querySelector('.panel-icon').textContent = icon
       panel.querySelector('.panel-kicker').textContent = kicker
@@ -109,8 +191,9 @@ export function createUI() {
         p.textContent = todo ? paragraph.replace(/^\[|\]$/g, '') : paragraph
         return p
       }))
-      panel.querySelector('.panel-links').replaceChildren(...links.map(({ label, url }) => {
+      panel.querySelector('.panel-links').replaceChildren(...links.map(({ label, url, primary }) => {
         const a = document.createElement('a')
+        if (primary) a.className = 'primary'
         a.href = url
         a.textContent = `${label} ↗`
         a.target = '_blank'

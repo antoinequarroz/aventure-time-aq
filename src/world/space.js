@@ -12,7 +12,7 @@ export function createSpace(scene) {
       side: THREE.BackSide,
       depthWrite: false,
       fog: false,
-      uniforms: { time: { value: 0 } },
+      uniforms: { time: { value: 0 }, day: { value: 1 } },
       vertexShader: /* glsl */ `
         varying vec3 vDir;
         void main() {
@@ -23,6 +23,7 @@ export function createSpace(scene) {
       fragmentShader: /* glsl */ `
         varying vec3 vDir;
         uniform float time;
+        uniform float day;
         float hash(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
         float noise(vec3 p) {
           vec3 i = floor(p); vec3 f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -41,6 +42,8 @@ export function createSpace(scene) {
           float n2 = fbm(vDir * 4.0 + 10.0);
           col += vec3(0.30, 0.10, 0.40) * smoothstep(0.6, 0.9, n) * 0.45;
           col += vec3(0.06, 0.20, 0.40) * smoothstep(0.65, 0.95, n2) * 0.4;
+          // Le jour, le ciel s'éclaircit vers un bleu-violet doux ; la nuit, il reste profond.
+          col = mix(col * 0.75, col * 1.5 + vec3(0.07, 0.05, 0.13) * (1.0 - abs(h)), day);
           gl_FragColor = vec4(col, 1.0);
         }
       `,
@@ -75,7 +78,7 @@ export function createSpace(scene) {
     transparent: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
-    uniforms: { time: { value: 0 }, pixelRatio: { value: Math.min(window.devicePixelRatio, 2) } },
+    uniforms: { time: { value: 0 }, bright: { value: 1 }, pixelRatio: { value: Math.min(window.devicePixelRatio, 2) } },
     vertexShader: /* glsl */ `
       attribute float seed;
       attribute float size;
@@ -94,10 +97,11 @@ export function createSpace(scene) {
     fragmentShader: /* glsl */ `
       varying vec3 vColor;
       varying float vTwinkle;
+      uniform float bright;
       void main() {
         float d = length(gl_PointCoord - 0.5);
         float a = smoothstep(0.5, 0.0, d);
-        gl_FragColor = vec4(vColor * 1.6, a * vTwinkle);
+        gl_FragColor = vec4(vColor * 1.6, a * vTwinkle * bright);
       }
     `,
   })
@@ -132,6 +136,11 @@ export function createSpace(scene) {
   scene.add(dust)
 
   return {
+    // Cycle jour/nuit : 0 = nuit (étoiles vives), 1 = jour.
+    setDay(day) {
+      sky.material.uniforms.day.value = day
+      starMaterial.uniforms.bright.value = 1.5 - day * 0.8
+    },
     update(dt, t) {
       stars.rotation.y += dt * 0.003
       starMaterial.uniforms.time.value = t

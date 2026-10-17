@@ -17,22 +17,34 @@ export function createPlayer(scene, world) {
   scene.add(model)
   const body = model
   const baseScale = 1
-  const avatars = {
-    past: character('knight', { keep: ['1H_Sword', 'Badge_Shield', 'Knight_Helmet', 'Knight_Cape'] }),
-    present: character('rogue', { keep: [] }),
-    future: character('rogue', { keep: [] }),
-  }
-  spaceSuit(avatars.future)
+  // Le personnage choisi sur l'écran d'accueil garde le même visage partout ;
+  // seule la tenue change : équipé au Passé, en civil au Présent, en scaphandre au Futur.
+  let avatars = {}
   const rigs = {}
-  for (const [key, avatar] of Object.entries(avatars)) {
-    avatar.visible = false
-    model.add(avatar)
-    const { mixer, actions } = animate(avatar, 'Idle')
-    actions.Jump_Idle.setLoop(THREE.LoopRepeat)
-    rigs[key] = { mixer, actions, current: actions.Idle }
+  let rig = null
+  let shownEra = 'past'
+  let characterKey = null
+  let waving = false
+  function setCharacter(key) {
+    if (!PAST_GEAR[key] || key === characterKey) return
+    characterKey = key
+    for (const avatar of Object.values(avatars)) model.remove(avatar)
+    avatars = {
+      past: character(key, { keep: PAST_GEAR[key] }),
+      present: character(key, { keep: [] }),
+      future: character(key, { keep: [] }),
+    }
+    spaceSuit(avatars.future)
+    for (const [k, avatar] of Object.entries(avatars)) {
+      avatar.visible = false
+      model.add(avatar)
+      const { mixer, actions } = animate(avatar, 'Idle')
+      actions.Jump_Idle.setLoop(THREE.LoopRepeat)
+      rigs[k] = { mixer, actions, current: actions.Idle, arm: armBones(avatar) }
+      if (waving) for (const o of rigs[k].arm?.held ?? []) o.visible = false
+    }
+    wear(shownEra)
   }
-  let rig = rigs.past
-  avatars.past.visible = true
   const NAMES = { idle: 'Idle', walk: 'Walking_A', run: 'Running_A', jump: 'Jump_Idle', cheer: 'Cheer' }
   const play = (name, timeScale = 1) => {
     const next = rig.actions[NAMES[name]]
@@ -42,10 +54,12 @@ export function createPlayer(scene, world) {
     rig.current.fadeOut(0.18)
     rig.current = next
   }
-  const wear = (key) => {
+  function wear(key) {
+    shownEra = key
     for (const [k, avatar] of Object.entries(avatars)) avatar.visible = k === key
     rig = rigs[key]
   }
+  setCharacter('rogue')
 
   const dust = createDust(scene)
 
@@ -220,6 +234,7 @@ export function createPlayer(scene, world) {
     else if (speedNow > 0.6) play('walk', Math.max(0.6, speedNow / WALK) * 1.15)
     else play('idle')
     rig.mixer.update(dt)
+    if (waving && speedNow < 0.6 && grounded) wave(rig.arm, model, waving, performance.now() / 1000)
 
     dustTimer -= dt
     if (grounded && moving && running && dustTimer <= 0) {
@@ -258,6 +273,22 @@ export function createPlayer(scene, world) {
     cheer() {
       cheerTime = 2.2
     },
+    setCharacter,
+    get character() {
+      return characterKey
+    },
+    // Salut de la main (écran d'accueil), tourné vers `viewer` (position de la caméra).
+    setWaving(viewer) {
+      waving = viewer || false
+      for (const r of Object.values(rigs)) for (const o of r.arm?.held ?? []) o.visible = !waving
+    },
+    face(angle) {
+      facing = angle
+      model.rotation.y = angle
+    },
+    get era() {
+      return era
+    },
     get grounded() {
       return grounded
     },
@@ -276,6 +307,55 @@ export function createPlayer(scene, world) {
       checkpoint = null
     },
   }
+}
+
+// Équipement gardé au Passé pour chaque personnage.
+const PAST_GEAR = {
+  knight: ['1H_Sword', 'Badge_Shield', 'Knight_Helmet', 'Knight_Cape'],
+  rogue: ['Knife', 'Rogue_Cape'],
+  mage: ['1H_Wand', 'Mage_Hat', 'Mage_Cape'],
+  barbarian: ['1H_Axe', 'Barbarian_Hat', 'Barbarian_Cape'],
+}
+
+function armBones(avatar) {
+  // Le chargeur glTF retire les points des noms : « upperarm.r » devient « upperarmr ».
+  const bone = (name) => avatar.getObjectByName(name) ?? avatar.getObjectByName(name.replace('.', ''))
+  const upper = bone('upperarm.r')
+  const lower = bone('lowerarm.r')
+  const hand = bone('wrist.r') ?? bone('hand.r')
+  const other = bone('upperarm.l')
+  if (!upper || !lower || !hand || !other) return null
+  // Objets tenus en main droite (épée, couteau…) : rangés pendant le salut.
+  const slot = bone('handslot.r')
+  const held = (slot?.children ?? []).filter((o) => o.visible)
+  return { upper, lower, other, held, upperDir: lower.position.clone().normalize(), lowerDir: hand.position.clone().normalize() }
+}
+
+// Salut de la main, posé par-dessus l'animation : le bras droit se lève vers la caméra et l'avant-bras
+// se balance. Les directions sont visées en coordonnées du monde, quel que soit l'axe des os du modèle.
+const _q = new THREE.Quaternion()
+const _v = new THREE.Vector3()
+function aimBone(bone, localDir, worldDir) {
+  bone.parent.getWorldQuaternion(_q)
+  _v.copy(worldDir).normalize().applyQuaternion(_q.invert())
+  bone.quaternion.setFromUnitVectors(localDir, _v)
+  bone.updateMatrixWorld(true)
+}
+const _side = new THREE.Vector3()
+const _fwd = new THREE.Vector3()
+const _up = new THREE.Vector3(0, 1, 0)
+const _dir = new THREE.Vector3()
+function wave(arm, root, viewer, t) {
+  if (!arm) return
+  root.updateMatrixWorld(true)
+  // Côté du bras droit : de l'épaule gauche vers l'épaule droite.
+  arm.other.getWorldPosition(_fwd)
+  arm.upper.getWorldPosition(_side)
+  _side.sub(_fwd).setY(0).normalize()
+  root.getWorldPosition(_fwd)
+  _fwd.subVectors(viewer, _fwd).setY(0).normalize()
+  aimBone(arm.upper, arm.upperDir, _dir.copy(_side).multiplyScalar(0.9).addScaledVector(_up, 0.3).addScaledVector(_fwd, 0.45))
+  aimBone(arm.lower, arm.lowerDir, _dir.copy(_side).multiplyScalar(0.15 + Math.sin(t * 9) * 0.32).addScaledVector(_up, 1).addScaledVector(_fwd, 0.3))
 }
 
 // Petits nuages de poussière sous les pieds.

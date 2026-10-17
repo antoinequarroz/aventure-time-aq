@@ -357,7 +357,7 @@ const TABLE_PROPS = new Set(['camera', 'laptop', 'phone', 'trophy', 'coffee'])
 const hex = (c) => `#${new THREE.Color(c).getHexString()}`
 
 // Étiquette en forme de carte : pastille avec l'icône, titre, bordure aux couleurs de l'île.
-function labelTexture(title, icon, accent) {
+export function labelTexture(title, icon, accent) {
   return canvasTexture(640, 180, (g, w, h) => {
     const r = 46
     const bh = 132

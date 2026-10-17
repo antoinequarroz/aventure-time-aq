@@ -54,7 +54,7 @@ function makeRing(color) {
   return ring
 }
 
-export function createGames(scene, ui, player) {
+export function createGames(scene, ui, player, sfx = null) {
   const records = loadRecords()
   const burst = createBurst(scene)
   const arrow = new THREE.Group()
@@ -76,6 +76,7 @@ export function createGames(scene, ui, player) {
     const time = active.time
     cleanup()
     if (!success) {
+      sfx?.blip('locked')
       ui.openPanel({ title: `${game.title} : raté !`, icon: '💥', kicker: 'Mini-jeu', era: game.era, text: [message, 'Retourne sur le point de départ et appuie sur E pour réessayer.'] })
       return
     }
@@ -89,6 +90,7 @@ export function createGames(scene, ui, player) {
     const [gold] = game.medals ?? (game.type === 'parkour' ? [20, 35] : [game.time * 0.55, game.time * 0.8])
     burst.confetti(player.position)
     player.cheer?.()
+    sfx?.jingle()
     ui.openPanel({
       title: `${game.title} : bravo !`,
       icon: medal.icon,
@@ -203,6 +205,7 @@ export function createGames(scene, ui, player) {
             item.visible = false
             active.collected++
             burst.emit(item.position, def.accent)
+            sfx?.blip('coin')
             // Combo : plusieurs objets ramassés coup sur coup.
             active.combo = active.t - active.lastPick < 1.8 ? active.combo + 1 : 1
             active.lastPick = active.t
@@ -232,6 +235,7 @@ export function createGames(scene, ui, player) {
         arrow.children[0].material.emissiveIntensity = 1.5 + Math.sin(t * 8)
         if (Math.hypot(ring.position.x - p.x, ring.position.z - p.z) < 1.9 && Math.abs(ring.position.y - (p.y + 1)) < 1.9) {
           burst.emit(ring.position, def.accent)
+          sfx?.blip('coin')
           active.index++
           if (active.index === active.rings.length) {
             active.time = active.t

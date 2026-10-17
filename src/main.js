@@ -16,8 +16,15 @@ import { createPlayer } from './player.js'
 import { createUI } from './ui.js'
 import { createGames } from './games.js'
 import { createControls } from './controls.js'
+import { createAudio } from './audio.js'
+import { createQuest } from './quest.js'
+import { createTour } from './tour.js'
+import { createWeather } from './weather.js'
 
 const ui = createUI()
+const sfx = createAudio()
+sfx.onChange((muted) => ui.setMuted(muted))
+ui.on('mute', () => sfx.toggle())
 await loadModels((progress) => ui.setLoading(progress))
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
@@ -75,16 +82,24 @@ const MOODS = {
   present: { sun: new THREE.Color(0xffcf96), sky: new THREE.Color(0xffc49a), ground: new THREE.Color(0x8a4a5a), rim: new THREE.Color(0xff5fa8), sunI: 3.0, hemiI: 1.25, fog: new THREE.Color(0x3a2448), exposure: 1.1 },
   future: { sun: new THREE.Color(0xd8e0ff), sky: new THREE.Color(0x8f8cff), ground: new THREE.Color(0x2a2464), rim: new THREE.Color(0x3fe8ff), sunI: 2.4, hemiI: 1.2, fog: new THREE.Color(0x1d1745), exposure: 1.1 },
 }
-function applyMood(era, k) {
-  const m = MOODS[era]
-  if (!m) return
-  sun.color.lerp(m.sun, k)
+// Cycle jour/nuit : la nuit, la lumière baisse et bleuit ; le jour, elle reprend sa couleur d'époque.
+const NIGHT = new THREE.Color(0x6a78ff)
+const NIGHT_FOG = new THREE.Color(0x0d0a26)
+const tmpColor = new THREE.Color()
+let lastMood = 'past'
+function applyMood(era, k, day = 1) {
+  const m = MOODS[era] ?? MOODS[lastMood]
+  if (MOODS[era]) lastMood = era
+  const night = 1 - day
+  sun.color.lerp(tmpColor.copy(m.sun).lerp(NIGHT, night * 0.55), k)
   hemi.color.lerp(m.sky, k)
   hemi.groundColor.lerp(m.ground, k)
   rim.color.lerp(m.rim, k)
-  sun.intensity += (m.sunI - sun.intensity) * k
-  hemi.intensity += (m.hemiI - hemi.intensity) * k
-  scene.fog.color.lerp(m.fog, k)
+  sun.intensity += (m.sunI * (0.25 + 0.95 * day) - sun.intensity) * k
+  hemi.intensity += (m.hemiI * (0.5 + 0.6 * day) - hemi.intensity) * k
+  rim.intensity += ((1.4 + night * 0.8) - rim.intensity) * k
+  renderer.toneMappingExposure += ((0.82 + 0.38 * day) - renderer.toneMappingExposure) * k
+  scene.fog.color.lerp(tmpColor.copy(m.fog).lerp(NIGHT_FOG, night * 0.5), k)
 }
 
 applyMood('past', 1)
@@ -131,7 +146,8 @@ function updateFades(dt) {
 const interactables = [...world.interactables, ...vehicles.interactables]
 const player = createPlayer(scene, world)
 const minimap = createMinimap({ world, player, interactables, eraOf: (x) => (x < -75 ? 'past' : x > 75 ? 'future' : 'present') })
-const games = createGames(scene, ui, player)
+const games = createGames(scene, ui, player, sfx)
+const weather = createWeather(scene)
 const pushables = createPushables(scene, world, world.pushables, {
   onStrike: () => ui.toast('STRIKE ! Toutes les quilles sont tombées 🎳'),
   onGoal: () => ui.toast('BUUUT ! ⚽'),
@@ -152,7 +168,14 @@ if (new URLSearchParams(location.search).has('debug')) {
     games,
     pushables,
     vehicles,
-    state: () => ({ nearby: nearby?.title, doorCooldown, doorBusy, panel: ui.panelOpen() }),
+    state: () => ({ nearby: nearby?.title, doorCooldown, doorBusy, panel: ui.panelOpen(), discovered: discovered.size, total: signs.length, tour: tour.active, day: weather.state.day, character: player.character }),
+    quest: () => quest,
+    tour: () => tour,
+    weather,
+    sfx,
+    discoverAll() {
+      for (const s of signs) discover(s, true)
+    },
     setCamera(x, y, z) {
       cameraOffset.set(x, y, z)
       viewOffset.copy(cameraOffset)
@@ -167,18 +190,46 @@ if (new URLSearchParams(location.search).has('debug')) {
 }
 
 let started = false
+// Personnage choisi sur l'écran d'accueil (gardé d'une visite à l'autre).
+const CHAR_KEY = 'aventure-time-aq:character'
+const savedChar = (() => {
+  try {
+    return localStorage.getItem(CHAR_KEY)
+  } catch {
+    return null
+  }
+})()
+if (savedChar) player.setCharacter(savedChar)
+ui.selectCharacter(player.character)
+player.setWaving(camera.position)
+ui.on('character', (key) => {
+  player.setCharacter(key)
+  sfx.start()
+  sfx.blip('open')
+  player.cheer()
+  try {
+    localStorage.setItem(CHAR_KEY, key)
+  } catch {
+    // Navigation privée.
+  }
+})
 const controls = createControls({
   canvas: renderer.domElement,
   camera,
   scene,
   player,
   onInteract: () => interact(),
-  isActive: () => started && !vehicles.traveling && !vehicles.driving && !ui.panelOpen(),
+  isActive: () => started && !vehicles.traveling && !vehicles.driving && !ui.panelOpen() && !tour.active,
 })
-ui.onStart(() => {
+let introBlend = 0
+ui.onStart((guided) => {
   started = true
+  player.setWaving(false)
+  sfx.start()
   controls.focus()
+  if (guided) startTour()
 })
+
 
 let nearby = null
 // Points d'intérêt déjà lus (gardés d'une visite à l'autre).
@@ -190,13 +241,70 @@ const discovered = new Set((() => {
     return []
   }
 })())
+const signs = interactables.filter((i) => i.type === 'sign')
+function saveDiscovered() {
+  try {
+    localStorage.setItem(DISCOVERED_KEY, JSON.stringify([...discovered]))
+  } catch {
+    // Navigation privée : la progression n'est pas gardée.
+  }
+}
+// Un point lu compte pour la quête ; le dernier déverrouille le coffre.
+function discover(item, silent = false) {
+  if (discovered.has(item.title)) return
+  discovered.add(item.title)
+  saveDiscovered()
+  ui.setQuest(quest.progress())
+  if (discovered.size === signs.length && !silent && !tour.active) {
+    sfx.jingle()
+    ui.toast('Tous les points sont découverts ! Le coffre final t\'attend sur la place du Présent 🗝️')
+  }
+}
+// Les titres déjà vus qui n'existent plus (contenu modifié) ne comptent pas.
+for (const title of [...discovered]) if (!signs.some((s) => s.title === title)) discovered.delete(title)
+const quest = createQuest(scene, world, { ui, sfx, discovered, total: signs.length, signs })
+interactables.push(quest.interactable)
+ui.setQuest(quest.progress())
+const tour = createTour({
+  ui,
+  world,
+  player,
+  signs,
+  quest,
+  sfx,
+  discover: (item) => discover(item, true),
+  onMove: () => {
+    cameraTarget.copy(player.position)
+    camGround = player.position.y
+  },
+})
+function startTour() {
+  games.abort()
+  if (vehicles.driving) vehicles.exit(player)
+  tour.start()
+}
+ui.on('tour', () => {
+  if (!started || vehicles.traveling) return
+  if (tour.active) tour.stop()
+  else startTour()
+})
+ui.on('tourNext', () => tour.next())
+ui.on('tourStop', () => {
+  tour.stop()
+  ui.closePanel()
+})
+
 window.addEventListener('keydown', (e) => {
   if (!started || vehicles.traveling) return
   if (e.code === 'Escape') {
+    if (tour.active) tour.stop()
     if (ui.panelOpen()) ui.closePanel()
     else games.abort()
   }
-  if (e.code === 'KeyE') interact()
+  if (e.code === 'KeyE') {
+    if (tour.active) return tour.next()
+    interact()
+  }
 })
 
 function interact() {
@@ -205,15 +313,11 @@ function interact() {
   if (ui.panelOpen()) return ui.closePanel()
   if (!nearby) return
   if (nearby.type === 'sign') {
-    discovered.add(nearby.title)
-    try {
-      localStorage.setItem(DISCOVERED_KEY, JSON.stringify([...discovered]))
-    } catch {
-      // Navigation privée : la progression n'est pas gardée.
-    }
-    const total = interactables.filter((i) => i.type === 'sign').length
-    ui.openPanel({ ...nearby, count: `Découverts : ${discovered.size} / ${total}` })
+    discover(nearby)
+    sfx.blip('open')
+    ui.openPanel({ ...nearby, count: `Découverts : ${discovered.size} / ${signs.length}` })
   }
+  if (nearby.type === 'chest') quest.open(player)
   if (nearby.type === 'vehicle') {
     games.abort()
     vehicles.start(nearby, player)
@@ -229,6 +333,7 @@ function enterDoor(door) {
   if (doorBusy) return
   doorBusy = true
   games.abort()
+  sfx.blip('door')
   ui.fade(() => {
     player.teleport(door.to)
     doorBusy = false
@@ -271,8 +376,23 @@ function updateCamera(dt) {
   if (cameraTarget.distanceToSquared(focus) < 0.01 && inside !== wasInside) viewOffset.copy(inside ? indoorOffset : cameraOffset)
   wasInside = inside
   camera.position.copy(cameraTarget).addScaledVector(viewOffset, zoom)
-  camera.lookAt(cameraTarget.x, cameraTarget.y + 1.5, cameraTarget.z)
+  lookAt.set(cameraTarget.x, cameraTarget.y + 1.5, cameraTarget.z)
+  // Écran d'accueil : gros plan sur l'avatar qui salue, puis glissement vers la vue de jeu.
+  introBlend = started ? Math.min(1, introBlend + dt / 1.4) : 0
+  if (introBlend < 1) {
+    const k = introBlend * introBlend * (3 - 2 * introBlend)
+    const portrait = innerWidth / innerHeight < 1 || innerWidth < 760
+    introPos.set(p.x + (portrait ? 0 : -1.2), p.y + (portrait ? 2.2 : 2.1), p.z + (portrait ? 8 : 6.4))
+    introLook.set(p.x + (portrait ? 0 : -1.9), p.y + (portrait ? -0.45 : 1.25), p.z)
+    camera.position.lerpVectors(introPos, camera.position, k)
+    lookAt.lerpVectors(introLook, lookAt, k)
+  }
+  camera.lookAt(lookAt)
 }
+const lookAt = new THREE.Vector3()
+const introPos = new THREE.Vector3()
+const introLook = new THREE.Vector3()
+const headPos = new THREE.Vector3()
 
 // Qualité adaptative : si l'ordinateur peine (moins de ~45 images/s), on retire d'abord
 // l'occlusion ambiante, puis on baisse la résolution, pour garder un mouvement fluide.
@@ -303,6 +423,7 @@ function adaptQuality() {
 if (quality) applyQuality()
 
 let lastIsland = null
+let dayTick = -1
 const timer = new THREE.Timer()
 
 function tick() {
@@ -310,7 +431,7 @@ function tick() {
   const dt = Math.min(timer.getDelta(), 0.05)
   const t = timer.getElapsed()
 
-  if (!vehicles.traveling && !vehicles.driving) player.update(dt, started && !ui.panelOpen() && !games.frozen)
+  if (!vehicles.traveling && !vehicles.driving) player.update(dt, started && !ui.panelOpen() && !games.frozen && !tour.active)
   npcFocus.copy(player.position)
   vehicles.update(dt, t, player, started && !ui.panelOpen())
   pushables.update(dt, player)
@@ -319,20 +440,41 @@ function tick() {
   world.update(dt, t)
   games.update(dt, t)
   space.update(dt, t)
+  quest.update(dt, t)
+  tour.update(dt)
 
   updateCamera(dt)
 
+  // Météo et cycle jour/nuit ; ambiance sonore et bruits de pas.
+  const here = player.currentIsland()
+  weather.setEra(here?.interior ? 'interior' : here?.era)
+  const { day } = weather.update(dt, t, cameraTarget)
+  space.setDay(day)
+  if (started && ((t * 2) | 0) !== dayTick) {
+    dayTick = (t * 2) | 0
+    ui.setDay(weather.label())
+  }
+  sfx.setEra(here?.era)
+  const walkSpeed = player.grounded && !vehicles.driving && !vehicles.traveling ? Math.hypot(player.velocity.x, player.velocity.z) : 0
+  sfx.update(dt, started ? walkSpeed : 0, here?.interior ? 'interior' : here?.era)
+  if (!started) {
+    headPos.set(player.position.x, player.position.y + 2.55, player.position.z).project(camera)
+    ui.setHello((headPos.x * 0.5 + 0.5) * innerWidth, Math.max(56, (-headPos.y * 0.5 + 0.5) * innerHeight), headPos.z < 1)
+  }
+
   updateFades(dt)
-  sun.position.set(cameraTarget.x + 20, 40, cameraTarget.z + 15)
+  // Le soleil tourne avec les heures : les ombres s'allongent et changent de côté.
+  const sunAngle = weather.state.phase * Math.PI * 2
+  sun.position.set(cameraTarget.x + Math.cos(sunAngle) * 26, 22 + 22 * day, cameraTarget.z + 12 + Math.sin(sunAngle) * 14)
   sun.target.position.copy(cameraTarget)
 
   nearby = started && !vehicles.traveling && !vehicles.driving ? findNearby() : null
   doorCooldown -= dt
   if (nearby?.type === 'door' && nearby.auto && doorCooldown <= 0 && !ui.panelOpen() && Math.hypot(player.position.x - nearby.x, player.position.z - nearby.z) < 0.95) enterDoor(nearby)
-  ui.setPrompt(vehicles.driving ? vehicles.hint : nearby && !ui.panelOpen() ? ({ sign: `E · Lire « ${nearby.title} »`, vehicle: `E · ${nearby.id === 'car' ? nearby.title : `Monter : ${nearby.title}`}`, game: games.active ? null : `E · Jouer : ${nearby.title}`, door: `E · ${nearby.title}` })[nearby.type] : null)
+  ui.setPrompt(vehicles.driving ? vehicles.hint : nearby && !ui.panelOpen() && !tour.active ? ({ chest: quest.opened || discovered.size >= signs.length ? `E · Ouvrir « ${nearby.title} »` : `E · ${nearby.title} (${discovered.size} / ${signs.length})`, sign: `E · Lire « ${nearby.title} »`, vehicle: `E · ${nearby.id === 'car' ? nearby.title : `Monter : ${nearby.title}`}`, game: games.active ? null : `E · Jouer : ${nearby.title}`, door: `E · ${nearby.title}` })[nearby.type] : null)
 
-  const island = player.currentIsland()
-  applyMood(island?.era, 1 - Math.exp(-dt * 2))
+  const island = here
+  applyMood(island?.era, 1 - Math.exp(-dt * 2), day)
   if (island && island !== lastIsland && started) ui.showIsland(island.name, island.tagline)
   if (island && started) lastIsland = island
 
