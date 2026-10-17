@@ -168,9 +168,29 @@ function buildPlace(scene, world, place, { ui, sfx }) {
     showcase: null,
   }
 
+  // Grande capture du projet en tête de fiche (glisser à gauche ou à droite pour changer).
+  function media(p) {
+    const canvas = document.createElement('canvas')
+    canvas.width = 960
+    canvas.height = 480
+    canvas.setAttribute('role', 'img')
+    canvas.setAttribute('aria-label', `Aperçu de ${p.title}`)
+    const g = canvas.getContext('2d')
+    const draw = () => drawVisual(g, p, 0, 0, canvas.width, canvas.height, draw)
+    draw()
+    let x0 = null
+    canvas.addEventListener('pointerdown', (e) => (x0 = e.clientX))
+    canvas.addEventListener('pointerup', (e) => {
+      if (x0 !== null && Math.abs(e.clientX - x0) > 40) step(e.clientX < x0 ? 1 : -1, true)
+      x0 = null
+    })
+    return canvas
+  }
+
   function open() {
     const p = projects[index]
     ui.openPanel({
+      media: media(p),
       title: p.title,
       icon: place.icon,
       kicker: place.title,

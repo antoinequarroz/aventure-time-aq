@@ -1,4 +1,7 @@
-import { intro } from './content.js'
+import { intro, islands, showcases } from './content.js'
+
+const GAME_COUNT = islands.reduce((n, i) => n + (i.satellites?.filter((s) => s.game).length ?? 0) + (i.arena ? 1 : 0), 0)
+const PROJECT_COUNT = showcases.reduce((n, p) => n + p.projects.length, 0)
 
 const CHARACTERS = [
   { key: 'rogue', icon: '🧭', name: 'Aventurier' },
@@ -20,10 +23,17 @@ export function createUI() {
           <span>Choisis ton personnage</span>
           <div class="chars">${CHARACTERS.map((c) => `<button class="char" data-key="${c.key}"><b>${c.icon}</b>${c.name}</button>`).join('')}</div>
         </div>
+        <ul class="intro-stats" aria-label="En chiffres">
+          <li><b>${islands.length}</b> îles à explorer</li>
+          <li><b>${PROJECT_COUNT}</b> projets</li>
+          <li><b>${GAME_COUNT}</b> mini-jeux</li>
+        </ul>
         <div class="intro-actions">
-          <button id="start" disabled>Chargement…</button>
-          <button id="start-tour" class="ghost" disabled>🧭 Visite guidée (2 min)</button>
+          <button id="start" class="btn primary big" disabled>Chargement…</button>
+          <button id="start-list" class="btn">📄 Voir en liste</button>
+          <button id="start-tour" class="btn" disabled>🧭 Visite guidée · 2 min</button>
         </div>
+        <p class="intro-hint">Pressé ? La version liste montre mes projets, mon parcours et mes contacts, sans jouer.</p>
         <p class="controls">${intro.controls}</p>
       </div>
     </div>
@@ -31,10 +41,12 @@ export function createUI() {
     <div class="hud-right" id="hud-right">
       <div class="quest-chip" id="quest-chip" title="Quête : découvre tous les points pour ouvrir le coffre final"><b>🗝️</b><span></span></div>
       <div class="hud-chip" id="day-chip"></div>
+      <button class="hud-btn" id="btn-list" title="Version liste : projets, CV et contact" aria-label="Version liste">📄</button>
       <button class="hud-btn trophy-btn" id="btn-trophies" title="Trophées : succès et classements">🏆<i></i></button>
       <button class="hud-btn" id="btn-tour" title="Visite guidée">🧭</button>
       <button class="hud-btn off" id="btn-music" title="Activer la musique">🎵</button>
       <button class="hud-btn" id="btn-mute" title="Couper le son">🔊</button>
+      <button class="hud-btn" id="btn-settings" title="Réglages et accessibilité" aria-label="Réglages">⚙️</button>
     </div>
     <div class="tour-bar" id="tour-bar">
       <span class="tour-step"></span>
@@ -44,6 +56,10 @@ export function createUI() {
     </div>
     <button class="brand" id="brand" title="À propos de ce portfolio"><b>Antoine Quarroz</b><span>Portfolio · Développeur web &amp; mobile</span></button>
     <div class="island-name" id="island-name"><strong></strong><span></span></div>
+    <button class="objective" id="objective" title="Prochain objectif : suis la flèche dorée"><b>🎯</b><span></span><i aria-hidden="true">➜</i></button>
+    <div class="guide-marker" id="guide-marker" aria-hidden="true"><span>▼</span></div>
+    <div class="era-card" id="era-card" aria-live="polite"><i class="bar top"></i><i class="bar bottom"></i><div><small></small><strong></strong><span></span></div></div>
+    <div class="captions" id="captions" aria-live="polite"></div>
     <div class="prompt" id="prompt"></div>
     <div class="panel-backdrop" id="panel-backdrop"></div>
     <div class="panel" id="panel" role="dialog" aria-modal="true">
@@ -52,6 +68,7 @@ export function createUI() {
         <div class="panel-icon"></div>
         <div><span class="panel-kicker"></span><h2></h2></div>
       </div>
+      <div class="panel-media"></div>
       <div class="panel-nav"><button class="panel-prev" aria-label="Projet précédent">‹</button><span class="panel-nav-label"></span><button class="panel-next" aria-label="Projet suivant">›</button></div>
       <div class="panel-tags"></div>
       <div class="panel-text"></div>
@@ -72,6 +89,7 @@ export function createUI() {
   const fadeEl = $('fade')
   const backdrop = $('panel-backdrop')
   const close = () => {
+    if (panel.classList.contains('visible')) handlers.panel?.(false)
     panel.classList.remove('visible')
     backdrop.classList.remove('visible')
   }
@@ -100,6 +118,9 @@ export function createUI() {
   $('start').addEventListener('click', () => begin(false))
   $('start-tour').addEventListener('click', () => begin(true))
   $('btn-tour').addEventListener('click', () => handlers.tour?.())
+  $('start-list').addEventListener('click', () => handlers.list?.())
+  $('btn-list').addEventListener('click', () => handlers.list?.())
+  $('btn-settings').addEventListener('click', () => handlers.settings?.())
   $('btn-trophies').addEventListener('click', () => handlers.trophies?.())
   $('btn-mute').addEventListener('click', () => handlers.mute?.())
   $('btn-music').addEventListener('click', () => handlers.music?.())
@@ -209,7 +230,7 @@ export function createUI() {
     setReady() {
       $('start').disabled = false
       $('start-tour').disabled = false
-      $('start').textContent = 'Commencer l\'aventure'
+      $('start').textContent = '▶ Jouer'
     },
     showIsland(name, tagline) {
       islandName.querySelector('strong').textContent = name
@@ -223,7 +244,10 @@ export function createUI() {
       prompt.classList.toggle('visible', !!text)
     },
     // Fiche d'un point d'intérêt : icône, lieu, titre, texte et liens, aux couleurs de l'île.
-    openPanel({ title, text, links = [], icon = '✦', kicker = '', era = 'present', count = '', side = false, tags = [], nav: navigation = null, extra = null }) {
+    openPanel({ title, text, links = [], icon = '✦', kicker = '', era = 'present', count = '', side = false, tags = [], nav: navigation = null, extra = null, media = null }) {
+      const mediaBox = panel.querySelector('.panel-media')
+      mediaBox.replaceChildren(...(media ? [media] : []))
+      panel.classList.toggle('has-media', !!media)
       nav = navigation
       panel.classList.toggle('has-nav', !!nav)
       panel.querySelector('.panel-nav-label').textContent = nav?.label ?? ''
@@ -258,12 +282,69 @@ export function createUI() {
         return a
       }))
       panel.scrollTop = 0
+      const wasOpen = panel.classList.contains('visible')
       panel.classList.add('visible')
       backdrop.classList.add('visible')
+      if (!wasOpen) {
+        handlers.panel?.(true)
+        // Clavier : le focus va dans la fiche (Tab pour parcourir les liens).
+        panel.querySelector('.panel-close').focus({ preventScroll: true })
+      }
     },
     closePanel() {
-      panel.classList.remove('visible')
-      backdrop.classList.remove('visible')
+      close()
+    },
+    navStep(dir) {
+      if (!nav || !panel.classList.contains('visible')) return
+      if (dir < 0) nav.prev()
+      else nav.next()
+    },
+    // Objectif en cours (haut de l'écran) ; angle = direction à l'écran, en degrés.
+    setObjective(text, angle = null) {
+      const el = $('objective')
+      el.classList.toggle('visible', !!text)
+      if (!text) return
+      if (el.dataset.text !== text) {
+        el.dataset.text = text
+        el.querySelector('span').textContent = text
+      }
+      const arrow = el.querySelector('i')
+      arrow.style.visibility = angle === null ? 'hidden' : 'visible'
+      if (angle !== null) arrow.style.transform = `rotate(${angle.toFixed(1)}deg)`
+    },
+    onObjective(cb) {
+      $('objective').onclick = cb
+    },
+    // Repère doré au-dessus du prochain point (ou au bord de l'écran s'il est hors champ).
+    setMarker(state) {
+      const el = $('guide-marker')
+      el.classList.toggle('visible', !!state)
+      if (!state) return
+      el.classList.toggle('edge', !!state.edge)
+      el.style.transform = `translate(${Math.round(state.x)}px, ${Math.round(state.y)}px) translate(-50%, -50%)`
+      el.firstChild.style.transform = state.edge ? `rotate(${(state.angle - 90).toFixed(1)}deg)` : ''
+    },
+    // Arrivée sur une nouvelle époque : carte de titre façon cinéma.
+    eraCard(era, kicker, name, tagline) {
+      const el = $('era-card')
+      el.dataset.era = era
+      el.querySelector('small').textContent = kicker
+      el.querySelector('strong').textContent = name
+      el.querySelector('span').textContent = tagline
+      el.classList.remove('visible')
+      void el.offsetWidth
+      el.classList.add('visible')
+      clearTimeout(el.timer)
+      el.timer = setTimeout(() => el.classList.remove('visible'), 3600)
+    },
+    // Sous-titres des sons (option d'accessibilité).
+    caption(text) {
+      const box = $('captions')
+      const line = document.createElement('div')
+      line.textContent = text
+      box.append(line)
+      while (box.children.length > 3) box.firstChild.remove()
+      setTimeout(() => line.remove(), 2800)
     },
     panelOpen() {
       return panel.classList.contains('visible')

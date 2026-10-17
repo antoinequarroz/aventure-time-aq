@@ -25,6 +25,8 @@ export const ACHIEVEMENTS = [
   { id: 'all-games', icon: '🏁', title: 'Touche-à-tout', text: 'Gagner tous les mini-jeux au moins une fois.' },
   { id: 'all-gold', icon: '👑', title: 'Légende', text: 'L\'or dans tous les mini-jeux.' },
   { id: 'night', icon: '🌌', title: 'Oiseau de nuit', text: 'Rester jusqu\'à la nuit.' },
+  { id: 'secrets', icon: '✨', title: 'Chasseur de secrets', text: 'Trouver les trois étoiles cachées au bord des îles.' },
+  { id: 'konami', icon: '🕹️', title: 'Vieille école', text: 'Taper un code bien connu des joueurs.' },
 ]
 
 function load(key, fallback) {
@@ -62,7 +64,7 @@ export function createRewards(ui, sfx = null) {
       unlocked[id] = Date.now()
       save(ACH_KEY, unlocked)
       ui.achievement?.(a)
-      sfx?.blip?.('coin')
+      sfx?.blip?.('achievement')
       for (const cb of listeners) cb()
       return true
     },

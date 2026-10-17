@@ -305,7 +305,40 @@ export function createAudio() {
         note(hz(62), t, { ...o, type: 'triangle', vol: 0.05, decay: 0.2 })
         note(hz(57), t + 0.12, { ...o, type: 'triangle', vol: 0.05, decay: 0.35 })
       } else if (kind === 'whoosh') noise(t, { dur: 0.5, freq: 900, q: 0.7, vol: 0.06 })
+      else if (kind === 'tick') note(hz(91), t, { ...o, type: 'sine', vol: 0.025, decay: 0.08 })
+      else if (kind === 'close') {
+        note(hz(84), t, { ...o, vol: 0.035, decay: 0.2 })
+        note(hz(79), t + 0.06, { ...o, vol: 0.03, decay: 0.3 })
+      } else if (kind === 'achievement') {
+        ;[76, 81, 88].forEach((n, i) => note(hz(n), t + i * 0.08, { ...o, type: 'triangle', vol: 0.05, decay: 0.4 }))
+        note(hz(93), t + 0.26, { ...o, type: 'sine', vol: 0.04, attack: 0.02, decay: 1.2 })
+      } else if (kind === 'secret') {
+        ;[84, 88, 91, 96, 100].forEach((n, i) => note(hz(n), t + i * 0.06, { ...o, type: 'sine', vol: 0.04, decay: 0.5 }))
+      } else if (kind === 'era') {
+        // Passage d'une époque à l'autre : souffle, puis accord qui s'ouvre.
+        noise(t, { dur: 1.2, freq: 700, q: 0.5, vol: 0.07 })
+        for (const n of [60, 67, 72, 79]) note(hz(n), t + 0.25, { ...o, type: 'sine', vol: 0.035, attack: 0.3, decay: 2.2 })
+      }
     },
+  }
+  // Sous-titres : chaque son joué est aussi annoncé en texte (si l'option est activée).
+  const LABELS = { open: 'carillon d\'ouverture', coin: 'tintement', door: 'porte qui grince', locked: 'son verrouillé', whoosh: 'souffle', close: 'carillon de fermeture', achievement: 'fanfare de succès', secret: 'scintillement magique', era: 'souffle et accord : nouvelle époque' }
+  const captionListeners = new Set()
+  api.onCaption = (cb) => captionListeners.add(cb)
+  const say = (text) => {
+    if (!muted) for (const cb of captionListeners) cb(text)
+  }
+  for (const [name, label] of [['jingle', 'petite mélodie de victoire'], ['fanfare', 'grande fanfare']]) {
+    const fn = api[name]
+    api[name] = (...args) => {
+      say(`♪ ${label}`)
+      return fn(...args)
+    }
+  }
+  const blip = api.blip
+  api.blip = (kind = 'open') => {
+    if (LABELS[kind] && kind !== 'tick') say(`♪ ${LABELS[kind]}`)
+    return blip(kind)
   }
   return api
 }

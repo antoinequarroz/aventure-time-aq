@@ -24,7 +24,12 @@ import { createRewards, trophiesView } from './rewards.js'
 import { createTour } from './tour.js'
 import { createWeather } from './weather.js'
 import { createSocialPlaza, createPortfolioBanner } from './world/socials.js'
-import { socials, about, showcases } from './content.js'
+import { socials, about, showcases, islands as eraContent } from './content.js'
+import { createListView } from './listView.js'
+import { createSettings, CONTROLS_HELP } from './settings.js'
+import { createTutorial } from './tutorial.js'
+import { createGamepad } from './gamepad.js'
+import { createSecrets } from './secrets.js'
 import { createShowcases } from './world/showcases.js'
 import { THEMES } from './world/islands.js'
 
@@ -36,6 +41,22 @@ ui.on('mute', () => {
   sfx.toggle()
 })
 ui.on('music', () => sfx.toggleMusic())
+// Réglages d'accessibilité et version liste : disponibles avant même la fin du chargement.
+const settings = createSettings()
+sfx.onCaption((text) => settings.state.captions && ui.caption(text))
+const listView = createListView({
+  onPlay: () => {
+    listView.close()
+    const start = document.getElementById('start')
+    if (!start.disabled && !document.getElementById('ui').classList.contains('playing')) start.click()
+  },
+})
+const listOpen = () => listView.open
+ui.on('list', () => {
+  sfx.blip('open')
+  listView.show()
+})
+if (new URLSearchParams(location.search).has('liste') || location.hash === '#liste') listView.show()
 // Les textes dessinés dans la scène (panneaux, écrans) attendent les polices embarquées.
 await Promise.all(['400 32px "Inter Variable"', '700 32px "Inter Variable"', '600 32px "Outfit Variable"'].map((f) => document.fonts.load(f))).catch(() => {})
 await loadModels((progress) => ui.setLoading(progress))
@@ -166,7 +187,8 @@ const projectPlaces = createShowcases(scene, world, { places: showcases, ui, sfx
 const interactables = [...world.interactables, ...vehicles.interactables, ...socialStones.interactables, ...projectPlaces.interactables]
 const player = createPlayer(scene, world)
 const eraOf = (x) => (x < -75 ? 'past' : x > 75 ? 'future' : 'present')
-const minimap = createMinimap({ world, player, interactables, eraOf, onPick: (item) => goTo(item) })
+let guideTarget = null
+const minimap = createMinimap({ world, player, interactables, eraOf, isDone: (it) => discovered.has(it.title), getTarget: () => guideTarget, onToggle: (big) => big && tutorial.did('map'), onPick: (item) => goTo(item) })
 const rewards = createRewards(ui, sfx)
 const games = createGames(scene, ui, player, sfx, rewards, () => world.games)
 const weather = createWeather(scene)
@@ -268,12 +290,43 @@ const controls = createControls({
   isActive: () => started && !vehicles.traveling && !vehicles.driving && !ui.panelOpen() && !tour.active,
 })
 let introBlend = 0
+const isTouch = matchMedia('(pointer: coarse)').matches
+const tutorial = createTutorial()
+const startSpot = new THREE.Vector3()
 ui.onStart((guided) => {
   started = true
   player.setWaving(false)
   sfx.start()
   controls.focus()
+  startSpot.copy(player.position)
   if (guided) startTour()
+  else tutorial.start(isTouch)
+})
+ui.on('settings', () => {
+  if (!started) return
+  if (tour.active) tour.stop()
+  sfx.blip('open')
+  const view = settings.view(CONTROLS_HELP)
+  const again = document.createElement('button')
+  again.className = 'btn'
+  again.textContent = '🎓 Revoir le tutoriel'
+  again.addEventListener('click', () => {
+    ui.closePanel()
+    tutorial.reset()
+    tutorial.start(isTouch)
+  })
+  view.append(again)
+  ui.openPanel({ title: 'Réglages', icon: '⚙️', kicker: 'Confort et accessibilité', era: 'present', text: 'Ces réglages sont gardés sur cet appareil.', extra: view })
+})
+// Sons d'interface : petit clic au survol des boutons, carillon à la fermeture des fiches.
+let lastTick = 0
+document.getElementById('ui').addEventListener('pointerover', (e) => {
+  if (!e.target.closest?.('button') || e.pointerType === 'touch' || performance.now() - lastTick < 90) return
+  lastTick = performance.now()
+  sfx.blip('tick')
+})
+ui.on('panel', (open) => {
+  if (!open) sfx.blip('close')
 })
 
 
@@ -370,6 +423,7 @@ ui.setTrophies(rewards.count())
 rewards.onChange(() => ui.setTrophies(rewards.count()))
 // Succès liés à l'état du jeu, vérifiés deux fois par seconde.
 let rewardClock = 0
+let playTime = 0
 const LIB = { x: -150, z: 580 }
 function checkRewards(dt) {
   rewardClock += dt
@@ -380,7 +434,8 @@ function checkRewards(dt) {
   if (vehicles.traveling && !vehicles.driving) rewards.unlock('rocket')
   if (quest.opened) rewards.unlock('chest')
   if (tour.completed) rewards.unlock('tour')
-  if (weather.state.day < 0.15) rewards.unlock('night')
+  playTime += 0.5
+  if (weather.state.day < 0.15 && playTime > 90) rewards.unlock('night')
   if (Math.abs(player.position.x - LIB.x) < 9 && Math.abs(player.position.z - LIB.z) < 7) rewards.unlock('library')
 }
 ui.on('tourStop', () => {
@@ -389,7 +444,7 @@ ui.on('tourStop', () => {
 })
 
 window.addEventListener('keydown', (e) => {
-  if (!started || vehicles.traveling) return
+  if (!started || vehicles.traveling || listOpen()) return
   if (e.code === 'Escape') {
     if (tour.active) tour.stop()
     if (ui.panelOpen()) ui.closePanel()
@@ -406,6 +461,7 @@ function interact() {
   if (vehicles.driving) return vehicles.exit(player)
   if (ui.panelOpen()) return ui.closePanel()
   if (!nearby) return
+  tutorial.did('interact')
   if (nearby.showcase) {
     discover(nearby)
     sfx.blip('open')
@@ -444,6 +500,131 @@ function enterDoor(door) {
     doorCooldown = 1.2
   })
 }
+
+// Manette.
+const gamepad = createGamepad({
+  player,
+  onInteract: () => (tour.active ? tour.next() : interact()),
+  onMap: () => started && minimap.toggle(),
+  onClose: () => {
+    if (listOpen()) return listView.close()
+    if (tour.active) tour.stop()
+    if (ui.panelOpen()) ui.closePanel()
+    else games.abort()
+  },
+  onPrev: () => ui.navStep(-1),
+  onNext: () => ui.navStep(1),
+  onConnect: () => ui.toast('🎮 Manette connectée : stick pour marcher, A pour sauter, X pour interagir, Y pour la carte.'),
+})
+
+// Secrets : étoiles cachées et code Konami.
+const secrets = createSecrets(scene, world, {
+  onFound: (n, total) => {
+    sfx.blip('secret')
+    ui.bigText?.(`✨ ${n} / ${total}`, true)
+    ui.toast(n < total ? `Étoile secrète trouvée (${n} / ${total}) ! Les autres se cachent au bord des îles.` : 'Les trois étoiles secrètes sont à toi. Bravo, explorateur !')
+  },
+  onAll: () => rewards.unlock('secrets'),
+  onKonami: () => {
+    if (!started) return
+    sfx.fanfare()
+    player.cheer()
+    ui.bigText?.('↑↑↓↓←→←→ B A', true)
+    ui.toast('Code secret ! Merci d\'être passé jusqu\'ici, joueur de la vieille école 🎮')
+    rewards.unlock('konami')
+  },
+})
+
+// Guidage : prochain objectif, flèche dans le bandeau et repère doré au-dessus du point.
+const VEHICLE_TO = { past: { present: 'car', future: 'car' }, present: { past: 'car', future: 'rocket' }, future: { present: 'rocket', past: 'rocket' } }
+const ERA_NAME = Object.fromEntries(eraContent.map((e) => [e.id, e.name]))
+const doors = interactables.filter((i) => i.type === 'door')
+const guideVec = new THREE.Vector3()
+const playerScreen = new THREE.Vector3()
+let guideClock = 0
+let guideRoute = null
+const inRoom = (z) => z > 400
+// Distance « à pied », en passant par une porte quand le point est dans un autre intérieur.
+function route(p, item) {
+  const direct = Math.hypot(item.x - p.x, item.z - p.z)
+  if (inRoom(p.z) === inRoom(item.z) && (!inRoom(p.z) || direct < 25)) return { via: item, d: direct }
+  let best = null
+  for (const d of doors) {
+    const reachable = inRoom(p.z) ? Math.hypot(d.x - p.x, d.z - p.z) < 25 : !inRoom(d.z)
+    if (!reachable) continue
+    const cost = Math.hypot(d.x - p.x, d.z - p.z) + Math.hypot(d.to.x - item.x, d.to.z - item.z)
+    if (!best || cost < best.d) best = { via: d, d: cost }
+  }
+  return best ?? { via: item, d: direct }
+}
+function pickGoal() {
+  const p = player.position
+  const myEra = inRoom(p.z) ? eraOf(p.x) : player.currentIsland()?.era ?? eraOf(p.x)
+  let goal = null
+  const consider = (item, label) => {
+    const r = route(p, item)
+    const d = r.d + (eraOf(item.x) === myEra ? 0 : 1000)
+    if (!goal || d < goal.d) goal = { item, via: r.via, d, label }
+  }
+  for (const s of signs) if (!discovered.has(s.title)) consider(s, `Découvrir : ${s.showcase ? s.showcase.place.title : s.title}`)
+  if (!goal && !quest.opened) consider(quest.interactable, 'Ouvrir le coffre final')
+  if (!goal) for (const g of world.games) if (rewards.best(g) === undefined) consider(interactables.find((i) => i.game === g), `Jouer : ${g.title}`)
+  if (!goal) return null
+  // Autre époque : d'abord le véhicule qui y mène.
+  const targetEra = eraOf(goal.item.x)
+  if (targetEra !== myEra && !inRoom(p.z)) {
+    const v = vehicles.interactables.find((i) => i.id === VEHICLE_TO[myEra]?.[targetEra])
+    if (v) return { item: goal.item, via: v, label: `Direction ${ERA_NAME[targetEra]} : ${v.id === 'car' ? 'prends la voiture' : 'prends la fusée'}` }
+  }
+  return goal
+}
+function updateGuide(dt) {
+  guideClock -= dt
+  if (guideClock <= 0) {
+    guideClock = 0.3
+    guideRoute = pickGoal()
+    guideTarget = guideRoute?.via ?? null
+  }
+  const busy = !guideRoute || tour.active || games.active || ui.panelOpen() || vehicles.traveling || listOpen()
+  if (busy) {
+    ui.setMarker(null)
+    const left = secrets.total - secrets.count
+    ui.setObjective(!guideRoute && !tour.active && !games.active && !listOpen() && left > 0 ? `Tout est découvert ! ${left} étoile${left > 1 ? 's' : ''} secrète${left > 1 ? 's' : ''} au bord des îles…` : null)
+    return
+  }
+  const v = guideRoute.via
+  const p = player.position
+  const d = Math.hypot(v.x - p.x, v.z - p.z)
+  const y = (world.groundAt(v.x, v.z, Infinity, true) ?? p.y) + 3.4
+  guideVec.set(v.x, y, v.z).project(camera)
+  playerScreen.set(p.x, p.y + 1, p.z).project(camera)
+  const W = innerWidth
+  const H = innerHeight
+  let sx = (guideVec.x * 0.5 + 0.5) * W
+  let sy = (-guideVec.y * 0.5 + 0.5) * H
+  const px = (playerScreen.x * 0.5 + 0.5) * W
+  const py = (-playerScreen.y * 0.5 + 0.5) * H
+  const behind = guideVec.z > 1
+  if (behind) {
+    sx = W - sx
+    sy = H - sy
+  }
+  const angle = (Math.atan2(sy - py, sx - px) * 180) / Math.PI
+  ui.setObjective(`${guideRoute.label} · ${Math.round(d)} m`, d < 3 ? null : angle)
+  const m = 48
+  const off = behind || sx < m || sx > W - m || sy < 90 || sy > H - m
+  if (d < 3.2) ui.setMarker(null)
+  else if (!off) ui.setMarker({ x: sx, y: sy })
+  else {
+    // Hors champ : le repère glisse au bord de l'écran, dans la bonne direction.
+    const a = Math.atan2(sy - H / 2, sx - W / 2)
+    const k = Math.min((W / 2 - m) / Math.abs(Math.cos(a) || 1e-6), (H / 2 - m - 40) / Math.abs(Math.sin(a) || 1e-6))
+    ui.setMarker({ x: W / 2 + Math.cos(a) * k, y: H / 2 + Math.sin(a) * k, edge: true, angle: (a * 180) / Math.PI })
+  }
+}
+ui.onObjective(() => {
+  if (guideRoute) goTo(guideRoute.via)
+})
 
 function findNearby() {
   for (const item of interactables) {
@@ -492,7 +673,7 @@ function updateCamera(dt) {
   camera.position.copy(cameraTarget).addScaledVector(viewOffset, zoom)
   lookAt.set(cameraTarget.x, cameraTarget.y + 1.5, cameraTarget.z)
   // Écran d'accueil : gros plan sur l'avatar qui salue, puis glissement vers la vue de jeu.
-  introBlend = started ? Math.min(1, introBlend + dt / 1.4) : 0
+  introBlend = started ? Math.min(1, introBlend + dt / (settings.state.reduceMotion ? 0.05 : 1.4)) : 0
   if (introBlend < 1) {
     const k = introBlend * introBlend * (3 - 2 * introBlend)
     const portrait = innerWidth / innerHeight < 1 || innerWidth < 760
@@ -539,6 +720,9 @@ function adaptQuality() {
 if (quality) applyQuality()
 
 let lastIsland = null
+let lastEra = null
+const ERA_KICKER = { past: 'Hier · mes racines', present: 'Aujourd\'hui · mon métier', future: 'Demain · mes projets' }
+const AMBIENCE = { past: 'nuit médiévale, vent et grillons', present: 'village au crépuscule, oiseaux', future: 'silence lunaire, bourdonnement électronique' }
 let dayTick = -1
 let lightScan = 0
 const timer = new THREE.Timer()
@@ -554,7 +738,13 @@ function tick() {
   const dt = Math.min(timer.getDelta(), 0.05)
   const t = timer.getElapsed()
 
-  if (!vehicles.traveling && !vehicles.driving) player.update(dt, started && !ui.panelOpen() && !games.frozen && !tour.active)
+  const canMove = started && !ui.panelOpen() && !games.frozen && !tour.active && !listOpen()
+  if (!vehicles.traveling && !vehicles.driving) player.update(dt, canMove)
+  gamepad.update(canMove)
+  tutorial.update(dt)
+  if (started && player.position.distanceTo(startSpot) > 3) tutorial.did('move')
+  secrets.update(dt, t, player)
+  if (started) updateGuide(dt)
   npcFocus.copy(player.position)
   vehicles.update(dt, t, player, started && !ui.panelOpen())
   pushables.update(dt, player)
@@ -602,7 +792,16 @@ function tick() {
 
   const island = here
   applyMood(island?.era, 1 - Math.exp(-dt * 2), day)
-  if (island && island !== lastIsland && started) ui.showIsland(island.name, island.tagline)
+  if (island && island !== lastIsland && started) {
+    // Nouvelle époque : grande carte de titre et accord ; sinon simple nom de l'île.
+    if (!island.interior && island.era !== lastEra && lastEra) {
+      const era = eraContent.find((e) => e.id === island.era)
+      ui.eraCard(island.era, ERA_KICKER[island.era], era?.name ?? island.name, era?.tagline ?? '')
+      sfx.blip('era')
+      if (settings.state.captions) ui.caption(`Ambiance : ${AMBIENCE[island.era]}`)
+    } else ui.showIsland(island.name, island.tagline)
+    if (!island.interior) lastEra = island.era
+  }
   if (island && started) lastIsland = island
 
   if (++lightScan % 240 === 1) lights.scan()

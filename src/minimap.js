@@ -4,14 +4,21 @@
 const COLORS = { past: '#7a62c9', present: '#d9823f', future: '#8f93b5' }
 const DOTS = { sign: '#ffd27a', game: '#6dff9a', vehicle: '#ff5a5a', chest: '#ff7ad9', social: '#7fd8ff' }
 
-export function createMinimap({ world, player, interactables, eraOf, onPick }) {
+export function createMinimap({ world, player, interactables, eraOf, onPick, isDone = () => false, getTarget = () => null, onToggle }) {
   const ui = document.getElementById('ui')
   const wrap = document.createElement('div')
   wrap.className = 'minimap'
   wrap.title = 'Carte (M)'
   const canvas = document.createElement('canvas')
   const label = document.createElement('span')
-  wrap.append(canvas, label)
+  // Légende de la grande carte.
+  const legend = document.createElement('div')
+  legend.className = 'minimap-legend'
+  legend.innerHTML = [['sign', 'À découvrir'], ['done', 'Déjà lu'], ['game', 'Mini-jeu'], ['vehicle', 'Véhicule'], ['chest', 'Coffre final'], ['social', 'Réseaux'], ['target', 'Objectif']]
+    .map(([k, l]) => `<span><i class="dot-${k}"></i>${l}</span>`).join('')
+  wrap.append(canvas, label, legend)
+  wrap.setAttribute('role', 'button')
+  wrap.setAttribute('aria-label', 'Carte des îles (touche M)')
   ui.appendChild(wrap)
   const g = canvas.getContext('2d')
   let big = false
@@ -21,6 +28,7 @@ export function createMinimap({ world, player, interactables, eraOf, onPick }) {
     big = !big
     wrap.classList.toggle('big', big)
     timer = 0
+    onToggle?.(big)
   }
   // Grande carte : un clic sur un point téléporte le joueur là-bas.
   let view = null
@@ -72,7 +80,7 @@ export function createMinimap({ world, player, interactables, eraOf, onPick }) {
     tip.classList.remove('visible')
   })
   window.addEventListener('keydown', (e) => {
-    if (e.code === 'KeyM') toggle()
+    if (e.code === 'KeyM' && !document.body.classList.contains('list-open')) toggle()
   })
 
   const polys = world.surfaces.filter((s) => s.type === 'poly' && !s.wall).sort((a, b) => a.h - b.h)
@@ -116,9 +124,10 @@ export function createMinimap({ world, player, interactables, eraOf, onPick }) {
       g.fill()
     }
     g.globalAlpha = 1
+    const target = getTarget()
     for (const it of interactables) {
       if (!big && (Math.abs(it.x - p.x) > 40 || Math.abs(it.z - p.z) > 40)) continue
-      g.fillStyle = DOTS[it.type] ?? '#fff'
+      g.fillStyle = it.type === 'sign' && isDone(it) ? 'rgba(255,255,255,0.45)' : DOTS[it.type] ?? '#fff'
       g.beginPath()
       g.arc(X(it.x), Z(it.z), (big ? (it === hover ? 6 : 3.6) : 3.2) * dpr, 0, Math.PI * 2)
       g.fill()
@@ -127,6 +136,14 @@ export function createMinimap({ world, player, interactables, eraOf, onPick }) {
         g.strokeStyle = '#ffffff'
         g.stroke()
       }
+    }
+    // Objectif en cours : anneau doré qui pulse.
+    if (target && (big || (Math.abs(target.x - p.x) < 40 && Math.abs(target.z - p.z) < 40))) {
+      g.strokeStyle = '#ffd27a'
+      g.lineWidth = 2 * dpr
+      g.beginPath()
+      g.arc(X(target.x), Z(target.z), (7 + Math.sin(performance.now() / 200) * 2) * dpr, 0, Math.PI * 2)
+      g.stroke()
     }
     // Le joueur : flèche blanche.
     g.save()
@@ -153,6 +170,10 @@ export function createMinimap({ world, player, interactables, eraOf, onPick }) {
   }
 
   return {
+    toggle,
+    get big() {
+      return big
+    },
     update(dt) {
       timer -= dt
       if (timer > 0) return
