@@ -20,7 +20,7 @@ import { createAudio } from './audio.js'
 import { createQuest } from './quest.js'
 import { createTour } from './tour.js'
 import { createWeather } from './weather.js'
-import { createSocialStones, createPortfolioBanner } from './world/socials.js'
+import { createSocialPlaza, createPortfolioBanner } from './world/socials.js'
 import { socials, about } from './content.js'
 import { THEMES } from './world/islands.js'
 
@@ -150,7 +150,7 @@ function updateFades(dt) {
     }
   }
 }
-const socialStones = createSocialStones(scene, world, { center: THEMES.past.center, socials })
+const socialStones = createSocialPlaza(scene, world, { center: THEMES.past.center.clone().add(new THREE.Vector3(-21, 0, 21)), socials })
 const banner = createPortfolioBanner(scene, world, { x: world.spawn.x, z: world.spawn.z - 5.5 })
 const interactables = [...world.interactables, ...vehicles.interactables, ...socialStones.interactables]
 const player = createPlayer(scene, world)

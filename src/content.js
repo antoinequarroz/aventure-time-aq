@@ -31,16 +31,16 @@ export const about = {
   ],
 }
 
-// Réseaux sociaux : pierres gravées sur l'île du Passé, le long du chemin de l'ouest.
-// `pos` = position [x, z] relative au centre de l'île. Ajoute une ligne pour un nouveau réseau
+// Réseaux sociaux : logos sculptés sur la place des réseaux (île du Passé, au sud-ouest),
+// disposés en arc dans l'ordre de la liste. Ajoute une ligne pour un nouveau réseau
 // (logos disponibles : linkedin, github, instagram, x, youtube, mail, web).
 export const socials = [
-  { logo: 'linkedin', label: 'LinkedIn', color: '#3d9bff', pos: [-20.2, -1], text: 'Mon parcours, mes expériences et mes recommandations.', url: 'https://www.linkedin.com/in/antoinequarroz/' },
-  { logo: 'github', label: 'GitHub', color: '#c9b8ff', pos: [-18.2, -1.2], text: 'Mon code : projets, outils et expériences.', url: 'https://github.com/antoinequarroz' },
-  { logo: 'instagram', label: 'Instagram', color: '#ff6fb1', pos: [-16.4, -1.3], text: 'Les coulisses de mes projets de développeur.', url: 'https://www.instagram.com/antoinequarroz.dev/' },
-  { logo: 'x', label: 'X', color: '#e8ecff', pos: [-13.6, -1.3], text: 'Mes réflexions sur le web, le mobile et l\'IA.', url: 'https://x.com/AntoineQuarroz' },
-  { logo: 'mail', label: 'E-mail', color: '#ffb347', pos: [-11.6, -1.2], text: 'Le plus simple pour me proposer un projet ou un poste.', url: 'mailto:info@antoinequarroz.ch' },
-  { logo: 'web', label: 'Site web', color: '#6fffd2', pos: [-9.6, -1], text: 'antoinequarroz.ch : mes projets en détail, mes services et mes articles.', url: site() },
+  { logo: 'linkedin', label: 'LinkedIn', color: '#3d9bff', text: 'Mon parcours, mes expériences et mes recommandations.', url: 'https://www.linkedin.com/in/antoinequarroz/' },
+  { logo: 'github', label: 'GitHub', color: '#c9b8ff', text: 'Mon code : projets, outils et expériences.', url: 'https://github.com/antoinequarroz' },
+  { logo: 'instagram', label: 'Instagram', color: '#ff6fb1', text: 'Les coulisses de mes projets de développeur.', url: 'https://www.instagram.com/antoinequarroz.dev/' },
+  { logo: 'x', label: 'X', color: '#e8ecff', text: 'Mes réflexions sur le web, le mobile et l\'IA.', url: 'https://x.com/AntoineQuarroz' },
+  { logo: 'mail', label: 'E-mail', color: '#ffb347', text: 'Le plus simple pour me proposer un projet ou un poste.', url: 'mailto:info@antoinequarroz.ch' },
+  { logo: 'web', label: 'Site web', color: '#6fffd2', text: 'antoinequarroz.ch : mes projets en détail, mes services et mes articles.', url: site() },
 ]
 
 // Quête principale : découvrir tous les points ouvre le coffre final (place du Présent).

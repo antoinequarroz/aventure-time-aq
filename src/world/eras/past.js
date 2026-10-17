@@ -16,6 +16,8 @@ export const mainShape = {
     [0, -13, 8.5, 2.4],
     [14, -11, 7.5, 1.2],
     [-14, -6, 4, 1],
+    // Place des réseaux, au sud-ouest.
+    [-21, 21, 8, 0], [-15, 19, 5, 0],
   ],
   ramps: [
     [0, -1.2, 0, 0, -5.4, 2.4, 3.4],
@@ -27,8 +29,9 @@ export const mainShape = {
     { pts: [[-22.5, 4], [-14, 2.6], [-5, 2.4], [-1.5, 2.6]], w: 2 },
     { pts: [[-12.5, -13], [-8, -6], [-3, -1.2]], w: 2 },
     { pts: [[2, 3.4], [9, 0], [10.6, -2.2]], w: 1.8 },
+    { pts: [[-2.5, 6], [-9, 12.5], [-15, 17.5]], w: 2 },
   ],
-  plazas: [[0, -7.4, 2.6], [0, 3, 3.2]],
+  plazas: [[0, -7.4, 2.6], [0, 3, 3.2], [-21, 21, 6.8]],
 }
 
 export function decorateMain(ctx) {
@@ -123,8 +126,8 @@ export function decorateMain(ctx) {
   P.flowers(ctx, 13, 12, { r: 1.8 })
   P.rocks(ctx, -19, 10, { count: 4, color: 0x8d89b8 })
   P.rocks(ctx, 12, 15, { count: 3, color: 0x8d89b8 })
-  P.mushroom(ctx, -16, 15, { scale: 1.2 })
-  P.mushroom(ctx, -14.5, 16.5, { scale: 0.7, cap: 0xb04ad6 })
+  P.mushroom(ctx, -6.5, 15.5, { scale: 1.2 })
+  P.mushroom(ctx, -5.2, 16.6, { scale: 0.7, cap: 0xb04ad6 })
 
   // Arbres en nuées de feuilles roses et violettes, buissons et sapins.
   for (const [px, pz, pal, sz] of [[-18, -3, 'pink', 1.1], [-8.5, 18, 'purple', 1], [5, 17, 'pink', 0.9], [-12, 17, 'purple', 0.8], [12, 13.5, 'pink', 1], [17, 8, 'purple', 1.1]]) {
