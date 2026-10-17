@@ -8,10 +8,38 @@ const site = (path = '') => `https://www.antoinequarroz.ch${path}`
 const project = (slug) => site(`/projets/${slug}`)
 
 export const intro = {
-  title: 'Aventure Time AQ',
-  subtitle: 'Bienvenue dans le monde d\'Antoine Quarroz : développeur, technologue, créateur et formateur, en Valais. Trois îles à explorer : mon passé, mon présent et mon futur.',
+  kicker: 'Portfolio interactif · Aventure Time AQ',
+  title: 'Antoine Quarroz',
+  role: 'Développeur web & mobile, technologue, créateur et formateur en Valais',
+  subtitle: 'Ce site est mon portfolio, en forme de petit jeu d\'aventure. Trois îles à explorer : mon passé, mon présent et mon futur. Chaque point lumineux présente un projet, une compétence ou une passion.',
   controls: 'Clic sur le sol ou ZQSD / flèches pour marcher · Maj pour courir · Espace pour sauter · E pour interagir (panneaux, jeux, voiture) · M pour la carte · Échap pour fermer · Sur téléphone : joystick et boutons à l’écran',
 }
+
+// Fenêtre « À propos », ouverte depuis le bandeau en haut de l'écran.
+export const about = {
+  title: 'Le portfolio d\'Antoine Quarroz',
+  text: [
+    'Tu es sur mon portfolio : je suis développeur web et mobile freelance, technologue, créateur et formateur, basé en Valais.',
+    'Chaque île raconte une partie de mon parcours : le Passé (mes racines et ma formation), le Présent (mes projets et mon métier) et le Futur (ce que je prépare).',
+    'Approche-toi des points lumineux et appuie sur E pour lire. Découvre-les tous pour ouvrir le coffre final avec mon CV. Pas le temps de jouer ? Le bouton 🧭 lance une visite guidée de deux minutes.',
+  ],
+  links: [
+    { label: 'Me contacter', primary: true, url: 'mailto:info@antoinequarroz.ch?subject=Prise%20de%20contact%20depuis%20le%20portfolio' },
+    { label: 'antoinequarroz.ch', url: site() },
+    { label: 'LinkedIn', url: 'https://www.linkedin.com/in/antoine-quarroz-376020187/' },
+    { label: 'GitHub', url: 'https://github.com/antoinequarroz' },
+  ],
+}
+
+// Réseaux sociaux : pierres gravées sur l'île du Passé, le long du chemin de l'ouest.
+// `pos` = position [x, z] relative au centre de l'île. Ajoute une ligne pour un nouveau réseau
+// (logos disponibles : linkedin, github, mail, web, instagram, youtube).
+export const socials = [
+  { logo: 'linkedin', label: 'LinkedIn', color: '#3d9bff', pos: [-20, -0.9], text: 'Mon parcours, mes expériences et mes recommandations.', url: 'https://www.linkedin.com/in/antoine-quarroz-376020187/' },
+  { logo: 'github', label: 'GitHub', color: '#c9b8ff', pos: [-17.4, -1.1], text: 'Mon code : projets, outils et expériences.', url: 'https://github.com/antoinequarroz' },
+  { logo: 'mail', label: 'E-mail', color: '#ffb347', pos: [-12.6, -1.1], text: 'Le plus simple pour me proposer un projet ou un poste.', url: 'mailto:info@antoinequarroz.ch' },
+  { logo: 'web', label: 'Site web', color: '#6fffd2', pos: [-10, -0.9], text: 'antoinequarroz.ch : mes projets en détail, mes services et mes articles.', url: site() },
+]
 
 // Quête principale : découvrir tous les points ouvre le coffre final (place du Présent).
 export const quest = {

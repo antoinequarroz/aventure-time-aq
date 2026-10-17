@@ -2,7 +2,7 @@
 // de l'écran), avec les panneaux, les jeux et les véhicules. Touche M (ou clic) pour voir
 // les trois îles en entier.
 const COLORS = { past: '#7a62c9', present: '#d9823f', future: '#8f93b5' }
-const DOTS = { sign: '#ffd27a', game: '#6dff9a', vehicle: '#ff5a5a', chest: '#ff7ad9' }
+const DOTS = { sign: '#ffd27a', game: '#6dff9a', vehicle: '#ff5a5a', chest: '#ff7ad9', social: '#7fd8ff' }
 
 export function createMinimap({ world, player, interactables, eraOf }) {
   const ui = document.getElementById('ui')

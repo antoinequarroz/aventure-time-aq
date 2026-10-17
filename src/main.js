@@ -20,11 +20,18 @@ import { createAudio } from './audio.js'
 import { createQuest } from './quest.js'
 import { createTour } from './tour.js'
 import { createWeather } from './weather.js'
+import { createSocialStones, createPortfolioBanner } from './world/socials.js'
+import { socials, about } from './content.js'
+import { THEMES } from './world/islands.js'
 
 const ui = createUI()
 const sfx = createAudio()
-sfx.onChange((muted) => ui.setMuted(muted))
-ui.on('mute', () => sfx.toggle())
+sfx.onChange((state) => ui.setSound(state))
+ui.on('mute', () => {
+  sfx.start()
+  sfx.toggle()
+})
+ui.on('music', () => sfx.toggleMusic())
 await loadModels((progress) => ui.setLoading(progress))
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
@@ -143,7 +150,9 @@ function updateFades(dt) {
     }
   }
 }
-const interactables = [...world.interactables, ...vehicles.interactables]
+const socialStones = createSocialStones(scene, world, { center: THEMES.past.center, socials })
+const banner = createPortfolioBanner(scene, world, { x: world.spawn.x, z: world.spawn.z - 5.5 })
+const interactables = [...world.interactables, ...vehicles.interactables, ...socialStones.interactables]
 const player = createPlayer(scene, world)
 const minimap = createMinimap({ world, player, interactables, eraOf: (x) => (x < -75 ? 'past' : x > 75 ? 'future' : 'present') })
 const games = createGames(scene, ui, player, sfx)
@@ -177,6 +186,7 @@ if (new URLSearchParams(location.search).has('debug')) {
       for (const s of signs) discover(s, true)
     },
     setCamera(x, y, z) {
+      introBlend = 1
       cameraOffset.set(x, y, z)
       viewOffset.copy(cameraOffset)
       camera.position.copy(cameraTarget).add(cameraOffset)
@@ -289,6 +299,11 @@ ui.on('tour', () => {
   else startTour()
 })
 ui.on('tourNext', () => tour.next())
+ui.on('about', () => {
+  if (tour.active) tour.stop()
+  sfx.blip('open')
+  ui.openPanel({ ...about, icon: '🧭', kicker: 'Bienvenue', era: 'present' })
+})
 ui.on('tourStop', () => {
   tour.stop()
   ui.closePanel()
@@ -318,6 +333,10 @@ function interact() {
     ui.openPanel({ ...nearby, count: `Découverts : ${discovered.size} / ${signs.length}` })
   }
   if (nearby.type === 'chest') quest.open(player)
+  if (nearby.type === 'social') {
+    sfx.blip('open')
+    ui.openPanel({ title: nearby.title, icon: '🪨', kicker: 'Mes réseaux', era: 'past', text: nearby.text, links: [{ label: `Ouvrir ${nearby.title}`, url: nearby.url, primary: true }] })
+  }
   if (nearby.type === 'vehicle') {
     games.abort()
     vehicles.start(nearby, player)
@@ -441,6 +460,8 @@ function tick() {
   games.update(dt, t)
   space.update(dt, t)
   quest.update(dt, t)
+  socialStones.update(dt, t)
+  banner.update(dt, t)
   tour.update(dt)
 
   updateCamera(dt)
@@ -471,7 +492,7 @@ function tick() {
   nearby = started && !vehicles.traveling && !vehicles.driving ? findNearby() : null
   doorCooldown -= dt
   if (nearby?.type === 'door' && nearby.auto && doorCooldown <= 0 && !ui.panelOpen() && Math.hypot(player.position.x - nearby.x, player.position.z - nearby.z) < 0.95) enterDoor(nearby)
-  ui.setPrompt(vehicles.driving ? vehicles.hint : nearby && !ui.panelOpen() && !tour.active ? ({ chest: quest.opened || discovered.size >= signs.length ? `E · Ouvrir « ${nearby.title} »` : `E · ${nearby.title} (${discovered.size} / ${signs.length})`, sign: `E · Lire « ${nearby.title} »`, vehicle: `E · ${nearby.id === 'car' ? nearby.title : `Monter : ${nearby.title}`}`, game: games.active ? null : `E · Jouer : ${nearby.title}`, door: `E · ${nearby.title}` })[nearby.type] : null)
+  ui.setPrompt(vehicles.driving ? vehicles.hint : nearby && !ui.panelOpen() && !tour.active ? ({ chest: quest.opened || discovered.size >= signs.length ? `E · Ouvrir « ${nearby.title} »` : `E · ${nearby.title} (${discovered.size} / ${signs.length})`, sign: `E · Lire « ${nearby.title} »`, vehicle: `E · ${nearby.id === 'car' ? nearby.title : `Monter : ${nearby.title}`}`, game: games.active ? null : `E · Jouer : ${nearby.title}`, door: `E · ${nearby.title}`, social: `E · ${nearby.title}` })[nearby.type] : null)
 
   const island = here
   applyMood(island?.era, 1 - Math.exp(-dt * 2), day)

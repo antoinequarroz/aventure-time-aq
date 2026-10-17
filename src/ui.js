@@ -12,8 +12,9 @@ export function createUI() {
   root.innerHTML = `
     <div class="intro" id="intro">
       <div class="intro-card">
-        <span class="intro-kicker">Portfolio interactif</span>
+        <span class="intro-kicker">${intro.kicker}</span>
         <h1>${intro.title}</h1>
+        <p class="intro-role">${intro.role}</p>
         <p>${intro.subtitle}</p>
         <div class="pick">
           <span>Choisis ton personnage</span>
@@ -31,6 +32,7 @@ export function createUI() {
       <div class="quest-chip" id="quest-chip" title="Quête : découvre tous les points pour ouvrir le coffre final"><b>🗝️</b><span></span></div>
       <div class="hud-chip" id="day-chip"></div>
       <button class="hud-btn" id="btn-tour" title="Visite guidée">🧭</button>
+      <button class="hud-btn off" id="btn-music" title="Activer la musique">🎵</button>
       <button class="hud-btn" id="btn-mute" title="Couper le son">🔊</button>
     </div>
     <div class="tour-bar" id="tour-bar">
@@ -39,6 +41,7 @@ export function createUI() {
       <button data-act="next">Suivant ›</button>
       <button data-act="stop">Arrêter</button>
     </div>
+    <button class="brand" id="brand" title="À propos de ce portfolio"><b>Antoine Quarroz</b><span>Portfolio · Développeur web &amp; mobile</span></button>
     <div class="island-name" id="island-name"><strong></strong><span></span></div>
     <div class="prompt" id="prompt"></div>
     <div class="panel-backdrop" id="panel-backdrop"></div>
@@ -70,7 +73,7 @@ export function createUI() {
   }
   backdrop.addEventListener('pointerdown', close)
   panel.querySelector('.panel-close').addEventListener('click', close)
-  const handlers = { character: null, start: null, tour: null, tourNext: null, tourStop: null, mute: null }
+  const handlers = { character: null, start: null, tour: null, tourNext: null, tourStop: null, mute: null, music: null, about: null }
   root.querySelectorAll('.char').forEach((b) => b.addEventListener('click', () => {
     root.querySelectorAll('.char').forEach((o) => o.classList.toggle('active', o === b))
     handlers.character?.(b.dataset.key)
@@ -85,6 +88,8 @@ export function createUI() {
   $('start-tour').addEventListener('click', () => begin(true))
   $('btn-tour').addEventListener('click', () => handlers.tour?.())
   $('btn-mute').addEventListener('click', () => handlers.mute?.())
+  $('btn-music').addEventListener('click', () => handlers.music?.())
+  $('brand').addEventListener('click', () => handlers.about?.())
   $('tour-bar').addEventListener('click', (e) => {
     const act = e.target.closest('button')?.dataset.act
     if (act === 'next') handlers.tourNext?.()
@@ -110,9 +115,11 @@ export function createUI() {
       el.classList.toggle('visible', visible)
       if (visible) el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, -100%)`
     },
-    setMuted(muted) {
+    setSound({ muted, music }) {
       $('btn-mute').textContent = muted ? '🔇' : '🔊'
       $('btn-mute').title = muted ? 'Remettre le son' : 'Couper le son'
+      $('btn-music').classList.toggle('off', !music || muted)
+      $('btn-music').title = music && !muted ? 'Couper la musique' : 'Activer la musique'
     },
     setQuest({ found, total, ready, opened }) {
       const chip = $('quest-chip')
