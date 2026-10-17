@@ -4,6 +4,7 @@ import * as C from '../characters.js'
 import { model, animate } from '../models.js'
 import * as P from '../props.js'
 import { fireflies } from '../nature.js'
+import * as S from '../stoneworks.js'
 
 // Le Futur : base lunaire, faible gravité.
 
@@ -16,7 +17,7 @@ export const mainShape = {
     // Le Labo, au sud-ouest.
     [-21, 18, 7.5, 0], [-15.5, 15, 5, 0],
   ],
-  plazas: [[-21, 18, 6.2]],
+  plazas: [[-21, 18, 6.2], [12.5, 2.5, 3.8]],
   ramps: [[-5.5, -3, 0, -8.8, -5.6, 1.6, 2.6]],
 }
 
@@ -97,6 +98,10 @@ export function decorateMain(ctx) {
   group.add(mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.5, 5), mat(0xcccccc), { x: 4, y: 1.25, z: 13 }))
   group.add(mesh(new THREE.PlaneGeometry(1.2, 0.7), mat(0x2f6fd8, { side: THREE.DoubleSide }), { x: 4.6, y: 2.2, z: 13 }))
 
+  // Mémorial des pionniers, en marbre blanc à runes néon.
+  S.useTheme('future')
+  S.monument(ctx, 12.5, 2.2, { statue: { key: 'knight', anim: 'Cheer', time: 0.5, keep: [], height: 2.6, suit: true, rotY: -0.35 }, open: Math.PI * 0.9, r: 2.8, pillars: 4, spread: 1.05 })
+
   // Installations de la base.
   P.solarPanel(ctx, 14, -5, { rotY: 0.3 })
   P.solarPanel(ctx, 16.5, -2, { rotY: 0.3 })
@@ -113,7 +118,7 @@ export function decorateMain(ctx) {
   ctx.addPushable('moonCrate', 5, 6, { rotY: 0.3 })
   P.place(ctx, 'cyborg', 6.5, -8, { height: 2, rotY: 0.4, r: 0.5 })
   // Flèches de cristal néon, arbres et buissons extraterrestres, poussière qui scintille.
-  P.spires(ctx, 18, 4, { height: 6, count: 4, color: 0x7f78e0, glow: 0x3fe8ff, spread: 1.2 })
+  P.spires(ctx, 19, 7.5, { height: 6, count: 4, color: 0x7f78e0, glow: 0x3fe8ff, spread: 1.2 })
   P.spires(ctx, -6, 17, { height: 4.5, count: 3, color: 0x9a7bf0, glow: 0xff5fd0, spread: 1 })
   P.spires(ctx, 8, 18.5, { height: 4, count: 3, color: 0x7f78e0, glow: 0x3fe8ff, spread: 0.9 })
   P.leafTree(ctx, -16, -1, { palette: 'teal', size: 1 })
@@ -127,11 +132,14 @@ export const satellites = {
   asteroids: {
     offset: [-12, -44],
     r: 12,
-    shape: { lobes: [[0, 2, 9, 0], [5, -5, 6, 0], [-5, -4, 5, 0]] },
+    shape: { lobes: [[0, 2, 9, 0], [5, -5, 6, 0], [-5, -4, 5, 0]], plazas: [[4.5, -4.5, 3.8]] },
     build(ctx) {
       P.crystals(ctx, -6, 4, { color: 0x58d0ff })
       P.antenna(ctx, 5, 5)
-      crater(ctx, 4, -2, 2)
+      // Statue du premier pas sur la Lune.
+      S.useTheme('future')
+      S.monument(ctx, 4.8, -5, { statue: { key: 'rogue', anim: 'Idle', time: 0.3, keep: [], height: 2.5, suit: true, rotY: -0.3 }, open: Math.PI * 0.6, r: 2.8, pillars: 4, spread: 1.05 })
+      crater(ctx, -1.5, 5.5, 1.4)
       P.alienPlant(ctx, -7, 3)
       P.cliff(ctx, -6, -7, { height: 3.5, lunar: true })
       // Balise d'arrivée.
@@ -159,6 +167,15 @@ export const satellites = {
     shape: { lobes: [[0, 0, 10, 0], [6, -6, 6, 0], [-5, 6, 6, 0], [7, 6, 5, 0], [-6, -4, 5, 0], [0, 0, 3.2, 1]] },
     build(ctx) {
       P.crystals(ctx, 0, 0, { color: 0xb48cff, size: 1.6, glow: true })
+      // Arche d'entrée en marbre et couronne de piliers autour du grand cristal.
+      S.useTheme('future')
+      S.grandArch(ctx, -7.6, -1.7, { rotY: Math.PI / 2 - 0.22, width: 4.4, h: 3.2, color: 0x3fe8ff })
+      for (const s of [-1, 1]) S.lanternPost(ctx, -6.6, -1.5 + s * 3)
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + 0.5
+        S.runePillar(ctx, Math.cos(a) * 2.7, Math.sin(a) * 2.7, { h: 1.3, rotY: Math.PI / 2 - a, color: S.theme().runes[i % 3] })
+      }
+      S.leaves(ctx, 0, 0, { r: 4.5, inner: 3, count: 90 })
       P.crystals(ctx, 6, -6, { color: 0x58d0ff, size: 1.1 })
       P.crystals(ctx, -5, 7, { color: 0x7dff9a, size: 1.2, glow: true })
       P.crystals(ctx, 8, 6, { color: 0xff7de9, size: 0.9 })
@@ -184,6 +201,13 @@ export const satellites = {
     shape: { lobes: [[0, 0, 11, 0], [-6, -6, 6, 0], [6, -6, 6, 0], [0, 8, 7, 0], [8, 2, 6, 0], [-8, 3, 6, 0], [0, 10, 2.6, 2]] },
     build(ctx) {
       P.landingPad(ctx, 0, 0, { r: 3.5 })
+      // Deux pilotes de marbre veillent sur la piste.
+      S.useTheme('future')
+      for (const sx of [-1, 1]) {
+        S.statue(ctx, sx * 5.4, 1.2, { key: sx < 0 ? 'knight' : 'barbarian', anim: 'Cheer', time: sx < 0 ? 0.4 : 0.7, keep: [], height: 2.4, suit: true, rotY: -sx * 0.5, r: 0.85 })
+        S.lanternPost(ctx, sx * 3.4, -4.6)
+      }
+      S.leaves(ctx, 0, 0, { r: 7, inner: 4, count: 100 })
       P.place(ctx, 'racer', 0, 0, { width: 3, y: 0.15, rotY: 0.6, r: 1.4, top: 1 })
       P.antenna(ctx, -10, 7)
       P.antenna(ctx, 10, 7)

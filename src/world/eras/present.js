@@ -4,6 +4,7 @@ import { model } from '../models.js'
 import * as C from '../characters.js'
 import * as P from '../props.js'
 import { textTexture } from '../helpers.js'
+import * as S from '../stoneworks.js'
 
 // Le Présent : le village du développeur.
 
@@ -100,8 +101,11 @@ export const satellites = {
   rooftops: {
     offset: [0, -44],
     r: 14,
-    shape: { lobes: [[0, 2, 10, 0], [-6, -6, 7, 0], [6, -7, 7, 0], [0, -10, 5, 0], [-6, 7, 5, 0], [9, 1, 3, 1]] },
+    shape: { lobes: [[0, 2, 10, 0], [-6, -6, 7, 0], [6, -7, 7, 0], [0, -10, 5, 0], [-6, 7, 5, 0], [9, 1, 3, 1]], plazas: [[1.5, 0, 4.2]] },
     build(ctx) {
+      // Monument au code, en grès, au milieu des toits.
+      S.useTheme('present')
+      S.monument(ctx, 1.5, -0.2, { piece: (c, x, z) => S.codeGlyph(c, x, z), r: 3, pillars: 4, spread: 1.1 })
       P.streetLamp(ctx, 4, 10)
       P.streetLamp(ctx, -4, 10)
       P.billboard(ctx, -8, 8, { text: 'Code · Café · Commit', rotY: 0.5 })
@@ -133,9 +137,14 @@ export const satellites = {
   park: {
     offset: [24, 40],
     r: 13,
-    shape: { lobes: [[0, 0, 10, 0], [-6, -5, 6, 0], [5, 6, 7, 0], [-6, 6, 5, 0], [7, -6, 4.5, 1]] },
+    shape: { lobes: [[0, 0, 10, 0], [-6, -5, 6, 0], [5, 6, 7, 0], [-6, 6, 5, 0], [7, -6, 4.5, 1], [13.5, 4.5, 5.5, 0]], plazas: [[13.5, 4.5, 4.4]] },
     build(ctx) {
       P.pond(ctx, 2, 2, { r: 3 })
+      // Place de la photo : le photographe en grès et un appareil géant.
+      S.useTheme('present')
+      S.monument(ctx, 14.2, 3.6, { statue: { key: 'rogue', anim: 'Interact', time: 0.7, keep: ['Rogue_Cape'], height: 2.5, rotY: -0.5 }, open: Math.PI * 0.85, r: 3, pillars: 4, spread: 1.1, crates: false })
+      S.cameraSculpture(ctx, 12, 6.8, { rotY: -0.6 })
+      S.stoneBench(ctx, 15.5, 7.6, { rotY: -0.9 })
       P.bench(ctx, -3, -2, { rotY: Math.PI / 2 })
       P.bench(ctx, 6, -3, { rotY: -0.5 })
       P.streetLamp(ctx, -1, -6)
@@ -164,9 +173,13 @@ export const satellites = {
   stadium: {
     offset: [-24, 40],
     r: 14,
-    shape: { lobes: [[0, 0, 12, 0], [-7, -6, 7, 0], [7, -6, 7, 0], [0, 8, 8, 0], [10, 8, 3, 1.4]] },
+    shape: { lobes: [[0, 0, 12, 0], [-7, -6, 7, 0], [7, -6, 7, 0], [0, 8, 8, 0], [10, 8, 3, 1.4], [-11, 11, 5, 0]], plazas: [[-11, 11, 4]] },
     build(ctx) {
       P.footballPitch(ctx, 0, 0)
+      // Hall of fame : le buteur en grès et le ballon géant.
+      S.useTheme('present')
+      S.monument(ctx, -11.6, 11, { statue: { key: 'barbarian', anim: 'Cheer', time: 0.45, keep: [], height: 2.6, rotY: 0.4 }, open: Math.PI * 0.3, r: 2.8, pillars: 4, spread: 1.1, crates: false })
+      S.ballSculpture(ctx, -8.4, 13.6)
       P.bleachers(ctx, 0, 9.5, { w: 10, rotY: Math.PI })
       for (const [lx, lz] of [[-11, -7], [11, -7], [-9, 6.5], [11, 7]]) P.streetLamp(ctx, lx, lz, { color: 0xffffff })
       P.banner(ctx, -8, -10, { color: 0x2f6fd8 })

@@ -89,6 +89,12 @@ export function decorateMain(ctx) {
   // Un chevalier qui se promène dans le village, et un voyageur sur le chemin.
   C.npc(ctx, 'knight', -2, 9, { keep: ['1H_Sword', 'Knight_Helmet', 'Knight_Cape'], path: [[-2, 9], [-2, 2], [2, 1], [3, 6]], walk: 1.2, pause: 2 })
   C.npc(ctx, 'rogue', 10, 1, { keep: ['Rogue_Cape'], path: [[12, 2], [12, 4], [6, 0.5]], walk: 1.4, pause: 3 })
+  // Gardiens de pierre au pied de la rampe du château.
+  S.useTheme('past')
+  for (const sx of [-1, 1]) {
+    S.statue(ctx, sx * 4.5, 0.1, { key: 'knight', anim: 'Idle', time: 0.2, keep: ['1H_Sword', 'Badge_Shield', 'Knight_Helmet', 'Knight_Cape'], height: 2.2, rotY: -sx * 0.25, r: 0.75 })
+    S.lanternPost(ctx, sx * 2.4, 0.9, { h: 1.8 })
+  }
   P.place(ctx, 'weaponRack', 7.5, -11.5, { height: 1.4, rotY: -0.4, r: 0.8 })
   P.place(ctx, 'cannon', 10, -6.5, { height: 1.3, rotY: 2.4, r: 0.9 })
   P.place(ctx, 'chest', -11, -12.5, { height: 0.9, rotY: 0.6, r: 0.6 })
@@ -151,6 +157,7 @@ export const satellites = {
       // Sanctuaire des anciens, même pierre sculptée que la place des réseaux :
       // grande arche à l'entrée, gardiens sur leurs socles, cercle de piliers à runes
       // autour de la statue du mage, colonnes et lanternes.
+      S.useTheme('past')
       S.grandArch(ctx, 0.6, 5.4, { width: 4.4, h: 3.4, color: 0x7df9ff })
       for (const [lx, lz] of [[-2.4, 6.6], [3.6, 6.6]]) S.lanternPost(ctx, lx, lz)
       S.statue(ctx, -6.2, 5.6, { key: 'knight', anim: 'Idle', keep: ['1H_Sword', 'Round_Shield', 'Knight_Helmet', 'Knight_Cape'], rotY: 0.45, height: 2.5 })
@@ -232,13 +239,16 @@ export const satellites = {
   lake: {
     offset: [5, 42],
     r: 14,
-    shape: { lobes: [[0, 0, 11, 0], [0, -7, 7, 0], [-6, 6, 7, 0], [7, 5, 6, 0], [11, -8, 3.5, 1.2]] },
+    shape: { lobes: [[0, 0, 11, 0], [0, -7, 7, 0], [-6, 6, 7, 0], [7, 5, 6, 0], [11, -8, 3.5, 1.2], [-13.5, 2.5, 5.5, 0]], plazas: [[-13.5, 2.5, 4.4]] },
     build(ctx) {
       P.pond(ctx, 0, 1, { r: 4.5 })
+      // Sanctuaire de la Dame du lac, tourné vers l'eau.
+      S.useTheme('past')
+      S.monument(ctx, -13.5, 2.5, { statue: { key: 'mage', anim: 'Spellcasting', time: 0.5, keep: ['2H_Staff', 'Mage_Hat', 'Mage_Cape'], height: 2.6, rotY: Math.PI / 2 - 0.3 }, open: 0, r: 3, pillars: 5 })
       const boat = P.place(ctx, 'boat', 1, 1.5, { height: 0.6, y: 0.02, rotY: 0.7 })
       ctx.animated.push((dt, t) => { boat.position.y = 0.02 + Math.sin(t * 1.5) * 0.05; boat.rotation.z = Math.sin(t * 1.2) * 0.04 })
       P.place(ctx, 'shipwreck', 11, -8, { width: 4.5, rotY: 0.9, r: 1.8 })
-      P.windmill(ctx, -9, 7, { rotY: 0.8 })
+      P.windmill(ctx, -7.5, 9, { rotY: 0.8 })
       P.flowers(ctx, 6, 8, { r: 2 })
       P.flowers(ctx, -4, 11, { r: 1.5 })
       P.rocks(ctx, 9, -2, { count: 3, size: 0.8 })
