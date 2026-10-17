@@ -26,19 +26,21 @@ export const about = {
   links: [
     { label: 'Me contacter', primary: true, url: 'mailto:info@antoinequarroz.ch?subject=Prise%20de%20contact%20depuis%20le%20portfolio' },
     { label: 'antoinequarroz.ch', url: site() },
-    { label: 'LinkedIn', url: 'https://www.linkedin.com/in/antoine-quarroz-376020187/' },
+    { label: 'LinkedIn', url: 'https://www.linkedin.com/in/antoinequarroz/' },
     { label: 'GitHub', url: 'https://github.com/antoinequarroz' },
   ],
 }
 
 // Réseaux sociaux : pierres gravées sur l'île du Passé, le long du chemin de l'ouest.
 // `pos` = position [x, z] relative au centre de l'île. Ajoute une ligne pour un nouveau réseau
-// (logos disponibles : linkedin, github, mail, web, instagram, youtube).
+// (logos disponibles : linkedin, github, instagram, x, youtube, mail, web).
 export const socials = [
-  { logo: 'linkedin', label: 'LinkedIn', color: '#3d9bff', pos: [-20, -0.9], text: 'Mon parcours, mes expériences et mes recommandations.', url: 'https://www.linkedin.com/in/antoine-quarroz-376020187/' },
-  { logo: 'github', label: 'GitHub', color: '#c9b8ff', pos: [-17.4, -1.1], text: 'Mon code : projets, outils et expériences.', url: 'https://github.com/antoinequarroz' },
-  { logo: 'mail', label: 'E-mail', color: '#ffb347', pos: [-12.6, -1.1], text: 'Le plus simple pour me proposer un projet ou un poste.', url: 'mailto:info@antoinequarroz.ch' },
-  { logo: 'web', label: 'Site web', color: '#6fffd2', pos: [-10, -0.9], text: 'antoinequarroz.ch : mes projets en détail, mes services et mes articles.', url: site() },
+  { logo: 'linkedin', label: 'LinkedIn', color: '#3d9bff', pos: [-20.2, -1], text: 'Mon parcours, mes expériences et mes recommandations.', url: 'https://www.linkedin.com/in/antoinequarroz/' },
+  { logo: 'github', label: 'GitHub', color: '#c9b8ff', pos: [-18.2, -1.2], text: 'Mon code : projets, outils et expériences.', url: 'https://github.com/antoinequarroz' },
+  { logo: 'instagram', label: 'Instagram', color: '#ff6fb1', pos: [-16.4, -1.3], text: 'Les coulisses de mes projets de développeur.', url: 'https://www.instagram.com/antoinequarroz.dev/' },
+  { logo: 'x', label: 'X', color: '#e8ecff', pos: [-13.6, -1.3], text: 'Mes réflexions sur le web, le mobile et l\'IA.', url: 'https://x.com/AntoineQuarroz' },
+  { logo: 'mail', label: 'E-mail', color: '#ffb347', pos: [-11.6, -1.2], text: 'Le plus simple pour me proposer un projet ou un poste.', url: 'mailto:info@antoinequarroz.ch' },
+  { logo: 'web', label: 'Site web', color: '#6fffd2', pos: [-9.6, -1], text: 'antoinequarroz.ch : mes projets en détail, mes services et mes articles.', url: site() },
 ]
 
 // Quête principale : découvrir tous les points ouvre le coffre final (place du Présent).
@@ -48,18 +50,20 @@ export const quest = {
   cv: {
     title: 'Mon CV',
     text: [
-      'Antoine Quarroz, développeur web et mobile freelance, technologue, créateur et formateur, basé en Valais (Suisse), disponible à distance.',
-      'Formation : médiamaticien, entre design, communication et technique.',
-      'Ce que je fais : sites vitrines et CMS sur mesure, applications iOS et Android, outils internes pour PME, audits et intégrations IA, formations.',
-      'Stack : Vue, Nuxt, React, Next.js, TypeScript, SwiftUI, Flutter, Expo, Rust, Tauri, Supabase, PostgreSQL, Convex, Node.js, Three.js, Figma, Docker.',
-      'Projets récents : Remembeyes, LifXp, Respire, VELQORA, Orion, STAQ, EnvVault, Hermes Cockpit, PhysioBaur, Carna\'dzons, LivreMatch et une quinzaine d\'outils sur mesure.',
+      'Antoine Quarroz, développeur web et mobile freelance depuis 2026, basé à Saint-Martin (Valais) et disponible à distance. « Je crée des expériences digitales qui marquent. »',
+      'Formation : médiamaticien. Je combine design, communication et technique pour livrer des choses qui ont du style et qui fonctionnent vraiment.',
+      'Services : sites vitrines, solutions CMS, applications iOS et Android, outils métier pour PME (tableaux de bord, CRM, facturation, devis), audit IA pour PME et premier avis gratuit sur un projet.',
+      'Front et 3D : Vue 3, Nuxt, React, Next.js, Three.js, Vite, Sass. Mobile : SwiftUI, Flutter, Dart, Expo. Back : Rust, Tauri, Node.js, Supabase, PostgreSQL, Convex. Outils : Git, GitHub, Docker, Cloudflare, Caddy, Figma, Stripe, Sentry, WordPress, WooCommerce.',
+      '17 projets publiés, dont Remembeyes, LifXp, Respire, VELQORA, Orion, STAQ, LivreMatch, EnvVault, Hermes Cockpit, PhysioBaur, Carna\'dzons et le Rallye Team Quarroz.',
+      'Clients : indépendants, PME et startups en Suisse et ailleurs. Site disponible en français, anglais et allemand.',
       'Passions : photo, vidéo, foot, ski, astronomie et jeux vidéo.',
-      '[à compléter : expériences (dates, entreprises), diplômes, langues, et le lien vers ton CV en PDF]',
+      '[à compléter : expériences avant 2026 (dates, entreprises), diplômes et école, langues parlées, et le lien vers ton CV en PDF : ces infos ne sont pas sur antoinequarroz.ch]',
     ],
     links: [
       { label: 'Me contacter', primary: true, url: 'mailto:info@antoinequarroz.ch?subject=Prise%20de%20contact%20depuis%20Aventure%20Time%20AQ' },
-      { label: 'Mon site et mes projets', url: site('/projets') },
-      { label: 'LinkedIn', url: 'https://www.linkedin.com/in/antoine-quarroz-376020187/' },
+      { label: '+41 79 157 64 50', url: 'tel:+41791576450' },
+      { label: 'Mon site et mes projets', url: site('/#portfolio') },
+      { label: 'LinkedIn', url: 'https://www.linkedin.com/in/antoinequarroz/' },
       { label: 'GitHub', url: 'https://github.com/antoinequarroz' },
     ],
   },
@@ -211,7 +215,7 @@ export const islands = [
         ],
         links: [
           { label: 'Visiter antoinequarroz.ch', url: site() },
-          { label: 'Tous les projets', url: site('/projets') },
+          { label: 'Tous les projets', url: site('/#portfolio') },
           { label: 'LivreMatch', url: 'https://livrematch.fr' },
           { label: 'Chat d\'Intérieur', url: 'https://miaouchezmoi.fr' },
           { label: 'Bagage Malin', url: 'https://bagagemalin.fr' },
@@ -278,7 +282,7 @@ export const islands = [
         ],
         links: [
           { label: 'PhysioBaur', url: 'https://physiobaur.ch/' },
-          { label: 'Tous les projets', url: site('/projets') },
+          { label: 'Tous les projets', url: site('/#portfolio') },
         ],
       },
     ],
@@ -336,7 +340,9 @@ export const islands = [
         links: [
           { label: 'info@antoinequarroz.ch', url: 'mailto:info@antoinequarroz.ch' },
           { label: 'GitHub', url: 'https://github.com/antoinequarroz' },
-          { label: 'LinkedIn', url: 'https://www.linkedin.com/in/antoine-quarroz-376020187/' },
+          { label: 'LinkedIn', url: 'https://www.linkedin.com/in/antoinequarroz/' },
+          { label: 'Instagram', url: 'https://www.instagram.com/antoinequarroz.dev/' },
+          { label: 'X', url: 'https://x.com/AntoineQuarroz' },
           { label: 'Site web', url: site() },
         ],
       },

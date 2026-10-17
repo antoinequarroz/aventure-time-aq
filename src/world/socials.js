@@ -25,6 +25,19 @@ function drawLogo(g, logo, s) {
     g.textAlign = 'center'
     g.textBaseline = 'middle'
     g.fillText('in', s * 0.03, s * 0.06)
+  } else if (logo === 'x') {
+    // Logo X : un trait épais et un trait fin croisés.
+    g.lineWidth = s * 0.15
+    g.lineCap = 'butt'
+    g.beginPath()
+    g.moveTo(-s * 0.38, -s * 0.45)
+    g.lineTo(s * 0.38, s * 0.45)
+    g.stroke()
+    g.lineWidth = s * 0.06
+    g.beginPath()
+    g.moveTo(s * 0.38, -s * 0.45)
+    g.lineTo(-s * 0.38, s * 0.45)
+    g.stroke()
   } else if (logo === 'mail') {
     g.strokeRect(-s / 2, -s * 0.34, s, s * 0.68)
     g.beginPath()
@@ -133,7 +146,7 @@ export function createSocialStones(scene, world, { center, socials }) {
     stone.position.set(x, y, z)
     stone.rotation.y = (i % 2 ? 1 : -1) * 0.08
     // Bloc de pierre brut, légèrement irrégulier, sur un socle.
-    stone.add(mesh(jitter(new THREE.BoxGeometry(1.9, 0.35, 1.0, 2, 1, 2), 0.06, i + 3), stoneMat, { y: 0.17 }))
+    stone.add(mesh(jitter(new THREE.BoxGeometry(1.6, 0.35, 1.0, 2, 1, 2), 0.06, i + 3), stoneMat, { y: 0.17 }))
     // Menhir : bloc taillé qui s'affine vers le haut, coiffé d'une pointe.
     const menhir = new THREE.CylinderGeometry(0.62, 0.85, 2.8, 4, 3).rotateY(Math.PI / 4)
     stone.add(mesh(jitter(menhir, 0.04, i + 9), stoneMat, { y: 1.75 }))
