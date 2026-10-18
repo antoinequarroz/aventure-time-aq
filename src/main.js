@@ -36,6 +36,7 @@ import { THEMES } from './world/islands.js'
 import { createSolarSystem } from './solarSystem.js'
 
 const ui = createUI()
+console.info(`Aventure Time AQ · version du ${__BUILD__}`)
 const sfx = createAudio()
 sfx.onChange((state) => ui.setSound(state))
 ui.on('mute', () => {

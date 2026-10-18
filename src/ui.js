@@ -81,6 +81,7 @@ export function createUI() {
     <div class="achievement" id="achievement"><b></b><div><small>Succès débloqué</small><strong></strong><span></span></div></div>
     <div class="bigtext" id="bigtext"></div>
     <div class="help">${intro.controls}</div>
+    <div class="build-tag" title="Date de cette version du site">Version du ${__BUILD__}</div>
   `
   const $ = (id) => document.getElementById(id)
   const islandName = $('island-name')

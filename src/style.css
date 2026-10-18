@@ -530,3 +530,5 @@ body.solar-open .solar-title strong { font-size: clamp(1rem, 2.6vw, 1.3rem); }
   .solar-zoom button { width: 40px; height: 40px; }
 }
 .solar-card .solar-kind, .solar-card h3 { display: none; }
+.build-tag { position: absolute; right: 10px; bottom: 6px; font: 500 0.68rem var(--font-ui); color: rgba(244, 241, 255, 0.45); pointer-events: none; z-index: 2; }
+#ui.touch .build-tag { right: 50%; transform: translateX(50%); bottom: 2px; }
