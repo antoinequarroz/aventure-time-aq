@@ -17,7 +17,26 @@ const leafMeshes = []
 export function setNatureDetail(level) {
   const share = [1, 0.65, 0.4, 0.25][level] ?? 1
   for (const m of grassMeshes) m.count = Math.max(1, Math.round(m.userData.fullCount * share))
-  for (const m of leafMeshes) m.castShadow = level < 2
+  // Feuillages : moins de feuilles mais plus grandes, la silhouette des arbres reste pleine.
+  const leaves = [1, 0.7, 0.5, 0.38][level] ?? 1
+  leafScale.value = 1 / Math.sqrt(leaves)
+  for (const m of leafMeshes) {
+    m.count = Math.max(1, Math.round(m.userData.fullCount * leaves))
+    m.castShadow = level < 2
+  }
+}
+const leafScale = { value: 1 }
+function scalable(material) {
+  const before = material.onBeforeCompile
+  material.customProgramCacheKey = () => 'windy-leaf'
+  material.onBeforeCompile = (shader) => {
+    before(shader)
+    shader.uniforms.uLeafScale = leafScale
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nuniform float uLeafScale;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed *= uLeafScale;')
+  }
+  return material
 }
 
 // Ondulation au vent, appliquée dans le shader : rien à recalculer côté JavaScript.
@@ -151,6 +170,10 @@ function growPebbles(ctx, ground) {
       if (gh === h) points.push([x, h, z])
     }
   })
+  for (let i = points.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1))
+    ;[points[i], points[j]] = [points[j], points[i]]
+  }
   const pebbles = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(0.16, 0), new THREE.MeshStandardMaterial({ flatShading: true, roughness: 1 }), points.length)
   const m4 = new THREE.Matrix4()
   const c = new THREE.Color()
@@ -162,6 +185,8 @@ function growPebbles(ctx, ground) {
   })
   pebbles.receiveShadow = true
   pebbles.userData.terrain = true
+  pebbles.userData.fullCount = points.length
+  grassMeshes.push(pebbles)
   ctx.group.add(pebbles)
 }
 
@@ -226,7 +251,11 @@ export function buildLeaves(ctx, ground) {
     }
   }
   const leafGeo = new THREE.PlaneGeometry(0.12, 0.12)
-  const inst = new THREE.InstancedMesh(leafGeo, windy(new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.8 }), 0.0), leaves.length)
+  for (let i = leaves.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1))
+    ;[leaves[i], leaves[j]] = [leaves[j], leaves[i]]
+  }
+  const inst = new THREE.InstancedMesh(leafGeo, scalable(windy(new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.8 }), 0.0)), leaves.length)
   const m4 = new THREE.Matrix4()
   const q = new THREE.Quaternion()
   const e = new THREE.Euler()
@@ -241,6 +270,7 @@ export function buildLeaves(ctx, ground) {
   inst.castShadow = true
   inst.receiveShadow = true
   inst.userData.terrain = true
+  inst.userData.fullCount = leaves.length
   leafMeshes.push(inst)
   group.add(inst)
 

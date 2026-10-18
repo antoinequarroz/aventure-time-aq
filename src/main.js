@@ -765,6 +765,7 @@ const ERA_KICKER = { past: 'Hier · mes racines', present: 'Aujourd\'hui · mon 
 const AMBIENCE = { past: 'nuit médiévale, vent et grillons', present: 'village au crépuscule, oiseaux', future: 'silence lunaire, bourdonnement électronique' }
 let dayTick = -1
 let lightScan = 0
+let shadowTick = 0
 const timer = new THREE.Timer()
 
 // Mesures de performance (avec ?debug) : appels de dessin, triangles, temps CPU par image.
@@ -846,6 +847,9 @@ function tick() {
 
   if (++lightScan % 240 === 1) lights.scan()
   lights.update(cameraTarget)
+  // Appareil qui peine : l'ombre du soleil n'est recalculée qu'une image sur deux.
+  renderer.shadowMap.autoUpdate = quality < 2
+  if (quality >= 2 && ++shadowTick % 2 === 0) renderer.shadowMap.needsUpdate = true
   const tRender = performance.now()
   composer.render()
   if (debugPerf) {
