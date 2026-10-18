@@ -13,7 +13,7 @@ const CHARACTERS = [
 export function createUI() {
   const root = document.getElementById('ui')
   root.innerHTML = `
-    <div class="intro" id="intro">
+    <div class="intro waiting" id="intro">
       <div class="intro-card">
         <span class="intro-kicker">${intro.kicker}</span>
         <h1>${intro.title}</h1>
@@ -121,6 +121,13 @@ export function createUI() {
   $('start-list').addEventListener('click', () => handlers.list?.())
   $('btn-list').addEventListener('click', () => handlers.list?.())
   $('btn-settings').addEventListener('click', () => handlers.settings?.())
+  // Écran de chargement (dans index.html, visible avant même le JavaScript).
+  const loader = document.getElementById('loader')
+  const loaderList = document.getElementById('loader-list')
+  if (loaderList) {
+    loaderList.hidden = false
+    loaderList.addEventListener('click', () => handlers.list?.())
+  }
   $('btn-trophies').addEventListener('click', () => handlers.trophies?.())
   $('btn-mute').addEventListener('click', () => handlers.mute?.())
   $('btn-music').addEventListener('click', () => handlers.music?.())
@@ -224,13 +231,27 @@ export function createUI() {
     setTrophies(count) {
       $('btn-trophies').querySelector('i').textContent = count ? String(count) : ''
     },
-    setLoading(progress) {
-      $('start').textContent = `Chargement… ${Math.round(progress * 100)} %`
+    setLoading(progress, label) {
+      const pct = Math.round(progress * 100)
+      $('start').textContent = `Chargement… ${pct} %`
+      if (!loader) return
+      document.getElementById('loader-bar').style.width = `${Math.max(4, pct)}%`
+      loader.setAttribute('aria-valuenow', String(pct))
+      if (label) document.getElementById('loader-step').textContent = `${label} ${pct} %`
     },
     setReady() {
       $('start').disabled = false
       $('start-tour').disabled = false
       $('start').textContent = '▶ Jouer'
+      if (loader) {
+        document.getElementById('loader-bar').style.width = '100%'
+        document.getElementById('loader-step').textContent = 'Prêt !'
+        setTimeout(() => {
+          loader.classList.add('done')
+          $('intro').classList.remove('waiting')
+          setTimeout(() => loader.remove(), 1200)
+        }, 350)
+      } else $('intro').classList.remove('waiting')
     },
     showIsland(name, tagline) {
       islandName.querySelector('strong').textContent = name

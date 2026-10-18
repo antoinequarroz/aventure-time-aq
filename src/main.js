@@ -59,7 +59,11 @@ ui.on('list', () => {
 if (new URLSearchParams(location.search).has('liste') || location.hash === '#liste') listView.show()
 // Les textes dessinés dans la scène (panneaux, écrans) attendent les polices embarquées.
 await Promise.all(['400 32px "Inter Variable"', '700 32px "Inter Variable"', '600 32px "Outfit Variable"'].map((f) => document.fonts.load(f))).catch(() => {})
-await loadModels((progress) => ui.setLoading(progress))
+await loadModels((progress) => ui.setLoading(progress * 0.6, 'Chargement des modèles'))
+// Laisse le navigateur afficher la progression entre deux grosses étapes de construction.
+const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)))
+ui.setLoading(0.62, 'Construction des îles')
+await nextFrame()
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
@@ -141,6 +145,8 @@ applyMood('past', 1)
 const space = createSpace(scene)
 const world = createIslands(scene)
 const vehicles = createVehicles(scene, world)
+ui.setLoading(0.82, 'Personnages et décors')
+await nextFrame()
 
 // Bâtiments qui s'effacent quand ils cachent le joueur.
 const fades = world.fadeables.map((object) => {
@@ -207,7 +213,25 @@ const lights = createLightPool(scene, 8)
 lights.scan()
 // Shaders compilés pendant le chargement plutôt qu'au premier passage devant chaque objet
 // (évite les saccades en explorant).
+ui.setLoading(0.92, 'Préparation des lumières')
+await nextFrame()
 await renderer.compileAsync(scene, camera).catch(() => {})
+// Textures envoyées à la carte graphique dès maintenant : sinon chaque île les charge
+// au premier passage, ce qui fige l'image une seconde en arrivant sur le Présent ou le Futur.
+{
+  const seen = new Set()
+  scene.traverse((o) => {
+    for (const m of [].concat(o.material ?? [])) {
+      for (const v of Object.values(m)) if (v?.isTexture && !seen.has(v)) seen.add(v)
+      for (const u of Object.values(m.uniforms ?? {})) if (u?.value?.isTexture && !seen.has(u.value)) seen.add(u.value)
+    }
+  })
+  let i = 0
+  for (const tex of seen) {
+    renderer.initTexture(tex)
+    if (++i % 24 === 0) await nextFrame()
+  }
+}
 ui.setReady()
 
 // Caméra fixe en trois-quarts, qui suit le joueur en douceur.
@@ -221,6 +245,8 @@ if (new URLSearchParams(location.search).has('debug')) {
     player,
     world,
     scene,
+    renderer,
+    camera,
     games,
     pushables,
     vehicles,
@@ -679,6 +705,15 @@ function updateCamera(dt) {
     const portrait = innerWidth / innerHeight < 1 || innerWidth < 760
     introPos.set(p.x + (portrait ? 0 : -1.2), p.y + (portrait ? 2.2 : 2.1), p.z + (portrait ? 8 : 6.4))
     introLook.set(p.x + (portrait ? 0 : -1.9), p.y + (portrait ? -0.45 : 1.25), p.z)
+    // Révélation au chargement : la caméra plonge du ciel vers l'avatar, comme une arrivée.
+    if (reveal < 1) {
+      reveal = Math.min(1, reveal + dt / (settings.state.reduceMotion ? 0.05 : 2.6))
+      const r = 1 - Math.pow(1 - reveal, 3)
+      revealPos.set(p.x + 26, p.y + 30, p.z + 34)
+      revealLook.set(p.x - 6, p.y, p.z - 10)
+      introPos.lerpVectors(revealPos, introPos, r)
+      introLook.lerpVectors(revealLook, introLook, r)
+    }
     camera.position.lerpVectors(introPos, camera.position, k)
     lookAt.lerpVectors(introLook, lookAt, k)
   }
@@ -687,6 +722,9 @@ function updateCamera(dt) {
 const lookAt = new THREE.Vector3()
 const introPos = new THREE.Vector3()
 const introLook = new THREE.Vector3()
+const revealPos = new THREE.Vector3()
+const revealLook = new THREE.Vector3()
+let reveal = 0
 const headPos = new THREE.Vector3()
 
 // Qualité adaptative : si l'ordinateur peine (moins de ~45 images/s), on retire d'abord
@@ -776,7 +814,7 @@ function tick() {
   sfx.update(dt, started ? walkSpeed : 0, here?.interior ? 'interior' : here?.era)
   if (!started) {
     headPos.set(player.position.x, player.position.y + 2.55, player.position.z).project(camera)
-    ui.setHello((headPos.x * 0.5 + 0.5) * innerWidth, Math.max(56, (-headPos.y * 0.5 + 0.5) * innerHeight), headPos.z < 1)
+    ui.setHello((headPos.x * 0.5 + 0.5) * innerWidth, Math.max(56, (-headPos.y * 0.5 + 0.5) * innerHeight), headPos.z < 1 && reveal > 0.97)
   }
 
   updateFades(dt)

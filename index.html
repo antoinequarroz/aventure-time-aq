@@ -43,6 +43,40 @@
     </script>
   </head>
   <body>
+    <div id="loader" role="progressbar" aria-label="Chargement du portfolio" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <style>
+        #loader { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: radial-gradient(ellipse at 50% 35%, #2c1f63 0%, #140f2e 55%, #070a1f 100%); color: #f4f1ff; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; transition: opacity 0.9s ease, visibility 0.9s; overflow: hidden; }
+        #loader.done { opacity: 0; visibility: hidden; }
+        #loader .ld-stars { position: absolute; inset: -50%; background-image: radial-gradient(1.5px 1.5px at 20% 30%, #fff 50%, transparent 51%), radial-gradient(1px 1px at 70% 20%, #fff 50%, transparent 51%), radial-gradient(1.2px 1.2px at 40% 70%, #ffd27a 50%, transparent 51%), radial-gradient(1px 1px at 85% 60%, #fff 50%, transparent 51%), radial-gradient(1.4px 1.4px at 10% 80%, #b48cff 50%, transparent 51%), radial-gradient(1px 1px at 55% 45%, #fff 50%, transparent 51%); background-size: 340px 340px; opacity: 0.7; animation: ld-drift 60s linear infinite; }
+        @keyframes ld-drift { to { transform: translate(340px, 170px); } }
+        #loader .ld-box { position: relative; display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 24px; text-align: center; }
+        #loader svg { width: 120px; height: 120px; animation: ld-float 3.2s ease-in-out infinite; filter: drop-shadow(0 18px 30px rgba(120, 90, 255, 0.45)); }
+        @keyframes ld-float { 50% { transform: translateY(-10px) rotate(-2deg); } }
+        #loader h1 { margin: 6px 0 0; font-size: clamp(1.8rem, 6vw, 2.8rem); font-weight: 600; letter-spacing: 0.02em; }
+        #loader p { margin: 0; opacity: 0.7; font-size: 0.95rem; }
+        #loader .ld-track { width: min(320px, 70vw); height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); overflow: hidden; margin-top: 10px; }
+        #loader .ld-bar { display: block; height: 100%; width: 4%; border-radius: inherit; background: linear-gradient(90deg, #ffb347, #b48cff); transition: width 0.25s ease-out; box-shadow: 0 0 14px rgba(255, 179, 71, 0.7); }
+        #loader .ld-step { font-size: 0.82rem; opacity: 0.6; min-height: 1.2em; font-variant-numeric: tabular-nums; }
+        #loader button { margin-top: 6px; padding: 9px 18px; border-radius: 999px; border: 0; cursor: pointer; font: 600 0.88rem system-ui, sans-serif; color: #f4f1ff; background: rgba(255, 255, 255, 0.1); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3); }
+        #loader button:hover { background: rgba(255, 255, 255, 0.18); }
+        @media (prefers-reduced-motion: reduce) { #loader *, #loader { animation: none !important; transition-duration: 0.01ms !important; } }
+      </style>
+      <div class="ld-stars"></div>
+      <div class="ld-box">
+        <svg viewBox="0 0 64 64" aria-hidden="true">
+          <defs><linearGradient id="ld-rock" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8f88c8"/><stop offset="1" stop-color="#3d3378"/></linearGradient></defs>
+          <circle cx="47" cy="15" r="6" fill="#ffd27a"/><circle cx="50" cy="13" r="5" fill="#2c1f63"/>
+          <path d="M10 36h44l-8 9-6 9h-16l-6-9z" fill="url(#ld-rock)"/><path d="M10 36h44v4H10z" fill="#6fd38a"/>
+          <path d="M26 36V24l3-4 3 4v12z" fill="#c9c3ef"/><path d="M25 24h8l-4-7z" fill="#ff6f9f"/>
+          <rect x="35" y="28" width="7" height="8" fill="#c9c3ef"/><path d="M34 28h9l-4.5-5z" fill="#ff6f9f"/><rect x="28" y="29" width="2" height="3" rx="1" fill="#ffd27a"/>
+        </svg>
+        <h1>Antoine Quarroz</h1>
+        <p>Portfolio 3D · trois îles à explorer</p>
+        <div class="ld-track"><i class="ld-bar" id="loader-bar"></i></div>
+        <span class="ld-step" id="loader-step">Chargement…</span>
+        <button id="loader-list" type="button" hidden>📄 Pressé ? Voir en liste</button>
+      </div>
+    </div>
     <div id="app"></div>
     <div id="ui"></div>
     <noscript>
