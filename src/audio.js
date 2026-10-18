@@ -145,6 +145,53 @@ export function createAudio() {
     src.stop(when + dur + 0.02)
   }
 
+  // Sifflet : son aigu avec un roulement rapide (la petite bille du sifflet).
+  function whistle(when, dur) {
+    const o = ctx.createOscillator()
+    o.type = 'sine'
+    o.frequency.value = 2900
+    const lfo = ctx.createOscillator()
+    lfo.frequency.value = 38
+    const depth = ctx.createGain()
+    depth.gain.value = 140
+    lfo.connect(depth).connect(o.frequency)
+    const g = ctx.createGain()
+    g.gain.setValueAtTime(0, when)
+    g.gain.linearRampToValueAtTime(0.05, when + 0.015)
+    g.gain.setValueAtTime(0.05, when + dur - 0.03)
+    g.gain.linearRampToValueAtTime(0.0001, when + dur)
+    o.connect(g).connect(sfxBus)
+    for (const n of [o, lfo]) {
+      n.start(when)
+      n.stop(when + dur + 0.02)
+    }
+  }
+
+  // Foule : plusieurs bandes de bruit qui enflent ensemble, comme des milliers de voix.
+  function crowd(when, dur) {
+    for (const [freq, q, vol] of [[420, 0.8, 0.09], [900, 1.2, 0.07], [1800, 1.5, 0.035]]) {
+      const src = ctx.createBufferSource()
+      src.buffer = noiseBuffer
+      src.loop = true
+      const f = ctx.createBiquadFilter()
+      f.type = 'bandpass'
+      f.frequency.value = freq
+      f.Q.value = q
+      // Léger mouvement de la clameur.
+      f.frequency.setValueAtTime(freq, when)
+      f.frequency.linearRampToValueAtTime(freq * 1.25, when + dur * 0.3)
+      f.frequency.linearRampToValueAtTime(freq * 0.9, when + dur)
+      const g = ctx.createGain()
+      g.gain.setValueAtTime(0.0001, when)
+      g.gain.exponentialRampToValueAtTime(vol, when + 0.35)
+      g.gain.setValueAtTime(vol, when + dur * 0.45)
+      g.gain.exponentialRampToValueAtTime(0.0001, when + dur)
+      src.connect(f).connect(g).connect(sfxBus)
+      src.start(when, Math.random())
+      src.stop(when + dur + 0.05)
+    }
+  }
+
   function chirp(when, from, to, dur, vol = 0.01, bus = ambBus) {
     const o = ctx.createOscillator()
     o.type = 'sine'
@@ -283,6 +330,15 @@ export function createAudio() {
       ;[72, 76, 79, 84].forEach((n, i) => note(hz(n), t + i * 0.1, { type: 'triangle', vol: 0.08, decay: 0.6, bus: sfxBus }))
       for (const n of [72, 76, 79, 84]) note(hz(n), t + 0.45, { type: 'sine', vol: 0.05, attack: 0.02, decay: 1.6, bus: sfxBus })
     },
+    // But ! Coup de sifflet de l'arbitre, clameur de la foule qui monte puis retombe, petite fanfare.
+    goal() {
+      if (!ctx) return
+      const t = ctx.currentTime + 0.02
+      for (const [start, dur] of [[0, 0.12], [0.18, 0.12], [0.36, 0.55]]) whistle(t + start, dur)
+      crowd(t + 0.2, 3.2)
+      ;[67, 72, 76, 79, 84].forEach((n, i) => note(hz(n), t + 0.5 + i * 0.09, { type: 'triangle', vol: 0.06, decay: 0.5, bus: sfxBus }))
+      for (const n of [60, 67, 72, 76]) note(hz(n), t + 0.98, { type: 'sine', vol: 0.045, attack: 0.03, decay: 1.8, bus: sfxBus })
+    },
     // Ouverture du coffre : arpège plus long et accord qui scintille.
     fanfare() {
       if (!ctx) return
@@ -328,7 +384,7 @@ export function createAudio() {
   const say = (text) => {
     if (!muted) for (const cb of captionListeners) cb(text)
   }
-  for (const [name, label] of [['jingle', 'petite mélodie de victoire'], ['fanfare', 'grande fanfare']]) {
+  for (const [name, label] of [['jingle', 'petite mélodie de victoire'], ['fanfare', 'grande fanfare'], ['goal', 'coup de sifflet et clameur de la foule']]) {
     const fn = api[name]
     api[name] = (...args) => {
       say(`♪ ${label}`)

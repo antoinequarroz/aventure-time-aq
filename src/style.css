@@ -532,3 +532,95 @@ body.solar-open .solar-title strong { font-size: clamp(1rem, 2.6vw, 1.3rem); }
 .solar-card .solar-kind, .solar-card h3 { display: none; }
 .build-tag { position: absolute; right: 10px; bottom: 6px; font: 500 0.68rem var(--font-ui); color: rgba(244, 241, 255, 0.45); pointer-events: none; z-index: 2; }
 #ui.touch .build-tag { right: 50%; transform: translateX(50%); bottom: 2px; }
+
+/* Borne d'arcade (jeux vidéo du château) */
+body.arcade-open #ui > :not(#fade):not(#achievement) { display: none !important; }
+body.arcade-open #ui { z-index: 60; }
+.arcade {
+  position: fixed; inset: 0; z-index: 50; opacity: 0; transition: opacity 0.35s var(--ease, ease);
+  display: flex; align-items: center; justify-content: center; padding: 52px 16px 12px; overflow: hidden;
+  background: radial-gradient(at 50% 35%, #2c1f63 0%, #140f2e 55%, #070a1f 100%);
+  font-family: var(--font-ui); color: #f4f1ff; touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.arcade.visible { opacity: 1; }
+.arcade button { font-family: var(--font-ui); -webkit-tap-highlight-color: transparent; }
+.arcade-quit {
+  position: absolute; top: max(12px, env(safe-area-inset-top)); right: 16px; z-index: 2;
+  border: 0; border-radius: 999px; padding: 8px 14px; cursor: pointer; font: 600 0.85rem var(--font-ui); color: #f4f1ff;
+  background: rgba(20, 16, 44, 0.86); box-shadow: inset 0 0 0 1px rgba(180, 140, 255, 0.4);
+}
+.arcade-quit:hover { box-shadow: inset 0 0 0 1px var(--gold, #ffd27a); color: var(--gold, #ffd27a); }
+.arcade-cabinet {
+  --screen-w: min(calc(min(440px, 100vw - 32px) - 48px), calc((100dvh - 340px) * 0.889));
+  width: min(440px, 100%); display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 12px 14px 14px; border-radius: 26px 26px 18px 18px;
+  background: linear-gradient(180deg, #2b2060 0%, #1d1645 45%, #150f33 100%);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), inset 0 0 0 1px rgba(180, 140, 255, 0.35), inset 6px 0 18px rgba(180, 140, 255, 0.08),
+    0 30px 70px rgba(0, 0, 0, 0.6), 0 0 60px rgba(122, 108, 255, 0.18);
+}
+.arcade-marquee {
+  width: 100%; padding: 8px 10px; border-radius: 14px; text-align: center;
+  background: linear-gradient(180deg, #3a2a7a, #231a4a); box-shadow: inset 0 0 0 1px rgba(255, 210, 122, 0.45), inset 0 0 20px rgba(180, 140, 255, 0.35), 0 0 24px rgba(180, 140, 255, 0.35);
+}
+.arcade-marquee span {
+  font: 700 clamp(1.3rem, 5vw, 1.8rem) var(--font-title); letter-spacing: 0.18em; color: #fff3d0;
+  text-shadow: 0 0 6px #ffd27a, 0 0 16px #ffb347, 0 0 30px #b48cff; animation: arcade-neon 3.2s ease-in-out infinite;
+}
+@keyframes arcade-neon { 0%, 100% { opacity: 1; } 47% { opacity: 1; } 50% { opacity: 0.75; } 53% { opacity: 1; } }
+.arcade-intro {
+  margin: -2px 0 0; max-width: 100%; font-size: 0.78rem; line-height: 1.35; text-align: center; opacity: 0.7;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.arcade-intro[hidden] { display: none; }
+.arcade-bezel {
+  padding: 10px; border-radius: 16px; background: linear-gradient(180deg, #0c0920, #05040f);
+  box-shadow: inset 0 0 0 2px #2f2566, inset 0 4px 10px rgba(0, 0, 0, 0.7), 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.arcade-screen { position: relative; width: var(--screen-w); border-radius: 8px; overflow: hidden; box-shadow: 0 0 22px rgba(143, 227, 255, 0.18); }
+.arcade-screen canvas { display: block; width: 100%; aspect-ratio: 240 / 270; image-rendering: pixelated; image-rendering: crisp-edges; background: #070a1f; }
+.arcade-screen::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: 8px;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0 1px, transparent 1px 3px);
+  box-shadow: inset 0 0 30px rgba(180, 140, 255, 0.25), inset 0 0 4px rgba(0, 0, 0, 0.8);
+}
+.arcade-panel {
+  width: 100%; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 14px; background: linear-gradient(180deg, #2a1f5c, #1a1440);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 0 0 1px rgba(180, 140, 255, 0.3);
+}
+.arcade-hint { margin: 0; font-size: 0.72rem; line-height: 1.35; text-align: center; opacity: 0.75; }
+.arcade-dpad { display: grid; grid-template-columns: repeat(3, 30px); grid-template-rows: repeat(3, 30px); }
+.arcade-dpad button, .arcade-ab button { border: 0; cursor: pointer; touch-action: none; transition: transform 0.08s, filter 0.08s; }
+.arcade-dpad button {
+  font-size: 0.7rem; color: #cfc4ff; background: linear-gradient(180deg, #3a2f74, #241b52);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 2px 0 #0d0a24;
+}
+.arcade-dpad [data-key='up'] { grid-area: 1 / 2; border-radius: 8px 8px 0 0; }
+.arcade-dpad [data-key='left'] { grid-area: 2 / 1; border-radius: 8px 0 0 8px; }
+.arcade-dpad [data-key='right'] { grid-area: 2 / 3; border-radius: 0 8px 8px 0; }
+.arcade-dpad [data-key='down'] { grid-area: 3 / 2; border-radius: 0 0 8px 8px; }
+.arcade-dpad::after { content: ''; grid-area: 2 / 2; background: #2c2262; }
+.arcade-ab { display: flex; gap: 10px; align-items: center; }
+.arcade-ab button {
+  width: 46px; height: 46px; border-radius: 50%; font: 800 1rem var(--font-title); color: #1a1530;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), inset 0 -3px 0 rgba(0, 0, 0, 0.25), 0 3px 0 #0d0a24, 0 0 14px rgba(255, 179, 71, 0.25);
+}
+.arcade-a { background: radial-gradient(circle at 35% 30%, #ffe3a3, #ffb347 60%, #e0902e); transform: translateY(-8px); }
+.arcade-b { background: radial-gradient(circle at 35% 30%, #dccbff, #b48cff 60%, #7b5cd6); color: #1a1530; }
+.arcade-dpad button.down, .arcade-dpad button:active { transform: translateY(2px); filter: brightness(1.3); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18); }
+.arcade-ab button.down, .arcade-ab button:active { filter: brightness(1.15); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.35); }
+.arcade-a.down, .arcade-a:active { transform: translateY(-6px); }
+@media (max-width: 480px) {
+  .arcade { padding-top: 50px; }
+  .arcade-cabinet { --screen-w: min(calc(100vw - 66px), calc((100dvh - 320px) * 0.889)); padding: 10px 10px 12px; gap: 8px; }
+  .arcade-bezel { padding: 7px; }
+  .arcade-panel { padding: 8px 10px; gap: 6px; }
+  .arcade-hint { font-size: 0.64rem; }
+  .arcade-dpad { grid-template-columns: repeat(3, 34px); grid-template-rows: repeat(3, 34px); }
+  .arcade-ab button { width: 50px; height: 50px; }
+}
+@media (max-height: 620px) { .arcade-intro { display: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .arcade { transition: none; }
+  .arcade-marquee span { animation: none; }
+}

@@ -574,10 +574,10 @@ const DECOR = {
     S.useTheme('past')
     for (const sx of [-1, 1]) S.statue(ctx, sx * 2.3, d / 2 - 3.3, { key: 'knight', anim: 'Idle', time: 0.2, keep: ['2H_Sword', 'Knight_Helmet', 'Knight_Cape'], height: 2, rotY: Math.PI - sx * 0.4 + Math.PI, r: 0.6 })
     // Le roi sur son trône, un mage et un garde qui fait sa ronde.
-    const king = C.npc(ctx, 'knight', 0, -d / 2 + 1.35, { keep: ['Knight_Cape', 'Knight_Helmet'], anim: 'Sit_Chair_Idle', r: 0, greet: false })
+    const king = C.npc(ctx, 'knight', 0, -d / 2 + 1.35, { keep: ['Knight_Cape', 'Knight_Helmet'], anim: 'Sit_Chair_Idle', r: 0, greet: false, talk: 'king' })
     king.object.position.y = 0.8
-    C.npc(ctx, 'mage', -3, -3.5, { keep: ['Spellbook_open', 'Mage_Hat'], anim: 'Spellcasting', speed: 0.5, path: [[-3, -3.5], [-3, 1.2]], walk: 0.8, pause: 4 })
-    C.npc(ctx, 'barbarian', 3.6, 3, { keep: ['1H_Axe', 'Barbarian_Hat'], path: [[3.6, 3], [3.6, -3], [5.5, 0]], walk: 1, pause: 2.5 })
+    C.npc(ctx, 'mage', -3, -3.5, { keep: ['Spellbook_open', 'Mage_Hat'], anim: 'Spellcasting', speed: 0.5, talk: 'mage-castle', path: [[-3, -3.5], [-3, 1.2]], walk: 0.8, pause: 4 })
+    C.npc(ctx, 'barbarian', 3.6, 3, { keep: ['1H_Axe', 'Barbarian_Hat'], talk: 'barbarian-castle', path: [[3.6, 3], [3.6, -3], [5.5, 0]], walk: 1, pause: 2.5 })
   },
 
   // Bureau industriel : mur de briques et grande verrière, poutre d'acier et suspensions,
@@ -717,7 +717,7 @@ const DECOR = {
     back.rotation.x = 0.12
     chair.add(back)
     for (const dx of [-1.5, 0, 1.5]) ctx.addCollider(desk.position.x + dx * 1.25, desk.position.z, 0.8, 2)
-    const dev = C.npc(ctx, 'rogue', desk.position.x - 0.25, desk.position.z + 1.2, { rotY: Math.PI, anim: 'Sit_Chair_Idle', r: 0.5, greet: false })
+    const dev = C.npc(ctx, 'rogue', desk.position.x - 0.25, desk.position.z + 1.2, { rotY: Math.PI, anim: 'Sit_Chair_Idle', r: 0.5, greet: false, talk: 'dev' })
     dev.object.position.y = 0.2
 
     // ---- Étagères en tubes noirs et planches, contre le mur de gauche ----
@@ -757,7 +757,7 @@ const DECOR = {
     sofa.add(mesh(new THREE.BoxGeometry(0.42, 0.36, 0.14), mat(0x3f6f6a), { x: -0.8, y: 0.85, z: -0.18 }))
     ctx.addCollider(2.6, 1.0, 0.7, 1.2)
     ctx.addCollider(2.6, 2.2, 0.7, 1.2)
-    C.npc(ctx, 'mage', 2.75, 2.2, { keep: [], anim: 'Sit_Chair_Idle', rotY: Math.PI / 2, r: 0, greet: false }).object.position.y = 0.32
+    C.npc(ctx, 'mage', 2.75, 2.2, { keep: [], anim: 'Sit_Chair_Idle', rotY: Math.PI / 2, r: 0, greet: false, talk: 'sofa' }).object.position.y = 0.32
     // Table basse bois et acier, avec le téléphone.
     const table = new THREE.Group()
     table.position.set(4.5, 0, 1.6)
@@ -963,7 +963,7 @@ const DECOR = {
     }
     // Torches et bibliothécaire.
     for (const [x, z] of [[w / 2 - 0.25, 1.4], [w / 2 - 0.25, 4], [-w / 2 + 0.55, 4.2]]) torch(group, x, 2.2, z, ctx.animated)
-    C.npc(ctx, 'mage', 2.5, 2.4, { keep: ['Spellbook_open', 'Mage_Hat'], anim: 'Spellcasting', speed: 0.4, path: [[2.5, 2.4], [-3, 2.6], [-1, 0.8]], walk: 0.7, pause: 4 })
+    C.npc(ctx, 'mage', 2.5, 2.4, { keep: ['Spellbook_open', 'Mage_Hat'], anim: 'Spellcasting', speed: 0.4, talk: 'librarian', path: [[2.5, 2.4], [-3, 2.6], [-1, 0.8]], walk: 0.7, pause: 4 })
   },
 
   base(ctx, w, d) {
@@ -1013,14 +1013,14 @@ const DECOR = {
     box(ctx, 0.1, 0.1, 6.4, 0xb48cff, w / 2 - 0.4, 2.4, -1, { emissive: 0xb48cff, emissiveIntensity: 2.5 })
     // Équipage.
     for (const [x, z, route] of [[-3, 2, [[-3, 2], [2, 2.5], [0, -2]]], [3, -3, [[3, -3], [4, 1]]]]) {
-      const a = C.npc(ctx, 'knight', x, z, { keep: [], path: route, walk: 0.9, pause: 3 })
+      const a = C.npc(ctx, 'knight', x, z, { keep: [], path: route, walk: 0.9, pause: 3, talk: 'crew' })
       C.spaceSuit(a.object)
     }
     // Statue de marbre du premier cosmonaute, entre deux piliers néon.
     S.useTheme('future')
     S.statue(ctx, -4.6, 3.6, { key: 'rogue', anim: 'Cheer', time: 0.5, keep: [], height: 2, suit: true, rotY: 0.3, r: 0.7 })
     for (const sx of [-1, 1]) S.runePillar(ctx, -4.6 + sx * 1.7, 4.3, { h: 1.3, color: S.theme().runes[sx < 0 ? 0 : 1] })
-    const pilot = C.npc(ctx, 'rogue', 2.5, -d / 2 + 1.6, { rotY: Math.PI, anim: 'Interact', speed: 0.6, r: 0, greet: false })
+    const pilot = C.npc(ctx, 'rogue', 2.5, -d / 2 + 1.6, { rotY: Math.PI, anim: 'Interact', speed: 0.6, r: 0, greet: false, talk: 'pilot' })
     C.spaceSuit(pilot.object)
     box(ctx, 2.2, 1, 0.7, 0x3a3d55, 2.5, 0.5, -d / 2 + 0.8, { metalness: 0.5 })
     ctx.addCollider(2.5, -d / 2 + 0.8, 1.2, 2)

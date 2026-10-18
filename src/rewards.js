@@ -27,6 +27,12 @@ export const ACHIEVEMENTS = [
   { id: 'night', icon: '🌌', title: 'Oiseau de nuit', text: 'Rester jusqu\'à la nuit.' },
   { id: 'secrets', icon: '✨', title: 'Chasseur de secrets', text: 'Trouver les trois étoiles cachées au bord des îles.' },
   { id: 'konami', icon: '🕹️', title: 'Vieille école', text: 'Taper un code bien connu des joueurs.' },
+  { id: 'chatty', icon: '💬', title: 'Bavard', text: 'Parler à un habitant des îles.' },
+  { id: 'sociable', icon: '🤝', title: 'Ami de tous', text: 'Discuter avec huit habitants différents.' },
+  { id: 'skier', icon: '⛷️', title: 'Skieur', text: 'Finir la descente de ski.' },
+  { id: 'ski-gold', icon: '🏔️', title: 'Champion des pistes', text: 'Décrocher l\'or à la descente de ski (1900 points).' },
+  { id: 'arcade', icon: '🕹️', title: 'Insère une pièce', text: 'Jouer une partie à la borne d\'arcade du château.' },
+  { id: 'arcade-all', icon: '👾', title: 'Pilier d\'arcade', text: 'Jouer aux trois jeux de la borne d\'arcade.' },
   { id: 'astronomer', icon: '🔭', title: 'Astronome', text: 'Observer les huit planètes au télescope du Futur.' },
 ]
 

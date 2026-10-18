@@ -11,7 +11,9 @@ import { createIslands } from './world/islands.js'
 import { createLightPool } from './lightPool.js'
 import { createVehicles } from './world/vehicles.js'
 import { createMinimap } from './minimap.js'
-import { focus as npcFocus } from './world/characters.js'
+import { focus as npcFocus, talkers } from './world/characters.js'
+import { createDialogue } from './dialogue.js'
+import './play.css'
 import { createPushables } from './world/pushables.js'
 import { loadModels } from './world/models.js'
 import { createPlayer } from './player.js'
@@ -24,7 +26,7 @@ import { createRewards, trophiesView } from './rewards.js'
 import { createTour } from './tour.js'
 import { createWeather } from './weather.js'
 import { createSocialPlaza, createPortfolioBanner } from './world/socials.js'
-import { socials, about, showcases, islands as eraContent } from './content.js'
+import { socials, about, showcases, islands as eraContent, dialogues } from './content.js'
 import { createListView } from './listView.js'
 import { createSettings, CONTROLS_HELP } from './settings.js'
 import { createTutorial } from './tutorial.js'
@@ -34,6 +36,8 @@ import { createSecrets } from './secrets.js'
 import { createShowcases } from './world/showcases.js'
 import { THEMES } from './world/islands.js'
 import { createSolarSystem } from './solarSystem.js'
+import { createSki } from './ski.js'
+import { createArcade } from './arcade.js'
 
 const ui = createUI()
 console.info(`Aventure Time AQ · version du ${__BUILD__}`)
@@ -203,6 +207,82 @@ const rewards = createRewards(ui, sfx)
 const TELESCOPE = { type: 'telescope', x: THEMES.future.center.x - 14.4, z: THEMES.future.center.z - 2.2, r: 1.1, title: 'Regarder dans le télescope' }
 interactables.unshift(TELESCOPE)
 let telescopeArmed = true
+// PNJ à qui parler : leur position suit leur promenade.
+for (const t of talkers) {
+  const talk = dialogues[t.id]
+  if (!talk) continue
+  interactables.push({
+    type: 'npc',
+    r: 2.1,
+    title: talk.name,
+    talk,
+    talker: t,
+    get x() {
+      return t.center.x + t.object.position.x
+    },
+    get z() {
+      return t.center.z + t.object.position.z
+    },
+  })
+}
+const dialog = createDialogue({ sfx })
+// Descente de ski : le panneau « Ski » de l'île du Passé lance la course.
+const ski = createSki({
+  renderer,
+  sfx,
+  rewards,
+  getCharacter: () => player.character,
+  onExit: (done) => {
+    sfx.blip('close')
+    ui.fade(() => done())
+  },
+  onFinish: (score, run, gold) => {
+    rewards.unlock('skier')
+    if (gold) rewards.unlock('ski-gold')
+  },
+})
+// Borne d'arcade : le panneau « Jeux vidéo » de la grande salle du château.
+const ARCADE_GAMES = ['snake', 'bricks', 'dragon']
+const arcadePlayed = new Set()
+const arcade = createArcade({
+  sfx,
+  onPlayed: (id, score) => {
+    rewards.unlock('arcade')
+    arcadePlayed.add(id)
+    if (ARCADE_GAMES.every((g) => arcadePlayed.has(g))) rewards.unlock('arcade-all')
+    void score
+  },
+})
+const isArcade = (item) => item?.type === 'sign' && item.title === 'Jeux vidéo' && !item.showcase
+function openArcade() {
+  const sign = interactables.find(isArcade)
+  tutorial.did('interact')
+  if (sign) discover(sign)
+  arcade.open({ title: 'Jeux vidéo', text: 'Les jeux vidéo ont nourri mon goût pour l\'aventure. Choisis un jeu !' })
+}
+const isSki = (item) => item?.type === 'sign' && item.title === 'Ski' && !item.showcase
+function openSki() {
+  const sign = interactables.find(isSki)
+  tutorial.did('interact')
+  sfx.blip('open')
+  if (sign) discover(sign)
+  ui.fade(() => ski.open(sign ? { text: [].concat(sign.text).join(' ') } : null))
+}
+const TALK_KEY = 'aventure-time-aq:talked'
+const talkedTo = new Set((() => {
+  try {
+    return JSON.parse(localStorage.getItem(TALK_KEY)) || []
+  } catch {
+    return []
+  }
+})())
+const saveTalked = () => {
+  try {
+    localStorage.setItem(TALK_KEY, JSON.stringify([...talkedTo]))
+  } catch {
+    // Navigation privée.
+  }
+}
 const solar = createSolarSystem({
   renderer,
   onPlanet: (id, n, total) => {
@@ -230,10 +310,12 @@ const weather = createWeather(scene)
 const pushables = createPushables(scene, world, world.pushables, {
   onStrike: () => {
     ui.toast('STRIKE ! Toutes les quilles sont tombées 🎳')
+    sfx.jingle()
     rewards.unlock('strike')
   },
   onGoal: () => {
     ui.toast('BUUUT ! ⚽')
+    sfx.goal()
     rewards.unlock('goal')
   },
 })
@@ -272,6 +354,8 @@ camera.position.copy(player.position).add(cameraOffset)
 if (new URLSearchParams(location.search).has('debug')) {
   window.__game = {
     player,
+    ski,
+    dialog,
     world,
     scene,
     renderer,
@@ -342,7 +426,7 @@ const controls = createControls({
   scene,
   player,
   onInteract: () => interact(),
-  isActive: () => started && !vehicles.traveling && !vehicles.driving && !ui.panelOpen() && !tour.active && !solar.active,
+  isActive: () => started && !vehicles.traveling && !vehicles.driving && !ui.panelOpen() && !tour.active && !solar.active && !ski.active && !arcade.active,
 })
 let introBlend = 0
 const isTouch = matchMedia('(pointer: coarse)').matches
@@ -499,7 +583,13 @@ ui.on('tourStop', () => {
 })
 
 window.addEventListener('keydown', (e) => {
-  if (!started || vehicles.traveling || listOpen() || solar.active) return
+  if (!started || vehicles.traveling || listOpen() || solar.active || ski.active || arcade.active) return
+  if (dialog.active && (e.code === 'Escape' || e.code === 'KeyE' || e.code === 'Space' || e.code === 'Enter')) {
+    e.preventDefault()
+    if (e.code === 'Escape') dialog.close()
+    else dialog.next()
+    return
+  }
   if (e.code === 'Escape') {
     if (tour.active) tour.stop()
     if (ui.panelOpen()) ui.closePanel()
@@ -516,7 +606,18 @@ function interact() {
   if (vehicles.driving) return vehicles.exit(player)
   if (ui.panelOpen()) return ui.closePanel()
   if (!nearby) return
+  if (dialog.active) return dialog.next()
   if (nearby.type === 'telescope' || isAstronomy(nearby)) return openTelescope()
+  if (isSki(nearby)) return openSki()
+  if (isArcade(nearby)) return openArcade()
+  if (nearby.type === 'npc') {
+    tutorial.did('interact')
+    rewards.unlock('chatty')
+    talkedTo.add(nearby.talker.id)
+    saveTalked()
+    if (talkedTo.size >= 8) rewards.unlock('sociable')
+    return dialog.open(nearby.talk, nearby)
+  }
   tutorial.did('interact')
   if (nearby.showcase) {
     discover(nearby)
@@ -815,8 +916,19 @@ function tick() {
     requestAnimationFrame(tick)
     return
   }
+  if (ski.active) {
+    ski.update(dt, t)
+    ski.render()
+    requestAnimationFrame(tick)
+    return
+  }
+  // Borne d'arcade : elle dessine elle-même ses jeux, le monde 3D est en pause.
+  if (arcade.active) {
+    requestAnimationFrame(tick)
+    return
+  }
 
-  const canMove = started && !ui.panelOpen() && !games.frozen && !tour.active && !listOpen()
+  const canMove = started && !ui.panelOpen() && !games.frozen && !tour.active && !listOpen() && !dialog.active
   if (!vehicles.traveling && !vehicles.driving) player.update(dt, canMove)
   gamepad.update(canMove)
   tutorial.update(dt)
@@ -864,11 +976,17 @@ function tick() {
   sun.target.position.copy(cameraTarget)
 
   nearby = started && !vehicles.traveling && !vehicles.driving ? findNearby() : null
+  // Dialogue : se ferme si on s'éloigne du PNJ (ou s'il s'éloigne).
+  dialog.update(dt)
+  if (dialog.active) {
+    const t = dialog.talker
+    if (!t || Math.hypot(player.position.x - t.x, player.position.z - t.z) > 3.4) dialog.close()
+  }
   doorCooldown -= dt
   if (nearby?.type === 'telescope' && telescopeArmed && !ui.panelOpen() && !tour.active) openTelescope()
   if (!telescopeArmed && Math.hypot(player.position.x - TELESCOPE.x, player.position.z - TELESCOPE.z) > 1.8) telescopeArmed = true
   if (nearby?.type === 'door' && nearby.auto && doorCooldown <= 0 && !ui.panelOpen() && Math.hypot(player.position.x - nearby.x, player.position.z - nearby.z) < 0.95) enterDoor(nearby)
-  ui.setPrompt(vehicles.driving ? vehicles.hint : nearby && !ui.panelOpen() && !tour.active ? ({ chest: quest.opened || discovered.size >= signs.length ? `E · Ouvrir « ${nearby.title} »` : `E · ${nearby.title} (${discovered.size} / ${signs.length})`, sign: isAstronomy(nearby) ? '🔭 E · Astronomie : regarder dans le télescope' : nearby.showcase ? `E · Voir « ${nearby.showcase.project.title} » · marche sur les flèches pour changer` : `E · Lire « ${nearby.title} »`, vehicle: `E · ${nearby.id === 'car' ? nearby.title : `Monter : ${nearby.title}`}`, game: games.active ? null : `E · Jouer : ${nearby.title}`, door: `E · ${nearby.title}`, telescope: `E · ${nearby.title}`, social: `E · ${nearby.title}` })[nearby.type] : null)
+  ui.setPrompt(vehicles.driving ? vehicles.hint : nearby && !ui.panelOpen() && !tour.active ? ({ chest: quest.opened || discovered.size >= signs.length ? `E · Ouvrir « ${nearby.title} »` : `E · ${nearby.title} (${discovered.size} / ${signs.length})`, sign: isAstronomy(nearby) ? '🔭 E · Astronomie : regarder dans le télescope' : isSki(nearby) ? '⛷️ E · Ski : faire la descente' : isArcade(nearby) ? '🕹️ E · Jeux vidéo : jouer à la borne d\'arcade' : nearby.showcase ? `E · Voir « ${nearby.showcase.project.title} » · marche sur les flèches pour changer` : `E · Lire « ${nearby.title} »`, vehicle: `E · ${nearby.id === 'car' ? nearby.title : `Monter : ${nearby.title}`}`, game: games.active ? null : `E · Jouer : ${nearby.title}`, door: `E · ${nearby.title}`, npc: dialog.active ? null : `💬 E · Parler · ${nearby.title}`, telescope: `E · ${nearby.title}`, social: `E · ${nearby.title}` })[nearby.type] : null)
 
   const island = here
   applyMood(island?.era, 1 - Math.exp(-dt * 2), day)
@@ -909,4 +1027,5 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight)
   composer.setSize(window.innerWidth, window.innerHeight)
   solar.resize()
+  ski.resize()
 })

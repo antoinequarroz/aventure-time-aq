@@ -412,3 +412,32 @@ export const islands = [
     ],
   },
 ]
+
+// Dialogues des PNJ (touche E à côté d'eux). Ils parlent du monde et guident le visiteur ;
+// ils ne racontent rien de personnel sur Antoine qui ne soit déjà sur les panneaux.
+export const dialogues = {
+  'guard-left': { name: 'Garde Brannok', icon: '🛡️', lines: ['Halte ! Qui va là ?', '… Ah, un visiteur du portfolio. Passe donc, le château est ouvert.', 'Dans la grande salle, tu trouveras le roi, les jeux vidéo et la porte de la bibliothèque.'] },
+  'guard-right': { name: 'Garde Hilda', icon: '🛡️', lines: ['Mon collègue fait le sérieux, mais il adore les visiteurs.', 'La bibliothèque du château raconte l\'histoire d\'Antoine, chapitre par chapitre.', 'Et si tu cherches tous les points lumineux, un coffre t\'attend sur l\'île du Présent.'] },
+  'mage-past': { name: 'Mage Elowen', icon: '🔮', lines: ['Les runes m\'ont prédit ta venue, voyageur.', 'Trois étoiles sont cachées au bord des îles. Les trouveras-tu ?', 'Indice : regarde là où personne ne regarde, tout au bord du vide.'] },
+  innkeeper: { name: 'Gunnar le tavernier', icon: '🍺', lines: ['Santé, l\'ami ! La taverne du Val d\'Hérens est sur le Campement, juste à côté.', 'Là-bas, on garde les projets les plus chers au cœur d\'Antoine.', 'Et ramasse les pièces au passage, c\'est la tournée du patron !'] },
+  'knight-past': { name: 'Sire Aldric', icon: '⚔️', lines: ['Bienvenue sur l\'île du Passé, là où tout commence.', 'Vers le sud-ouest, une place de pierre garde les réseaux d\'Antoine : LinkedIn, GitHub, Instagram et X.', 'Un chevalier de pierre y lève son épée. Belle statue, hein ? C\'est mon cousin.'] },
+  'rogue-past': { name: 'Sly la voleuse', icon: '🗡️', lines: ['Psst… Tu as vu le ballon près du but ? Pousse-le dedans, ça fait un bruit fou.', 'Et la montagne enneigée, là-bas ? Lis le panneau Ski : on peut y faire une vraie course.', 'Moi ? Je ne vole que des records. Le tien, par exemple.'] },
+  king: { name: 'Le roi', icon: '👑', lines: ['Ah, un aventurier ! Approche, approche.', 'Mon royaume, c\'est le passé d\'Antoine : ses racines, sa formation, ses passions.', 'Va donc jouer à la borne d\'arcade dans le coin. Même un roi a droit à une petite partie.'] },
+  'mage-castle': { name: 'Archimage Thalor', icon: '📖', lines: ['Chut… je révise mes sorts.', 'La porte du fond mène à la bibliothèque. Trois chapitres t\'y attendent.', 'Lis-les dans l\'ordre, c\'est plus joli.'] },
+  'barbarian-castle': { name: 'Brog', icon: '🪓', lines: ['BROG AIME JEUX VIDÉO.', 'Borne d\'arcade là-bas. Brog record au Serpent. Toi battre Brog ?', 'Brog attendre. Brog patient.'] },
+  librarian: { name: 'La bibliothécaire', icon: '📚', lines: ['Bienvenue dans la bibliothèque du château.', 'Chaque pupitre raconte un chapitre de l\'histoire d\'Antoine.', 'Pour la suite de l\'histoire, il faut prendre la voiture vers l\'île du Présent.'] },
+  villager: { name: 'Margaux', icon: '🙂', lines: ['Salut ! Tu es sur l\'île du Présent, c\'est ici qu\'Antoine travaille aujourd\'hui.', 'Le studio du développeur est juste là : son bureau, ses projets web et ses applis mobiles.', 'Sur les Toits, il y a l\'Atelier web et le GitHub Café. On y sent le café et le code.'] },
+  gardener: { name: 'Léon le jardinier', icon: '🌷', lines: ['Attention aux fleurs, s\'il te plaît !', 'Tu vois le dancefloor ? Attrape les dalles qui s\'allument, les dorées valent 3 points.', 'Moi, mon record, c\'est arroser 40 plantes en 30 secondes.'] },
+  'coffee-lover': { name: 'Bastien', icon: '☕', lines: ['Mon troisième café de la journée. Le meilleur, c\'est celui du GitHub Café.', 'Là-bas, ils ont une sculpture en forme de graphe de commits. Très artistique.', 'Le food truck aussi est pas mal. Mais chut, ne le dis pas au barista.'] },
+  jogger: { name: 'Zoé', icon: '🏃', lines: ['Hop hop, je fais mon tour du parc !', 'Des bugs se cachent dans l\'herbe. Attrape-les tous pour gagner une médaille.', 'Au bord du parc, il y a un studio photo avec de vrais projecteurs. Va voir !'] },
+  footballer: { name: 'Kylian', icon: '⚽', lines: ['Je m\'échauffe pour le match !', 'Pousse le ballon dans un des buts, tu vas entendre le stade exploser.', 'Le studio vidéo est juste derrière les gradins.'] },
+  photographer: { name: 'Nina, photographe', icon: '📷', lines: ['Ne bouge plus… Clic ! Parfait.', 'Ici c\'est le studio photo : fond blanc, boîtes à lumière et parapluies.', 'Le panneau Photo, juste à côté, parle de cette passion d\'Antoine.'] },
+  cameraman: { name: 'Hugo, cadreur', icon: '🎬', lines: ['Silence, on tourne ! … Bon, coupez.', 'Le studio vidéo, c\'est caméra sur trépied, projecteurs et clap.', 'Le panneau Vidéo te raconte le reste.'] },
+  barista: { name: 'Le barista', icon: '☕', lines: ['Bienvenue au GitHub Café ! Un espresso, un commit ?', 'Le mur de contributions derrière moi, c\'est le menu du jour.', 'L\'Atelier web est juste à côté : ses projets web défilent sur le grand écran.'] },
+  dev: { name: 'Le développeur', icon: '💻', lines: ['Une seconde, je termine ce commit…', 'Voilà ! Ici, c\'est le studio : le MacBook, le vieux Mac rétro et le salon.', 'Les panneaux du studio présentent le métier d\'Antoine, ses projets web et ses applis.'] },
+  sofa: { name: 'Lina', icon: '📱', lines: ['Je teste une appli sur le téléphone. Ça marche super bien.', 'Les applis mobiles d\'Antoine sont présentées sur le panneau juste à côté.', 'La télé passe ses projets en diaporama. Pratique pour faire une pause.'] },
+  astro: { name: 'Capitaine Nova', icon: '🧑‍🚀', lines: ['Wouhou ! En faible gravité, chaque saut est une fête.', 'Le grand télescope, sur la plateforme, t\'emmène voir tout le système solaire.', 'Observe les huit planètes pour devenir Astronome.'] },
+  moonwalker: { name: 'Cosmonaute Orion', icon: '🛰️', lines: ['Patrouille lunaire, tout est calme.', 'Le Labo, sur l\'île, présente les projets d\'avenir d\'Antoine.', 'Pour rentrer au Présent, la fusée attend sur sa rampe.'] },
+  crew: { name: 'Équipage de la base', icon: '🛰️', lines: ['Poste de commandement, à vos ordres.', 'Ici, on surveille les signaux stellaires et la météo de l\'espace.', 'Si tu veux contacter Antoine, le panneau Contact, dehors sur l\'île, est le bon canal.'] },
+  pilot: { name: 'La pilote', icon: '🚀', lines: ['Paré au décollage… dès que la pause café est finie.', 'La fusée relie le Futur au Présent en quelques secondes.', 'Bon vol, et pense à mettre ton casque !'] },
+}

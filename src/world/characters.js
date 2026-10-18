@@ -27,8 +27,12 @@ export const focus = new THREE.Vector3(1e6, 0, 0)
 // Personnage non joueur posé sur une île. Sans `path`, il joue son animation sur place ;
 // avec `path` (points [x, z] locaux), il se promène de point en point et fait une pause à chacun.
 // Quand le joueur s'approche, il s'arrête, se tourne vers lui et le salue.
-export function npc(ctx, key, x, z, { rotY = 0, anim = 'Idle', keep, height = 1.9, r = 0.5, speed = 1, path = null, walk = 1.3, pause = 2.5, greet = true } = {}) {
+// PNJ à qui on peut parler (option `talk` = identifiant du dialogue, voir `dialogues` dans content.js).
+export const talkers = []
+
+export function npc(ctx, key, x, z, { rotY = 0, anim = 'Idle', keep, height = 1.9, r = 0.5, speed = 1, path = null, walk = 1.3, pause = 2.5, greet = true, talk = null } = {}) {
   const object = character(key, { height, keep, x, z, rotY })
+  if (talk) talkers.push({ id: talk, key, object, center: ctx.center })
   ctx.group.add(object)
   // Hauteur gérée ici (pas par le calage automatique), car le PNJ peut changer de niveau en marchant.
   object.userData.terrain = true

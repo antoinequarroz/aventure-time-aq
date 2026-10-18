@@ -264,7 +264,7 @@ export function photoStudio(ctx, x, z, { rotY = 0 } = {}) {
   g.add(mesh(new THREE.BoxGeometry(0.92, 0.06, 0.57), mat(0xb0b4c4, { metalness: 0.6 }), { x: 3.2, y: 0.46, z: -2.2 }))
   col(3.2, -2.2, 0.5)
   // Le photographe au travail.
-  C.npc(ctx, 'rogue', x - 0.4 + 0.1, z + 1.75, { rotY: Math.PI, anim: 'Interact', speed: 0.6, r: 0.4, greet: false, keep: [] })
+  C.npc(ctx, 'rogue', x - 0.4 + 0.1, z + 1.75, { rotY: Math.PI, anim: 'Interact', speed: 0.6, r: 0.4, greet: false, keep: [], talk: 'photographer' })
 }
 
 // ---------- Studio vidéo ----------
@@ -389,7 +389,7 @@ export function videoStudio(ctx, x, z, { rotY = 0 } = {}) {
   }
   col(-3, -2.2, 0.7)
   // Le caméraman suit le chariot.
-  C.npc(ctx, 'knight', x + 0.8, z + 2.0, { rotY: Math.PI, anim: 'Interact', speed: 0.5, r: 0, greet: false, keep: [] })
+  C.npc(ctx, 'knight', x + 0.8, z + 2.0, { rotY: Math.PI, anim: 'Interact', speed: 0.5, r: 0, greet: false, keep: [], talk: 'cameraman' })
 }
 
 // ---------- GitHub Café ----------
@@ -558,7 +558,7 @@ export function gitCafe(ctx, x, z, { rotY = 0 } = {}) {
   glow.position.set(0, 2.4, 0)
   g.add(glow)
   // Le barista derrière le comptoir.
-  C.npc(ctx, 'barbarian', x + 0.4, z - 2.25, { rotY: 0, anim: 'Idle', keep: ['Mug'], r: 0, greet: false })
+  C.npc(ctx, 'barbarian', x + 0.4, z - 2.25, { rotY: 0, anim: 'Idle', keep: ['Mug'], r: 0, greet: false, talk: 'barista' })
 }
 
 // Sculpture de grès : un graphe git, deux branches qui se rejoignent (commit → merge).

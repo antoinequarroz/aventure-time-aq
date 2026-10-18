@@ -101,12 +101,12 @@ export function decorateMain(ctx) {
   })
 
   // Cosmonaute qui flotte.
-  const astro = C.npc(ctx, 'rogue', -4, 3, { anim: 'Cheer', speed: 0.6, r: 0.8 })
+  const astro = C.npc(ctx, 'rogue', -4, 3, { anim: 'Cheer', speed: 0.6, r: 0.8, talk: 'astro' })
   C.spaceSuit(astro.object)
   animated.push((dt, t) => { astro.object.position.y = Math.abs(Math.sin(t * 1.3)) * 0.6 })
   // Cosmonautes en mission, à petits pas sur la Lune.
   for (const [ax, az, route] of [[6, 2, [[6, 2], [10, 6], [6, 9]]], [-8, -1, [[-8, -1], [-11, 3], [-6, 6]]]]) {
-    const a = C.npc(ctx, 'knight', ax, az, { keep: [], path: route, walk: 0.9, pause: 3 })
+    const a = C.npc(ctx, 'knight', ax, az, { keep: [], path: route, walk: 0.9, pause: 3, talk: 'moonwalker' })
     C.spaceSuit(a.object)
   }
 
