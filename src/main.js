@@ -28,6 +28,7 @@ import { socials, about, showcases, islands as eraContent } from './content.js'
 import { createListView } from './listView.js'
 import { createSettings, CONTROLS_HELP } from './settings.js'
 import { createTutorial } from './tutorial.js'
+import { setNatureDetail } from './world/nature.js'
 import { createGamepad } from './gamepad.js'
 import { createSecrets } from './secrets.js'
 import { createShowcases } from './world/showcases.js'
@@ -739,6 +740,7 @@ const applyQuality = () => {
   const ratio = [Math.min(devicePixelRatio, 1.5), Math.min(devicePixelRatio, 1.25), 1, 0.8][quality]
   renderer.setPixelRatio(ratio)
   composer.setPixelRatio(ratio)
+  setNatureDetail(quality)
   if (quality >= 3 && sun.shadow.mapSize.x !== 1024) {
     sun.shadow.mapSize.setScalar(1024)
     sun.shadow.map?.dispose()

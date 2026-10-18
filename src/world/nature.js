@@ -10,6 +10,16 @@ export function updateNature(t) {
   time.value = t
 }
 
+// Niveau de détail : sur un appareil qui peine, on dessine moins de brins d'herbe
+// (l'ordre est mélangé, donc il en reste partout) et les feuillages ne projettent plus d'ombre.
+const grassMeshes = []
+const leafMeshes = []
+export function setNatureDetail(level) {
+  const share = [1, 0.65, 0.4, 0.25][level] ?? 1
+  for (const m of grassMeshes) m.count = Math.max(1, Math.round(m.userData.fullCount * share))
+  for (const m of leafMeshes) m.castShadow = level < 2
+}
+
 // Ondulation au vent, appliquée dans le shader : rien à recalculer côté JavaScript.
 function windy(material, amount) {
   material.customProgramCacheKey = () => `windy${amount}`
@@ -98,6 +108,10 @@ export function growGrass(ctx, ground, colliders, era) {
     }
   })
 
+  for (let i = points.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1))
+    ;[points[i], points[j]] = [points[j], points[i]]
+  }
   const blades = new THREE.InstancedMesh(bladeGeometry(), windy(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }), 0.14), points.length)
   const m4 = new THREE.Matrix4()
   const q = new THREE.Quaternion()
@@ -116,6 +130,8 @@ export function growGrass(ctx, ground, colliders, era) {
   })
   blades.receiveShadow = true
   blades.userData.terrain = true
+  blades.userData.fullCount = points.length
+  grassMeshes.push(blades)
   ctx.group.add(blades)
 }
 
@@ -225,6 +241,7 @@ export function buildLeaves(ctx, ground) {
   inst.castShadow = true
   inst.receiveShadow = true
   inst.userData.terrain = true
+  leafMeshes.push(inst)
   group.add(inst)
 
   if (fallen.length) addConfetti(group, fallen, rnd)
