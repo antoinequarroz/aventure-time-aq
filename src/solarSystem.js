@@ -23,129 +23,141 @@ export const BODIES = [
 const PLANETS = BODIES.filter((b) => b.orbit && !b.parent).map((b) => b.id)
 
 // ---------- Textures dessinées ----------
-function noise(seed) {
-  const a = [1.7, 2.9, 4.3, 7.1].map((f, i) => [f, Math.sin(seed * (i + 3)) * 10, Math.cos(seed * (i + 5)) * 10])
-  return (u, v) => a.reduce((s, [f, px, py], i) => s + Math.sin(u * f * 6.283 + px + Math.sin(v * f * 3.1 + py) * 1.5) * Math.cos(v * f * 3.1 + py) / (i + 1), 0)
+// ---------- Planètes low-poly, dans le style des îles ----------
+// Chaque facette reçoit une couleur unie (pas de texture lisse) et les planètes rocheuses
+// sont un peu cabossées, comme les rochers et les arbres du jeu.
+function noise3(seed) {
+  const k = [1.3, 2.7, 5.1].map((f, i) => [f, seed * (i + 1.7), seed * (i + 3.1)])
+  return (x, y, z) => k.reduce((s, [f, a, b], i) => s + (Math.sin(x * f * 3 + a) * Math.cos(y * f * 3.4 + b) + Math.sin(z * f * 2.6 + a + b)) / (2 * (i + 1)), 0)
+}
+const hex = (h) => new THREE.Color(h)
+const PAL = {
+  sun: [hex(0xffe08a), hex(0xffc24d), hex(0xff9a3c)],
+  rock: [hex(0xb7b0c8), hex(0x9a93ae), hex(0x7d7694)],
+  venus: [hex(0xffe0a3), hex(0xf2c27f), hex(0xe0a463)],
+  earthSea: [hex(0x2f7fe0), hex(0x2566c4)],
+  earthLand: [hex(0x6fd38a), hex(0x4fb36c), hex(0xd8c27a)],
+  ice: hex(0xf4f6ff),
+  mars: [hex(0xff7a4a), hex(0xe25c34), hex(0xb8452a)],
+  jupiter: [hex(0xf4dcb4), hex(0xd9a774), hex(0xb97a52), hex(0xf0c890)],
+  saturn: [hex(0xfbe7b5), hex(0xe9cc8e), hex(0xd2ae70)],
+  uranus: [hex(0xa9f0f2), hex(0x8fdfe6)],
+  neptune: [hex(0x5a7cff), hex(0x4462e6), hex(0x3a52c8)],
 }
 
-function planetTexture(body) {
-  const canvas = document.createElement('canvas')
-  canvas.width = 512
-  canvas.height = 256
-  const g = canvas.getContext('2d')
-  const W = 512
-  const H = 256
-  const img = g.createImageData(W, H)
-  const n = noise(body.id.length * 7.3 + body.r)
-  const n2 = noise(body.id.charCodeAt(0) * 0.37)
-  const set = (i, r, gg, b) => {
-    img.data[i] = r
-    img.data[i + 1] = gg
-    img.data[i + 2] = b
-    img.data[i + 3] = 255
+function planetGeometry(body) {
+  const detail = body.r > 0.7 ? 4 : 3
+  const geo = new THREE.IcosahedronGeometry(body.r, detail)
+  const pos = geo.attributes.position
+  const n = noise3(body.id.length * 1.9 + body.r)
+  const rocky = ['mercury', 'moon', 'mars', 'venus', 'earth'].includes(body.id)
+  const v = new THREE.Vector3()
+  // Relief : on déplace chaque sommet selon sa direction (les sommets partagés restent soudés).
+  if (rocky || body.id === 'sun') {
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i).normalize()
+      const h = n(v.x * 1.7, v.y * 1.7, v.z * 1.7)
+      v.multiplyScalar(body.r * (1 + h * (body.id === 'sun' ? 0.02 : 0.05)))
+      pos.setXYZ(i, v.x, v.y, v.z)
+    }
   }
-  for (let y = 0; y < H; y++) {
-    const v = y / H
-    for (let x = 0; x < W; x++) {
-      const u = x / W
-      const i = (y * W + x) * 4
-      const k = n(u, v)
-      const k2 = n2(u * 2, v * 2)
-      switch (body.id) {
-        case 'sun': {
-          const t = 0.75 + k * 0.12 + k2 * 0.08
-          set(i, 255, 170 + t * 70, 60 + t * 50)
-          break
-        }
-        case 'mercury':
-        case 'moon': {
-          const t = 150 + k * 25 + k2 * 18
-          set(i, t, t * 0.97, t * 0.93)
-          break
-        }
-        case 'venus': {
-          const t = Math.sin(v * 14 + k * 2.5) * 0.5 + 0.5
-          set(i, 220 + t * 30, 190 + t * 30, 120 + t * 40)
-          break
-        }
-        case 'earth': {
-          const land = k + k2 * 0.6 > 0.55 && Math.abs(v - 0.5) < 0.42
-          const ice = Math.abs(v - 0.5) > 0.43
-          const cloud = n2(u * 3 + 0.3, v * 3) > 0.9
-          if (ice || cloud) set(i, 240, 245, 250)
-          else if (land) set(i, 70 + k2 * 40, 140 + k * 20, 60)
-          else set(i, 30, 90 + k * 20, 190 + k * 20)
-          break
-        }
-        case 'mars': {
-          const ice = Math.abs(v - 0.5) > 0.45
-          const t = k * 0.5 + k2 * 0.3
-          if (ice) set(i, 245, 235, 230)
-          else set(i, 200 + t * 30, 95 + t * 25, 55 + t * 15)
-          break
-        }
-        case 'jupiter':
-        case 'saturn': {
-          const band = Math.sin(v * (body.id === 'jupiter' ? 34 : 26) + k * 0.8) * 0.5 + 0.5
-          const base = body.id === 'jupiter' ? [205, 170, 130] : [228, 205, 150]
-          const dark = body.id === 'jupiter' ? [150, 95, 60] : [190, 160, 105]
-          let r = base[0] + (dark[0] - base[0]) * band
-          let gg = base[1] + (dark[1] - base[1]) * band
-          let b = base[2] + (dark[2] - base[2]) * band
-          if (body.id === 'jupiter') {
-            const du = (u - 0.3) * 3.2
-            const dv = (v - 0.64) * 7
-            if (du * du + dv * dv < 1) {
-              r = 200
-              gg = 90
-              b = 60
-            }
-          }
-          set(i, r, gg, b)
-          break
-        }
-        case 'uranus': {
-          const t = Math.sin(v * 10) * 0.05 + k * 0.03
-          set(i, 140 + t * 200, 210 + t * 100, 220)
-          break
-        }
-        case 'neptune': {
-          const t = Math.sin(v * 16 + k) * 0.5 + 0.5
-          let r = 50 + t * 25
-          let gg = 90 + t * 30
-          let b = 210 + t * 30
-          const du = (u - 0.6) * 5
-          const dv = (v - 0.42) * 10
-          if (du * du + dv * dv < 1) {
-            r = 25
-            gg = 45
-            b = 140
-          }
-          set(i, r, gg, b)
-          break
-        }
-        default:
-          set(i, 200, 200, 200)
+  const colors = new Float32Array(pos.count * 3)
+  const c = new THREE.Color()
+  const pick = (arr, t) => arr[Math.max(0, Math.min(arr.length - 1, Math.floor(t * arr.length)))]
+  for (let f = 0; f < pos.count; f += 3) {
+    v.set(0, 0, 0)
+    for (let k = 0; k < 3; k++) v.x += pos.getX(f + k) / 3, v.y += pos.getY(f + k) / 3, v.z += pos.getZ(f + k) / 3
+    v.normalize()
+    const h = n(v.x * 2, v.y * 2, v.z * 2)
+    const lat = v.y
+    const r01 = (x) => Math.max(0, Math.min(0.999, x))
+    switch (body.id) {
+      case 'sun': c.copy(pick(PAL.sun, r01(0.5 + h * 0.8))); break
+      case 'mercury':
+      case 'moon': c.copy(pick(PAL.rock, r01(0.5 + h))); break
+      case 'venus': c.copy(pick(PAL.venus, r01(0.5 + Math.sin(lat * 7 + h * 2) * 0.5))); break
+      case 'earth': {
+        if (Math.abs(lat) > 0.86) c.copy(PAL.ice)
+        else if (h > 0.18) c.copy(pick(PAL.earthLand, r01((h - 0.18) * 1.6)))
+        else c.copy(pick(PAL.earthSea, r01(0.5 - h)))
+        break
       }
+      case 'mars': c.copy(Math.abs(lat) > 0.9 ? PAL.ice : pick(PAL.mars, r01(0.5 + h))); break
+      case 'jupiter': {
+        c.copy(pick(PAL.jupiter, r01(0.5 + Math.sin(lat * 11 + h * 0.6) * 0.5)))
+        // Grande Tache rouge.
+        if (Math.abs(lat + 0.35) < 0.12 && Math.abs(Math.atan2(v.z, v.x) - 0.8) < 0.3) c.setHex(0xd8553a)
+        break
+      }
+      case 'saturn': c.copy(pick(PAL.saturn, r01(0.5 + Math.sin(lat * 9 + h * 0.4) * 0.5))); break
+      case 'uranus': c.copy(pick(PAL.uranus, r01(0.5 + h * 0.4))); break
+      case 'neptune': {
+        c.copy(pick(PAL.neptune, r01(0.5 + Math.sin(lat * 8 + h) * 0.5)))
+        if (Math.abs(lat - 0.3) < 0.12 && Math.abs(Math.atan2(v.z, v.x) + 1) < 0.28) c.setHex(0x26368f)
+        break
+      }
+      default: c.setHex(0xcccccc)
     }
+    for (let k = 0; k < 3; k++) colors.set([c.r, c.g, c.b], (f + k) * 3)
   }
-  g.putImageData(img, 0, 0)
-  // Cratères pour Mercure et la Lune.
-  if (body.id === 'mercury' || body.id === 'moon') {
-    for (let c = 0; c < 70; c++) {
-      const cx = (c * 97.3) % W
-      const cy = 20 + ((c * 53.7) % (H - 40))
-      const cr = 3 + ((c * 13) % 9)
-      g.fillStyle = 'rgba(60, 55, 50, 0.35)'
-      g.beginPath()
-      g.arc(cx, cy, cr, 0, Math.PI * 2)
-      g.fill()
-      g.strokeStyle = 'rgba(255, 255, 255, 0.18)'
-      g.stroke()
-    }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+  geo.computeVertexNormals()
+  return geo
+}
+
+// Anneaux de Saturne : des bandes à plat, en facettes, avec la division de Cassini.
+function ringGeometry(r0, r1) {
+  const bands = [[0, 0.18, 0xd9c08f], [0.2, 0.46, 0xf1dcae], [0.48, 0.6, 0xe2c896], [0.66, 0.86, 0xcdb487], [0.88, 1, 0xb79f78]]
+  const geos = []
+  for (const [a, b, col] of bands) {
+    const g = new THREE.RingGeometry(r0 + (r1 - r0) * a, r0 + (r1 - r0) * b, 48, 1).toNonIndexed()
+    const cc = new THREE.Color(col)
+    const arr = new Float32Array(g.attributes.position.count * 3)
+    for (let i = 0; i < arr.length; i += 3) arr.set([cc.r, cc.g, cc.b], i)
+    g.setAttribute('color', new THREE.BufferAttribute(arr, 3))
+    g.deleteAttribute('uv')
+    geos.push(g)
   }
-  const tex = new THREE.CanvasTexture(canvas)
+  const total = geos.reduce((s, g) => s + g.attributes.position.count, 0)
+  const P = new Float32Array(total * 3)
+  const C = new Float32Array(total * 3)
+  const N = new Float32Array(total * 3)
+  let o = 0
+  for (const g of geos) {
+    P.set(g.attributes.position.array, o * 3)
+    C.set(g.attributes.color.array, o * 3)
+    N.set(g.attributes.normal.array, o * 3)
+    o += g.attributes.position.count
+  }
+  const out = new THREE.BufferGeometry()
+  out.setAttribute('position', new THREE.BufferAttribute(P, 3))
+  out.setAttribute('color', new THREE.BufferAttribute(C, 3))
+  out.setAttribute('normal', new THREE.BufferAttribute(N, 3))
+  return out
+}
+
+// Fond : nébuleuse violette comme le ciel du jeu.
+function nebulaTexture() {
+  const c = document.createElement('canvas')
+  c.width = 1024
+  c.height = 512
+  const g = c.getContext('2d')
+  const bg = g.createLinearGradient(0, 0, 0, 512)
+  bg.addColorStop(0, '#0b0820')
+  bg.addColorStop(0.5, '#231a4a')
+  bg.addColorStop(1, '#0b0820')
+  g.fillStyle = bg
+  g.fillRect(0, 0, 1024, 512)
+  for (const [x, y, r, col] of [[220, 250, 260, 'rgba(180,140,255,0.22)'], [640, 220, 300, 'rgba(111,211,255,0.12)'], [880, 300, 220, 'rgba(255,111,159,0.14)'], [420, 300, 200, 'rgba(255,179,71,0.08)']]) {
+    const rg = g.createRadialGradient(x, y, 0, x, y, r)
+    rg.addColorStop(0, col)
+    rg.addColorStop(1, 'rgba(0,0,0,0)')
+    g.fillStyle = rg
+    g.fillRect(0, 0, 1024, 512)
+  }
+  const tex = new THREE.CanvasTexture(c)
   tex.colorSpace = THREE.SRGBColorSpace
+  tex.mapping = THREE.EquirectangularReflectionMapping
   return tex
 }
 
@@ -164,23 +176,6 @@ function glowTexture(inner, outer) {
   return tex
 }
 
-function ringTexture() {
-  const c = document.createElement('canvas')
-  c.width = 512
-  c.height = 8
-  const g = c.getContext('2d')
-  for (let x = 0; x < 512; x++) {
-    const t = x / 512
-    const gap = t > 0.62 && t < 0.67
-    const a = gap ? 0.05 : 0.35 + Math.sin(t * 60) * 0.15 + Math.sin(t * 13) * 0.2
-    g.fillStyle = `rgba(230, 210, 170, ${Math.max(0, Math.min(0.9, a))})`
-    g.fillRect(x, 0, 1, 8)
-  }
-  const tex = new THREE.CanvasTexture(c)
-  tex.colorSpace = THREE.SRGBColorSpace
-  return tex
-}
-
 // ---------- Vue ----------
 export function createSolarSystem({ renderer, onPlanet, onExit }) {
   let scene = null
@@ -191,6 +186,10 @@ export function createSolarSystem({ renderer, onPlanet, onExit }) {
   let active = false
   let selected = null
   let flight = 0
+  let zoomTo = null
+  let byRadius = []
+  let overviewFlight = 0
+  const screen = new THREE.Vector3()
   const bodies = new Map()
   const tmp = new THREE.Vector3()
   const lastTarget = new THREE.Vector3()
@@ -204,7 +203,7 @@ export function createSolarSystem({ renderer, onPlanet, onExit }) {
   function build() {
     built = true
     scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x03040c)
+    scene.background = nebulaTexture()
     camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 2000)
     camera.position.set(0, 34, 62)
     scene.add(new THREE.AmbientLight(0x8890b0, 0.7))
@@ -232,9 +231,8 @@ export function createSolarSystem({ renderer, onPlanet, onExit }) {
 
     for (const body of BODIES) {
       const pivot = new THREE.Group()
-      const tex = planetTexture(body)
-      const material = body.id === 'sun' ? new THREE.MeshBasicMaterial({ map: tex }) : new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, metalness: 0 })
-      const sphere = new THREE.Mesh(new THREE.SphereGeometry(body.r, 48, 24), material)
+      const material = body.id === 'sun' ? new THREE.MeshBasicMaterial({ vertexColors: true }) : new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.85, metalness: 0 })
+      const sphere = new THREE.Mesh(planetGeometry(body), material)
       sphere.userData.body = body
       if (body.tilt) sphere.rotation.z = body.tilt
       pivot.add(sphere)
@@ -249,14 +247,7 @@ export function createSolarSystem({ renderer, onPlanet, onExit }) {
         pivot.add(atmo)
       }
       if (body.rings) {
-        const ring = new THREE.Mesh(new THREE.RingGeometry(body.r * 1.3, body.r * 2.3, 96, 1), new THREE.MeshStandardMaterial({ map: ringTexture(), transparent: true, side: THREE.DoubleSide, depthWrite: false, roughness: 1 }))
-        // Coordonnées UV radiales pour que la texture suive les anneaux.
-        const pos = ring.geometry.attributes.position
-        const uv = ring.geometry.attributes.uv
-        for (let i = 0; i < pos.count; i++) {
-          const d = Math.hypot(pos.getX(i), pos.getY(i))
-          uv.setXY(i, (d - body.r * 1.3) / (body.r * 1.0), 0.5)
-        }
+        const ring = new THREE.Mesh(ringGeometry(body.r * 1.3, body.r * 2.3), new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide, roughness: 1, transparent: true, opacity: 0.92 }))
         ring.rotation.x = -Math.PI / 2 + 0.45
         pivot.add(ring)
       }
@@ -266,7 +257,7 @@ export function createSolarSystem({ renderer, onPlanet, onExit }) {
       if (body.orbit) {
         const curve = new THREE.EllipseCurve(0, 0, body.orbit, body.orbit)
         const geo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(160).map((p) => new THREE.Vector3(p.x, 0, p.y)))
-        const line = new THREE.LineLoop(geo, new THREE.LineBasicMaterial({ color: body.parent ? 0x8890b0 : 0x6a72a8, transparent: true, opacity: body.parent ? 0.35 : 0.45 }))
+        const line = new THREE.LineLoop(geo, new THREE.LineBasicMaterial({ color: body.parent ? 0x8fe3ff : 0xb48cff, transparent: true, opacity: body.parent ? 0.35 : 0.4 }))
         parent.add(line)
       }
       // Position de départ un peu au hasard, mais la même à chaque visite.
@@ -274,7 +265,7 @@ export function createSolarSystem({ renderer, onPlanet, onExit }) {
       bodies.set(body.id, { body, pivot, sphere, angle })
     }
     // Ceinture d'astéroïdes entre Mars et Jupiter.
-    const belt = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.12, 0), new THREE.MeshStandardMaterial({ color: 0x8a8478, roughness: 1, flatShading: true }), 700)
+    const belt = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.12, 0), new THREE.MeshStandardMaterial({ color: 0x9a93ae, roughness: 1, flatShading: true }), 700)
     const m4 = new THREE.Matrix4()
     for (let i = 0; i < 700; i++) {
       const a = Math.random() * Math.PI * 2
@@ -297,7 +288,14 @@ export function createSolarSystem({ renderer, onPlanet, onExit }) {
         <div class="solar-title"><span>🔭 Le télescope</span><strong>Le système solaire</strong></div>
         <button class="btn solar-close" type="button">✕ Sortir <kbd>Échap</kbd></button>
       </div>
-      <p class="solar-hint">Glisse pour tourner, molette ou pincement pour zoomer. Touche une planète pour la suivre.</p>
+      <p class="solar-hint">Glisse pour tourner, molette, pincement ou boutons + et − pour zoomer. Touche une planète pour la suivre, une deuxième fois pour t'en approcher.</p>
+      <div class="solar-name" aria-live="polite"><span></span><strong></strong></div>
+      <div class="solar-labels"></div>
+      <div class="solar-zoom">
+        <button type="button" data-zoom="in" aria-label="Zoomer">+</button>
+        <button type="button" data-zoom="out" aria-label="Dézoomer">−</button>
+        <button type="button" data-zoom="all" aria-label="Vue d'ensemble">⤢</button>
+      </div>
       <aside class="solar-card" hidden>
         <span class="solar-kind"></span>
         <h3></h3>
@@ -308,6 +306,23 @@ export function createSolarSystem({ renderer, onPlanet, onExit }) {
       <nav class="solar-nav" aria-label="Planètes"></nav>`
     document.body.append(ui)
     ui.querySelector('.solar-close').addEventListener('click', () => api.close())
+    // Noms flottants au-dessus de chaque astre.
+    const labels = ui.querySelector('.solar-labels')
+    for (const body of BODIES) {
+      const el = document.createElement('button')
+      el.type = 'button'
+      el.className = 'solar-label'
+      el.textContent = body.name.replace(/^L[ae] /, '')
+      el.addEventListener('click', () => select(body.id))
+      labels.append(el)
+      bodies.get(body.id).label = el
+    }
+    byRadius = [...bodies.values()].sort((a, b) => b.body.r - a.body.r)
+    ui.querySelector('.solar-zoom').addEventListener('click', (e) => {
+      const z = e.target.closest('button')?.dataset.zoom
+      if (z === 'all') return overview()
+      if (z) zoomBy(z === 'in' ? 0.6 : 1.6)
+    })
     const nav = ui.querySelector('.solar-nav')
     for (const body of BODIES) {
       const b = document.createElement('button')
@@ -343,13 +358,44 @@ export function createSolarSystem({ renderer, onPlanet, onExit }) {
       }
       if (best) select(best)
     })
+    renderer.domElement.addEventListener('dblclick', () => {
+      if (active && selected) zoomTo = selected.body.r * 2.7
+    })
   }
 
-  function select(id) {
+  // Zoom : on rapproche (ou éloigne) la caméra de ce qu'elle regarde, en douceur.
+  function zoomBy(k) {
+    if (!controls) return
+    const dist = camera.position.distanceTo(controls.target)
+    zoomTo = Math.max(controls.minDistance, Math.min(controls.maxDistance, (zoomTo ?? dist) * k))
+  }
+  function overview() {
+    selected = null
+    flight = 0
+    zoomTo = null
+    overviewFlight = 1
+    controls.minDistance = 1.2
+    ui.querySelector('.solar-card').hidden = true
+    ui.querySelector('.solar-name').classList.remove('visible')
+    ui.querySelectorAll('.solar-nav button').forEach((el) => el.classList.remove('active'))
+  }
+
+  function select(id, close = false) {
     const b = bodies.get(id)
     if (!b) return
+    const again = selected === b
     selected = b
     flight = 1
+    overviewFlight = 0
+    // Un deuxième clic sur la même planète : on s'approche tout près.
+    zoomTo = again || close ? b.body.r * 2.7 : null
+    controls.minDistance = b.body.r * 1.3
+    const name = ui.querySelector('.solar-name')
+    name.querySelector('span').textContent = b.body.kind
+    name.querySelector('strong').textContent = b.body.name
+    name.classList.remove('visible')
+    void name.offsetWidth
+    name.classList.add('visible')
     const card = ui.querySelector('.solar-card')
     card.hidden = false
     card.querySelector('.solar-kind').textContent = b.body.kind
@@ -390,6 +436,9 @@ export function createSolarSystem({ renderer, onPlanet, onExit }) {
       lastTarget.set(0, 0, 0)
       camera.position.set(0, 34, 62)
       ui.querySelector('.solar-card').hidden = true
+      ui.querySelector('.solar-name').classList.remove('visible')
+      zoomTo = null
+      overviewFlight = 0
       ui.querySelectorAll('.solar-nav button').forEach((el) => el.classList.remove('active'))
       document.body.classList.add('solar-open')
       requestAnimationFrame(() => ui.classList.add('visible'))
@@ -430,12 +479,31 @@ export function createSolarSystem({ renderer, onPlanet, onExit }) {
         lastTarget.copy(next)
         if (flight > 0) {
           flight = Math.max(0, flight - dt * 0.8)
-          const want = selected.body.r * 4.5 + 1.5
+          // Écran en portrait : plus de recul, sinon la planète déborde sur les côtés.
+          const portrait = innerHeight > innerWidth ? Math.min(2, innerHeight / innerWidth) : 1
+          const want = (zoomTo ?? selected.body.r * 3.2 + 0.8) * (zoomTo ? 1 : portrait)
           const dir = camera.position.clone().sub(next)
           const dist = dir.length()
           dir.setLength(dist + (want - dist) * (1 - Math.exp(-dt * 3)))
           camera.position.copy(next).add(dir)
         }
+      }
+      // Zoom demandé (boutons, double clic) une fois le vol terminé.
+      if (zoomTo && !(selected && flight > 0)) {
+        const dir = camera.position.clone().sub(controls.target)
+        const dist = dir.length()
+        const next = dist + (zoomTo - dist) * (1 - Math.exp(-dt * 5))
+        dir.setLength(next)
+        camera.position.copy(controls.target).add(dir)
+        if (Math.abs(next - zoomTo) < 0.01) zoomTo = null
+      }
+      // Retour à la vue d'ensemble.
+      if (overviewFlight > 0) {
+        overviewFlight = Math.max(0, overviewFlight - dt * 0.9)
+        const k = 1 - Math.exp(-dt * 3)
+        controls.target.lerp(tmp.set(0, 0, 0), k)
+        lastTarget.copy(controls.target)
+        camera.position.lerp(tmp.set(0, 34, 62), k)
       }
       // Téléphone : la fiche couvre le bas de l'écran, on remonte l'image pour garder la planète visible.
       const lift = selected && innerWidth <= 700 ? Math.round(innerHeight * 0.2) : 0
@@ -445,6 +513,26 @@ export function createSolarSystem({ renderer, onPlanet, onExit }) {
         else camera.clearViewOffset()
       }
       controls.update()
+      // Noms au-dessus des astres. Si deux étiquettes se chevauchent, la plus grosse planète garde la sienne.
+      const placed = []
+      const dist = camera.position.distanceTo(controls.target)
+      for (const b of byRadius) {
+        const el = b.label
+        b.sphere.getWorldPosition(screen)
+        screen.y += b.body.r * 1.15
+        screen.project(camera)
+        const x = ((screen.x + 1) / 2) * innerWidth
+        const y = ((1 - screen.y) / 2) * innerHeight
+        let show = screen.z < 1 && Math.abs(screen.x) < 1.1 && Math.abs(screen.y) < 1.1
+        if (b === selected && dist < b.body.r * 9) show = false
+        if (b.body.parent && dist > 40) show = false
+        if (show && placed.some(([px, py]) => Math.abs(px - x) < 78 && Math.abs(py - y) < 24)) show = false
+        el.style.display = show ? '' : 'none'
+        if (!show) continue
+        placed.push([x, y])
+        el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`
+        el.classList.toggle('active', b === selected)
+      }
       void t
     },
     render() {
