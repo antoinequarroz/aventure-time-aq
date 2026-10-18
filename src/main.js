@@ -213,11 +213,16 @@ const solar = createSolarSystem({
     ui.fade(() => done())
   },
 })
+// Le panneau « Astronomie » est posé au pied du télescope : le lire ouvre aussi la lunette,
+// avec le texte du panneau en guise d'introduction.
+const isAstronomy = (item) => item?.type === 'sign' && item.title === 'Astronomie' && !item.showcase
 function openTelescope() {
   telescopeArmed = false
   tutorial.did('interact')
   sfx.blip('open')
-  ui.fade(() => solar.open())
+  const sign = interactables.find(isAstronomy)
+  if (sign) discover(sign)
+  ui.fade(() => solar.open(sign ? { kind: 'Ma passion', title: sign.title, text: [].concat(sign.text).join(' ') } : null))
 }
 const games = createGames(scene, ui, player, sfx, rewards, () => world.games)
 const weather = createWeather(scene)
@@ -510,7 +515,7 @@ function interact() {
   if (vehicles.driving) return vehicles.exit(player)
   if (ui.panelOpen()) return ui.closePanel()
   if (!nearby) return
-  if (nearby.type === 'telescope') return openTelescope()
+  if (nearby.type === 'telescope' || isAstronomy(nearby)) return openTelescope()
   tutorial.did('interact')
   if (nearby.showcase) {
     discover(nearby)
@@ -862,7 +867,7 @@ function tick() {
   if (nearby?.type === 'telescope' && telescopeArmed && !ui.panelOpen() && !tour.active) openTelescope()
   if (!telescopeArmed && Math.hypot(player.position.x - TELESCOPE.x, player.position.z - TELESCOPE.z) > 1.8) telescopeArmed = true
   if (nearby?.type === 'door' && nearby.auto && doorCooldown <= 0 && !ui.panelOpen() && Math.hypot(player.position.x - nearby.x, player.position.z - nearby.z) < 0.95) enterDoor(nearby)
-  ui.setPrompt(vehicles.driving ? vehicles.hint : nearby && !ui.panelOpen() && !tour.active ? ({ chest: quest.opened || discovered.size >= signs.length ? `E · Ouvrir « ${nearby.title} »` : `E · ${nearby.title} (${discovered.size} / ${signs.length})`, sign: nearby.showcase ? `E · Voir « ${nearby.showcase.project.title} » · marche sur les flèches pour changer` : `E · Lire « ${nearby.title} »`, vehicle: `E · ${nearby.id === 'car' ? nearby.title : `Monter : ${nearby.title}`}`, game: games.active ? null : `E · Jouer : ${nearby.title}`, door: `E · ${nearby.title}`, telescope: `E · ${nearby.title}`, social: `E · ${nearby.title}` })[nearby.type] : null)
+  ui.setPrompt(vehicles.driving ? vehicles.hint : nearby && !ui.panelOpen() && !tour.active ? ({ chest: quest.opened || discovered.size >= signs.length ? `E · Ouvrir « ${nearby.title} »` : `E · ${nearby.title} (${discovered.size} / ${signs.length})`, sign: isAstronomy(nearby) ? '🔭 E · Astronomie : regarder dans le télescope' : nearby.showcase ? `E · Voir « ${nearby.showcase.project.title} » · marche sur les flèches pour changer` : `E · Lire « ${nearby.title} »`, vehicle: `E · ${nearby.id === 'car' ? nearby.title : `Monter : ${nearby.title}`}`, game: games.active ? null : `E · Jouer : ${nearby.title}`, door: `E · ${nearby.title}`, telescope: `E · ${nearby.title}`, social: `E · ${nearby.title}` })[nearby.type] : null)
 
   const island = here
   applyMood(island?.era, 1 - Math.exp(-dt * 2), day)

@@ -420,7 +420,7 @@ export function createSolarSystem({ renderer, onPlanet, onExit }) {
     get active() {
       return active
     },
-    open() {
+    open(intro = null) {
       if (!built) build()
       active = true
       camera.aspect = innerWidth / innerHeight
@@ -437,6 +437,18 @@ export function createSolarSystem({ renderer, onPlanet, onExit }) {
       camera.position.set(0, 34, 62)
       ui.querySelector('.solar-card').hidden = true
       ui.querySelector('.solar-name').classList.remove('visible')
+      if (intro) {
+        // Introduction : le texte du panneau « Astronomie », avant de choisir une planète.
+        const card = ui.querySelector('.solar-card')
+        card.hidden = false
+        card.querySelector('dl').innerHTML = ''
+        card.querySelector('.solar-text').textContent = intro.text
+        card.querySelector('.solar-progress').textContent = 'Choisis une planète en bas, ou touche-la.'
+        const name = ui.querySelector('.solar-name')
+        name.querySelector('span').textContent = intro.kind
+        name.querySelector('strong').textContent = intro.title
+        requestAnimationFrame(() => name.classList.add('visible'))
+      }
       zoomTo = null
       overviewFlight = 0
       ui.querySelectorAll('.solar-nav button').forEach((el) => el.classList.remove('active'))
