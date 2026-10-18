@@ -5,6 +5,7 @@ import * as C from '../characters.js'
 import * as P from '../props.js'
 import { textTexture } from '../helpers.js'
 import * as S from '../stoneworks.js'
+import { photoStudio, videoStudio, gitCafe, gitGraphSculpture, foodTruck, bikeRack } from '../studios.js'
 
 // Le Présent : le village du développeur.
 
@@ -13,10 +14,7 @@ export const mainShape = {
   lobes: [
     [0, 0, 15, 0], [0, -14, 9.5, 0], [-14, 3, 9, 0], [14, 3, 9, 0], [-12, 13, 8, 0], [12, 13, 8, 0], [0, 15, 7, 0],
     [-13, -10, 7, 2], [13, -10, 7, 2],
-    // Atelier web, au sud de la place.
-    [0, 25, 7.5, 0], [0, 20, 5, 0],
   ],
-  plazas: [[0, 25, 6.2]],
   ramps: [
     [-4.5, -8.8, 0, -7.6, -9.6, 2, 2.6],
     [4.5, -8.8, 0, 7.6, -9.6, 2, 2.6],
@@ -40,23 +38,15 @@ export function decorateMain(ctx) {
   group.add(model('garage', { width: 5, x: 8, z: -17, rotY: Math.PI * 0.85 }))
   addCollider(8, -17, 3)
 
-  // Le développeur à son bureau, sur la place.
-  const desk = mesh(new THREE.BoxGeometry(2.2, 0.15, 1.1), mat(0x8a5a32), { x: 0, y: 1, z: -13 })
-  const legs = [[-1, -0.45], [1, -0.45], [-1, 0.45], [1, 0.45]].map(([dx, dz]) => mesh(new THREE.BoxGeometry(0.1, 1, 0.1), mat(0x5a3a22), { x: dx, y: 0.5, z: -13 + dz }))
-  const screen = mesh(new THREE.BoxGeometry(1.2, 0.75, 0.06), mat(0x111111), { x: 0, y: 1.55, z: -13.3 })
-  const glow = mesh(new THREE.PlaneGeometry(1.1, 0.65), new THREE.MeshBasicMaterial({ color: 0x5fd0ff }), { x: 0, y: 1.55, z: -13.26, shadow: false })
-  const glowLight = new THREE.PointLight(0x5fd0ff, 4, 5)
-  glowLight.position.set(0, 1.6, -12.8)
-  group.add(desk, ...legs, screen, glow, glowLight)
-  C.npc(ctx, 'rogue', 0, -12.1, { rotY: Math.PI, anim: 'Interact', speed: 0.7, r: 0, greet: false })
   // Habitants qui flânent autour de la fontaine.
   C.npc(ctx, 'mage', 4.2, 4.2, { keep: [], path: [[4.2, 4.2], [-4.2, 4.2], [-4.2, -4.2], [4.2, -4.2]], walk: 1.2, pause: 1.5 })
   C.npc(ctx, 'knight', -2, 11, { keep: [], path: [[-2, 11], [2, 10], [0, 6.5]], walk: 1, pause: 3 })
   C.npc(ctx, 'barbarian', 9, -3, { keep: ['Mug'], anim: 'Cheer', speed: 0.4, path: [[9.5, -2.5], [10, 0]], walk: 0.8, pause: 5 })
-  addCollider(0, -12.8, 1.6)
-  animated.push((dt, t) => {
-    glow.material.color.setHSL(0.55, 0.8, 0.55 + Math.sin(t * 4) * 0.08)
-  })
+  // Petit jardin au pied des escaliers, là où se trouvait le bureau en plein air.
+  P.leafTree(ctx, -2.6, -13.6, { palette: 'yellow', size: 0.85, height: 3 })
+  P.leafTree(ctx, 2.8, -14.2, { palette: 'pink', size: 0.8, height: 2.8 })
+  P.flowers(ctx, 0, -12.6, { r: 1.6, count: 30 })
+  P.bench(ctx, 0, -15.6)
 
   // Statues de grès autour de la fontaine : le développeur et le formateur.
   S.useTheme('present')
@@ -71,7 +61,9 @@ export function decorateMain(ctx) {
   P.trashBin(ctx, 4.6, 7.6)
   P.trashBin(ctx, -4.6, -7.6)
   P.cafe(ctx, 10, -5)
-  P.billboard(ctx, -5.5, -19, { text: 'antoinequarroz.ch' })
+  // Nouveaux venus sur la place : un food truck de glaces et des vélos.
+  foodTruck(ctx, -11.5, 1.2, { rotY: 0.35 })
+  bikeRack(ctx, 10.6, 2.4, { rotY: -0.35 })
   P.parkedCar(ctx, -12, -13, { rotY: 0.3, kind: 'sedan' })
   P.parkedCar(ctx, 13.5, -1.5, { rotY: Math.PI / 2 + 0.1, kind: 'taxi' })
   P.place(ctx, 'turbine', -18.5, -11, { height: 9, rotY: 0.6, r: 0.7 })
@@ -107,14 +99,16 @@ export const satellites = {
   rooftops: {
     offset: [0, -44],
     r: 14,
-    shape: { lobes: [[0, 2, 10, 0], [-6, -6, 7, 0], [6, -7, 7, 0], [0, -10, 5, 0], [-6, 7, 5, 0], [9, 1, 3, 1]], plazas: [[1.5, 0, 4.2]] },
+    // À l'ouest : l'Atelier web (grand écran) et, devant, la terrasse du GitHub Café.
+    shape: { lobes: [[0, 2, 10, 0], [-6, -6, 7, 0], [6, -7, 7, 0], [0, -10, 5, 0], [-6, 7, 5, 0], [9, 1, 3, 1], [-18, 4, 7.5, 0], [-11.5, 5, 4.5, 0], [-13, 15.5, 5.8, 0], [-8, 12, 4, 0]], plazas: [[1.5, 0, 4.2], [-18, 4, 6.2]] },
     build(ctx) {
       // Monument au code, en grès, au milieu des toits.
       S.useTheme('present')
       S.monument(ctx, 1.5, -0.2, { piece: (c, x, z) => S.codeGlyph(c, x, z), r: 3, pillars: 4, spread: 1.1 })
       P.streetLamp(ctx, 4, 10)
       P.streetLamp(ctx, -4, 10)
-      P.billboard(ctx, -8, 8, { text: 'Code · Café · Commit', rotY: 0.5 })
+      gitCafe(ctx, -13, 15.5)
+      gitGraphSculpture(ctx, -7.6, 11.2, { rotY: 0.3 })
       P.trashBin(ctx, 6, 6)
       P.cargo(ctx, 6.5, 6, { color: 0x2f6fd8, rotY: 1.2 })
       P.solarPanel(ctx, -11, -6, { rotY: 1 })
@@ -143,7 +137,8 @@ export const satellites = {
   park: {
     offset: [24, 40],
     r: 13,
-    shape: { lobes: [[0, 0, 10, 0], [-6, -5, 6, 0], [5, 6, 7, 0], [-6, 6, 5, 0], [7, -6, 4.5, 1], [13.5, 4.5, 5.5, 0]], plazas: [[13.5, 4.5, 4.4]] },
+    // À l'est : la place du photographe et, au nord, le studio photo.
+    shape: { lobes: [[0, 0, 10, 0], [-6, -5, 6, 0], [5, 6, 7, 0], [-6, 6, 5, 0], [7, -6, 4.5, 1], [13.5, 4.5, 5.5, 0], [18.5, -5.5, 6.8, 0]], plazas: [[13.5, 4.5, 4.4]] },
     build(ctx) {
       P.pond(ctx, 2, 2, { r: 3 })
       // Place de la photo : le photographe en grès et un appareil géant.
@@ -151,6 +146,7 @@ export const satellites = {
       S.monument(ctx, 14.2, 3.6, { statue: { key: 'rogue', anim: 'Interact', time: 0.7, keep: ['Rogue_Cape'], height: 2.5, rotY: -0.5 }, open: Math.PI * 0.85, r: 3, pillars: 4, spread: 1.1, crates: false })
       S.cameraSculpture(ctx, 12, 6.8, { rotY: -0.6 })
       S.stoneBench(ctx, 15.5, 7.6, { rotY: -0.9 })
+      photoStudio(ctx, 18.5, -6)
       P.bench(ctx, -3, -2, { rotY: Math.PI / 2 })
       P.bench(ctx, 6, -3, { rotY: -0.5 })
       P.streetLamp(ctx, -1, -6)
@@ -179,13 +175,15 @@ export const satellites = {
   stadium: {
     offset: [-24, 40],
     r: 14,
-    shape: { lobes: [[0, 0, 12, 0], [-7, -6, 7, 0], [7, -6, 7, 0], [0, 8, 8, 0], [10, 8, 3, 1.4], [-11, 11, 5, 0]], plazas: [[-11, 11, 4]] },
+    // À l'ouest : le studio vidéo, à côté du terrain.
+    shape: { lobes: [[0, 0, 12, 0], [-7, -6, 7, 0], [7, -6, 7, 0], [0, 8, 8, 0], [10, 8, 3, 1.4], [-11, 11, 5, 0], [-17.5, -2.5, 6.8, 0]], plazas: [[-11, 11, 4]] },
     build(ctx) {
       P.footballPitch(ctx, 0, 0)
       // Hall of fame : le buteur en grès et le ballon géant.
       S.useTheme('present')
       S.monument(ctx, -11.6, 11, { statue: { key: 'barbarian', anim: 'Cheer', time: 0.45, keep: [], height: 2.6, rotY: 0.4 }, open: Math.PI * 0.3, r: 2.8, pillars: 4, spread: 1.1, crates: false })
       S.ballSculpture(ctx, -8.4, 13.6)
+      videoStudio(ctx, -17.5, -3)
       P.bleachers(ctx, 0, 9.5, { w: 10, rotY: Math.PI })
       for (const [lx, lz] of [[-11, -7], [11, -7], [-9, 6.5], [11, 7]]) P.streetLamp(ctx, lx, lz, { color: 0xffffff })
       P.banner(ctx, -8, -10, { color: 0x2f6fd8 })

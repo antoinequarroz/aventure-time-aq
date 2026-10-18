@@ -4,6 +4,8 @@ import { canvasTexture, codeScreen } from './points.js'
 import { torch } from './buildings.js'
 import * as C from './characters.js'
 import * as S from './stoneworks.js'
+import { showcases } from '../content.js'
+import { drawVisual } from './screens.js'
 
 // Intérieurs façon « maison dans Pokémon » : une pièce posée loin des îles, sur fond noir,
 // vue de plus près et plus en plongée. On y entre par une porte (château, maison du
@@ -11,7 +13,7 @@ import * as S from './stoneworks.js'
 
 export const ROOMS = {
   castle: { era: 'past', name: 'La grande salle du château', tagline: 'Histoires et jeux du royaume', center: [-150, 520], w: 18, d: 13, wall: 0x6e6590, floor: 'stone' },
-  studio: { era: 'present', name: 'Le studio du développeur', tagline: 'Là où naissent les projets', center: [0, 520], w: 14, d: 10, wall: 0xe8d5bf, floor: 'wood' },
+  studio: { era: 'present', name: 'Le studio du développeur', tagline: 'Bureau, coin rétro et salon', center: [0, 520], w: 16, d: 11, wall: 0x3a3438, floor: 'wood' },
   base: { era: 'future', name: 'La base lunaire', tagline: 'Poste de commandement', center: [150, 520], w: 16, d: 12, wall: 0x9aa0c0, floor: 'metal' },
   // Bibliothèque : une pièce du château, on y entre par la grande salle.
   library: { era: 'past', name: 'La bibliothèque du château', tagline: 'Mon histoire, chapitre par chapitre', center: [-150, 580], w: 15, d: 11, wall: 0x54456e, floor: 'wood', parent: 'castle' },
@@ -241,147 +243,6 @@ const designScreen = () => canvasTexture(512, 300, (g, W, H) => {
   g.strokeRect(210, 38, 84, 164)
 })
 
-function setupDesk(ctx, x, z) {
-  const g = new THREE.Group()
-  g.position.set(x, 0, z)
-  // Un peu plus grand que nature, à l'échelle des personnages.
-  g.scale.setScalar(1.3)
-  ctx.group.add(g)
-  const black = mat(0x1d1d22, { roughness: 0.5 })
-  // Tapis gris sous le bureau.
-  const rug = mesh(new THREE.BoxGeometry(3.4, 0.01, 2.2), mat(0x4a4658, { roughness: 1 }), { y: 0.005, z: 0.6, shadow: false })
-  rug.receiveShadow = true
-  g.add(rug)
-  // Plateau en noyer sur pieds traîneaux noirs.
-  g.add(mesh(new THREE.BoxGeometry(3.6, 0.06, 1.0), mat(0x7a4a2c, { roughness: 0.6 }), { y: 0.78 }))
-  for (const s of [-1, 1]) {
-    g.add(mesh(new THREE.BoxGeometry(0.06, 0.74, 0.06), black, { x: s * 1.65, y: 0.38, z: -0.4 }))
-    g.add(mesh(new THREE.BoxGeometry(0.06, 0.74, 0.06), black, { x: s * 1.65, y: 0.38, z: 0.4 }))
-    g.add(mesh(new THREE.BoxGeometry(0.06, 0.05, 0.9), black, { x: s * 1.65, y: 0.03 }))
-  }
-  // Ruban lumineux sous le plateau.
-  g.add(mesh(new THREE.BoxGeometry(3.4, 0.02, 0.02), mat(0xb48cff, { emissive: 0xb48cff, emissiveIntensity: 3 }), { y: 0.74, z: -0.45, shadow: false }))
-  // Sous-main en feutre.
-  g.add(mesh(new THREE.BoxGeometry(1.5, 0.01, 0.5), mat(0x4a4a55, { roughness: 1 }), { y: 0.815, z: 0.18 }))
-  // iMac : écran fin, menton coloré, dos argenté, pied incliné.
-  const imac = new THREE.Group()
-  imac.position.set(-0.55, 0.81, -0.18)
-  imac.rotation.y = 0.12
-  imac.add(mesh(new THREE.BoxGeometry(1.12, 0.72, 0.03), mat(0xc9d6ea, { metalness: 0.5, roughness: 0.35, flatShading: false }), { y: 0.62 }))
-  imac.add(mesh(new THREE.BoxGeometry(1.12, 0.12, 0.031), mat(0x9fc0e8, { metalness: 0.4, roughness: 0.35, flatShading: false }), { y: 0.24 }))
-  imac.add(mesh(new THREE.PlaneGeometry(1.08, 0.58), new THREE.MeshBasicMaterial({ color: 0x111116 }), { y: 0.67, z: 0.016, shadow: false }))
-  const mac = macScreen()
-  const scr = new THREE.MeshStandardMaterial({ map: mac, emissiveMap: mac, emissive: 0xffffff, emissiveIntensity: 1.1 })
-  imac.add(mesh(new THREE.PlaneGeometry(1.02, 0.54), scr, { y: 0.67, z: 0.017, shadow: false }))
-  const stand = mesh(new THREE.BoxGeometry(0.22, 0.42, 0.02), mat(0xc9d6ea, { metalness: 0.5, roughness: 0.35 }), { y: 0.2, z: -0.1 })
-  stand.rotation.x = -0.3
-  imac.add(stand)
-  imac.add(mesh(new THREE.BoxGeometry(0.26, 0.01, 0.22), mat(0xc9d6ea, { metalness: 0.5, roughness: 0.35 }), { y: 0.005, z: -0.06 }))
-  g.add(imac)
-  // Second écran sur pied argenté, tourné vers le centre.
-  const display = new THREE.Group()
-  display.position.set(0.72, 0.81, -0.2)
-  display.rotation.y = -0.28
-  display.add(mesh(new THREE.BoxGeometry(1.0, 0.6, 0.03), ALU(), { y: 0.56 }))
-  display.add(mesh(new THREE.PlaneGeometry(0.97, 0.57), new THREE.MeshBasicMaterial({ color: 0x111116 }), { y: 0.56, z: 0.016, shadow: false }))
-  const des = designScreen()
-  display.add(mesh(new THREE.PlaneGeometry(0.93, 0.53), new THREE.MeshStandardMaterial({ map: des, emissiveMap: des, emissive: 0xffffff, emissiveIntensity: 1.1 }), { y: 0.56, z: 0.017, shadow: false }))
-  display.add(mesh(new THREE.BoxGeometry(0.08, 0.32, 0.03), ALU(), { y: 0.18, z: -0.06 }))
-  display.add(mesh(new THREE.BoxGeometry(0.3, 0.012, 0.22), ALU(), { y: 0.006, z: -0.04 }))
-  g.add(display)
-  // Clavier, souris et pavé tactile.
-  g.add(mesh(new THREE.BoxGeometry(0.46, 0.014, 0.15), mat(0xf2f2f5, { flatShading: false }), { x: -0.1, y: 0.825, z: 0.2 }))
-  g.add(mesh(new THREE.BoxGeometry(0.42, 0.006, 0.11), mat(0xe2e2ea), { x: -0.1, y: 0.834, z: 0.2, shadow: false }))
-  const mouse = mesh(new THREE.SphereGeometry(0.05, 12, 8), mat(0xf2f2f5, { flatShading: false }), { x: 0.36, y: 0.825, z: 0.22 })
-  mouse.scale.set(0.7, 0.3, 1.1)
-  g.add(mouse)
-  // Lampe d'architecte.
-  const lamp = new THREE.Group()
-  lamp.position.set(-1.5, 0.81, -0.25)
-  lamp.add(mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.03, 16), black, { y: 0.015 }))
-  const arm1 = mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.55, 6), black, { x: 0.08, y: 0.27 })
-  arm1.rotation.z = -0.35
-  lamp.add(arm1)
-  const arm2 = mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.5, 6), black, { x: 0.33, y: 0.6 })
-  arm2.rotation.z = 1.1
-  lamp.add(arm2)
-  const shade = mesh(new THREE.ConeGeometry(0.1, 0.16, 12, 1, true), black, { x: 0.55, y: 0.55 })
-  shade.rotation.z = 0.5
-  lamp.add(shade)
-  lamp.add(mesh(new THREE.SphereGeometry(0.04, 8, 6), new THREE.MeshBasicMaterial({ color: 0xfff0c8 }), { x: 0.56, y: 0.5, shadow: false }))
-  const lampLight = new THREE.PointLight(0xffd9a0, 3, 3, 1.8)
-  lampLight.position.set(0.6, 0.4, 0)
-  lamp.add(lampLight)
-  g.add(lamp)
-  // Enceintes, casque, mug, petite plante.
-  for (const sx of [-1.15, 1.32]) {
-    g.add(mesh(new THREE.BoxGeometry(0.16, 0.26, 0.16), mat(0xf2f2f5), { x: sx, y: 0.94, z: -0.28 }))
-    g.add(mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.01, 12).rotateX(Math.PI / 2), mat(0x2b2b33), { x: sx, y: 0.97, z: -0.195, shadow: false }))
-  }
-  const headStand = new THREE.Group()
-  headStand.position.set(1.55, 0.81, 0.15)
-  headStand.add(mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.02, 12), black, { y: 0.01 }))
-  headStand.add(mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.32, 6), black, { y: 0.17 }))
-  const band = mesh(new THREE.TorusGeometry(0.1, 0.018, 6, 16, Math.PI), black, { y: 0.32 })
-  headStand.add(band)
-  for (const s of [-1, 1]) headStand.add(mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.04, 12).rotateZ(Math.PI / 2), black, { x: s * 0.1, y: 0.3 }))
-  g.add(headStand)
-  g.add(mesh(new THREE.CylinderGeometry(0.045, 0.04, 0.1, 12), mat(0xffb347), { x: 0.95, y: 0.86, z: 0.3 }))
-  g.add(mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.1, 10), mat(0xf2f2f5), { x: -1.55, y: 0.86, z: 0.25 }))
-  for (let i = 0; i < 5; i++) {
-    const leaf = mesh(new THREE.SphereGeometry(0.06, 6, 4), mat(0x3f9d5a), { x: -1.55 + Math.cos(i * 1.3) * 0.05, y: 0.96 + (i % 2) * 0.04, z: 0.25 + Math.sin(i * 1.3) * 0.05 })
-    leaf.scale.set(0.6, 1.4, 0.3)
-    leaf.rotation.set(Math.sin(i) * 0.6, i, Math.cos(i) * 0.6)
-    g.add(leaf)
-  }
-  // Chaise ergonomique : dossier en résille, appuie-tête, piètement en étoile.
-  const chair = new THREE.Group()
-  chair.position.set(0, 0, 1.0)
-  chair.rotation.y = Math.PI + 0.15
-  const base = mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.38, 8), mat(0x8a8fa8, { metalness: 0.6 }), { y: 0.25 })
-  chair.add(base)
-  for (let i = 0; i < 5; i++) {
-    const leg = mesh(new THREE.BoxGeometry(0.34, 0.03, 0.05), black, { x: Math.cos((i / 5) * Math.PI * 2) * 0.17, y: 0.06, z: Math.sin((i / 5) * Math.PI * 2) * 0.17 })
-    leg.rotation.y = -(i / 5) * Math.PI * 2
-    chair.add(leg)
-    chair.add(mesh(new THREE.SphereGeometry(0.035, 6, 4), black, { x: Math.cos((i / 5) * Math.PI * 2) * 0.33, y: 0.035, z: Math.sin((i / 5) * Math.PI * 2) * 0.33 }))
-  }
-  chair.add(mesh(new THREE.BoxGeometry(0.52, 0.08, 0.5), mat(0x2b2b33), { y: 0.46 }))
-  const back = mesh(new THREE.BoxGeometry(0.5, 0.62, 0.04), new THREE.MeshStandardMaterial({ color: 0x1d1d22, transparent: true, opacity: 0.85, roughness: 0.8 }), { y: 0.85, z: -0.26 })
-  back.rotation.x = 0.12
-  chair.add(back)
-  chair.add(mesh(new THREE.BoxGeometry(0.3, 0.14, 0.05), mat(0x2b2b33), { y: 1.25, z: -0.31 }))
-  for (const s of [-1, 1]) chair.add(mesh(new THREE.BoxGeometry(0.05, 0.05, 0.3), black, { x: s * 0.28, y: 0.66, z: -0.02 }))
-  g.add(chair)
-  for (const dx of [-1.6, 0, 1.6]) ctx.addCollider(x + dx, z, 0.85, 2)
-}
-
-// Étagères flottantes avec livres, plante, trophée et petite figurine.
-function wallShelves(ctx, x, z) {
-  const g = new THREE.Group()
-  g.position.set(x, 0, z)
-  ctx.group.add(g)
-  const oak = mat(0xc49a6c)
-  const colors = [0x2f6fd8, 0xe74c3c, 0xffd34f, 0x27ae60, 0xb48cff, 0x1d1d22]
-  for (let row = 0; row < 3; row++) {
-    const y = 1.2 + row * 0.65
-    g.add(mesh(new THREE.BoxGeometry(1.8, 0.05, 0.32), oak, { y, z: 0.16 }))
-    for (let i = 0; i < 6; i++) {
-      const b = mesh(new THREE.BoxGeometry(0.07, 0.3 + (i % 3) * 0.04, 0.22), mat(colors[(i + row * 2) % colors.length]), { x: -0.8 + i * 0.08 + (row % 2) * 0.9, y: y + 0.18, z: 0.17 })
-      g.add(b)
-    }
-  }
-  g.add(mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.14, 10), mat(0xf2f2f5), { x: 0.5, y: 1.3, z: 0.16 }))
-  for (let i = 0; i < 6; i++) {
-    const leaf = mesh(new THREE.ConeGeometry(0.03, 0.4, 4), mat(0x3f9d5a), { x: 0.5 + Math.cos(i) * 0.03, y: 1.2 - 0.2 + (i % 3) * -0.05, z: 0.22 })
-    leaf.rotation.z = Math.PI + Math.sin(i) * 0.3
-    g.add(leaf)
-  }
-  g.add(mesh(new THREE.CylinderGeometry(0.03, 0.06, 0.2, 8), mat(0xd4a017, { metalness: 0.7, roughness: 0.3 }), { x: -0.4, y: 2.0, z: 0.16 }))
-  g.add(mesh(new THREE.SphereGeometry(0.07, 10, 8), mat(0xd4a017, { metalness: 0.7, roughness: 0.3 }), { x: -0.4, y: 2.15, z: 0.16 }))
-  g.add(mesh(new THREE.BoxGeometry(0.14, 0.18, 0.1), mat(0xff7ad9), { x: 0.5, y: 2.66, z: 0.16 }))
-}
-
 // Monstera en pot.
 function monstera(ctx, x, z, scale = 1) {
   const g = new THREE.Group()
@@ -416,6 +277,228 @@ function floorLamp(ctx, x, z) {
   l.position.set(0, 1.7, 0)
   g.add(l)
   ctx.addCollider(x, z, 0.3)
+}
+
+
+// ---------- Bureau industriel ----------
+
+function brickTexture() {
+  return canvasTexture(512, 256, (g, W, H) => {
+    g.fillStyle = '#5a3a30'
+    g.fillRect(0, 0, W, H)
+    let s = 9
+    const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647)
+    const bw = 64
+    const bh = 24
+    for (let y = 0; y < H; y += bh + 4) {
+      const off = ((y / (bh + 4)) % 2) * (bw / 2)
+      for (let x = -bw; x < W + bw; x += bw + 4) {
+        const l = 34 + rnd() * 12
+        g.fillStyle = `hsl(${12 + rnd() * 10}, ${38 + rnd() * 12}%, ${l}%)`
+        g.fillRect(x + off, y, bw, bh)
+        g.fillStyle = 'rgba(255,255,255,0.05)'
+        g.fillRect(x + off, y, bw, 3)
+      }
+    }
+  })
+}
+
+// Suspension en métal noir avec ampoule à filament, accrochée à la poutre.
+function pendant(ctx, x, z, drop) {
+  const g = new THREE.Group()
+  g.position.set(x, 3.62, z)
+  ctx.group.add(g)
+  g.add(mesh(new THREE.CylinderGeometry(0.008, 0.008, drop, 4), mat(0x1d1d22), { y: -drop / 2, shadow: false }))
+  g.add(mesh(new THREE.ConeGeometry(0.32, 0.3, 16, 1, true), mat(0x1d1d22, { side: THREE.DoubleSide, metalness: 0.4, roughness: 0.5 }), { y: -drop - 0.12, shadow: false }))
+  g.add(mesh(new THREE.SphereGeometry(0.09, 10, 8), new THREE.MeshStandardMaterial({ color: 0xfff1c8, emissive: 0xffb860, emissiveIntensity: 2.5 }), { y: -drop - 0.28, shadow: false }))
+  const l = new THREE.PointLight(0xffc27a, 3, 4.5, 1.6)
+  l.position.set(0, -drop - 0.5, 0)
+  g.add(l)
+}
+
+function deskLamp(parent, x, y, z) {
+  const black = mat(0x1d1d22)
+  const lamp = new THREE.Group()
+  lamp.position.set(x, y, z)
+  lamp.rotation.y = Math.PI
+  parent.add(lamp)
+  lamp.add(mesh(new THREE.CylinderGeometry(0.09, 0.1, 0.03, 14), black, { y: 0.015 }))
+  const arm1 = mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.5, 6), black, { x: 0.07, y: 0.25 })
+  arm1.rotation.z = -0.3
+  lamp.add(arm1)
+  const arm2 = mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.45, 6), black, { x: 0.3, y: 0.55 })
+  arm2.rotation.z = 1.15
+  lamp.add(arm2)
+  const shade = mesh(new THREE.ConeGeometry(0.09, 0.15, 12, 1, true), mat(0x1d1d22, { side: THREE.DoubleSide }), { x: 0.5, y: 0.5 })
+  shade.rotation.z = 0.5
+  lamp.add(shade)
+  lamp.add(mesh(new THREE.SphereGeometry(0.035, 8, 6), new THREE.MeshBasicMaterial({ color: 0xfff0c8 }), { x: 0.51, y: 0.46, shadow: false }))
+}
+
+// Étagère en tubes d'acier noir et planches de chêne, contre un mur.
+function pipeShelves(ctx, x, z, rotY) {
+  const g = new THREE.Group()
+  g.position.set(x, 0, z)
+  g.rotation.y = rotY
+  ctx.group.add(g)
+  const pipe = mat(0x1d1d22, { metalness: 0.5, roughness: 0.45 })
+  const plank = mat(0xa8784a, { roughness: 0.7 })
+  for (const s of [-1, 1]) {
+    for (const dz of [0.05, 0.4]) g.add(mesh(new THREE.CylinderGeometry(0.025, 0.025, 2.6, 6), pipe, { x: s * 0.95, y: 1.3, z: dz }))
+  }
+  const colors = [0x2f6fd8, 0xe74c3c, 0xffd34f, 0x27ae60, 0xb48cff, 0x1d1d22, 0xf4f1e8]
+  for (let row = 0; row < 4; row++) {
+    const y = 0.35 + row * 0.62
+    g.add(mesh(new THREE.BoxGeometry(2.05, 0.05, 0.5), plank, { y, z: 0.22 }))
+    if (row === 0) {
+      // Caisses de rangement en bas.
+      for (const bx of [-0.5, 0.45]) g.add(mesh(new THREE.BoxGeometry(0.7, 0.32, 0.4), mat(0x8a6a4a), { x: bx, y: y + 0.18, z: 0.22 }))
+    } else if (row === 2) {
+      // Plante retombante.
+      g.add(mesh(new THREE.CylinderGeometry(0.12, 0.1, 0.18, 10), mat(0xf4f1e8), { x: 0.55, y: y + 0.11, z: 0.22 }))
+      for (let i = 0; i < 9; i++) {
+        const leaf = mesh(new THREE.SphereGeometry(0.06, 6, 4), mat(0x3f9d5a), { x: 0.45 + (i % 3) * 0.08, y: y - 0.05 - (i * 0.07), z: 0.45 })
+        leaf.scale.set(1, 0.5, 0.6)
+        g.add(leaf)
+      }
+      for (let i = 0; i < 5; i++) g.add(mesh(new THREE.BoxGeometry(0.07, 0.3 + (i % 2) * 0.05, 0.24), mat(colors[i + 1]), { x: -0.8 + i * 0.09, y: y + 0.18, z: 0.22 }))
+    } else {
+      for (let i = 0; i < 7; i++) {
+        const b = mesh(new THREE.BoxGeometry(0.07, 0.28 + (i % 3) * 0.05, 0.24), mat(colors[(i + row) % colors.length]), { x: -0.85 + i * 0.085 + (row % 2) * 0.9, y: y + 0.17, z: 0.22 })
+        if (i === 6) b.rotation.z = 0.35
+        g.add(b)
+      }
+      // Petit appareil photo argentique ou disque vinyle.
+      if (row === 1) {
+        g.add(mesh(new THREE.BoxGeometry(0.22, 0.14, 0.1), mat(0x24242a), { x: -0.45, y: y + 0.1, z: 0.22 }))
+        g.add(mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.08, 10).rotateX(Math.PI / 2), mat(0x111114), { x: -0.45, y: y + 0.1, z: 0.32 }))
+      } else {
+        g.add(mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.01, 18).rotateX(Math.PI / 2), mat(0x111114), { x: -0.5, y: y + 0.18, z: 0.12 }))
+      }
+    }
+  }
+  g.add(mesh(new THREE.BoxGeometry(2.05, 0.05, 0.5), plank, { y: 2.6, z: 0.22 }))
+  g.add(mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.16, 10), mat(0xb46a3e), { x: -0.6, y: 2.71, z: 0.22 }))
+  g.add(mesh(new THREE.IcosahedronGeometry(0.18, 0), mat(0x3f9d5a), { x: -0.6, y: 2.88, z: 0.22 }))
+  const cos = Math.cos(rotY)
+  const sin = Math.sin(rotY)
+  for (const dx of [-0.6, 0.6]) ctx.addCollider(x + dx * cos + 0.25 * sin, z - dx * sin + 0.25 * cos, 0.5, 3)
+}
+
+function snakePlant(ctx, x, z) {
+  const g = new THREE.Group()
+  g.position.set(x, 0, z)
+  ctx.group.add(g)
+  g.add(mesh(new THREE.CylinderGeometry(0.24, 0.2, 0.45, 12), mat(0x2b2b33), { y: 0.22 }))
+  for (let i = 0; i < 9; i++) {
+    const a = i * 0.7
+    const h = 0.7 + (i % 3) * 0.2
+    const leaf = mesh(new THREE.ConeGeometry(0.07, h, 4), mat(i % 2 ? 0x3f7d3a : 0x5a9a4a), { x: Math.cos(a) * 0.1, y: 0.45 + h / 2, z: Math.sin(a) * 0.1 })
+    leaf.scale.z = 0.3
+    leaf.rotation.set(Math.sin(a) * 0.15, a, Math.cos(a) * 0.15)
+    g.add(leaf)
+  }
+  ctx.addCollider(x, z, 0.3)
+}
+
+// Coin rétro : un Macintosh beige, des disquettes et une lampe, sur une table d'atelier.
+function retroCorner(ctx, x, z) {
+  const g = new THREE.Group()
+  g.position.set(x, 0, z)
+  g.rotation.y = -0.35
+  ctx.group.add(g)
+  const steel = mat(0x24242a, { metalness: 0.4, roughness: 0.5 })
+  g.add(mesh(new THREE.BoxGeometry(1.5, 0.07, 0.8), mat(0x8a5a32, { roughness: 0.7 }), { y: 0.8 }))
+  for (const [dx, dz] of [[-0.68, -0.33], [0.68, -0.33], [-0.68, 0.33], [0.68, 0.33]]) g.add(mesh(new THREE.BoxGeometry(0.05, 0.78, 0.05), steel, { x: dx, y: 0.39, z: dz }))
+  g.add(mesh(new THREE.BoxGeometry(1.4, 0.04, 0.7), steel, { y: 0.2 }))
+  const beige = mat(0xe9e0c9, { roughness: 0.75 })
+  const mac = new THREE.Group()
+  mac.position.set(-0.1, 0.84, 0)
+  mac.scale.setScalar(1.25)
+  g.add(mac)
+  mac.add(mesh(new THREE.BoxGeometry(0.46, 0.56, 0.5), beige, { y: 0.28 }))
+  mac.add(mesh(new THREE.BoxGeometry(0.36, 0.28, 0.02), mat(0xcfc6ae), { y: 0.35, z: 0.25 }))
+  const screen = canvasTexture(128, 100, (c, W, H) => {
+    c.fillStyle = '#d8d8c8'
+    c.fillRect(0, 0, W, H)
+    c.fillStyle = '#ffffff'
+    c.fillRect(0, 0, W, 9)
+    c.fillStyle = '#1d1d22'
+    c.font = 'bold 7px monospace'
+    c.fillText('  File  Edit  View  Special', 2, 7)
+    c.fillStyle = '#ffffff'
+    c.fillRect(18, 22, 92, 60)
+    c.strokeStyle = '#1d1d22'
+    c.strokeRect(18, 22, 92, 60)
+    c.fillRect(18, 22, 92, 9)
+    c.fillStyle = '#1d1d22'
+    c.font = 'bold 8px monospace'
+    c.fillText('antoinequarroz.ch', 22, 45)
+    c.font = '7px monospace'
+    c.fillText('Hello, world!', 22, 58)
+    c.fillText('> _', 22, 72)
+  })
+  mac.add(mesh(new THREE.PlaneGeometry(0.3, 0.23), new THREE.MeshStandardMaterial({ map: screen, emissiveMap: screen, emissive: 0xffffff, emissiveIntensity: 0.7 }), { y: 0.35, z: 0.262, shadow: false }))
+  mac.add(mesh(new THREE.BoxGeometry(0.14, 0.02, 0.01), mat(0x2b2b33), { x: 0.08, y: 0.12, z: 0.252 }))
+  mac.add(mesh(new THREE.BoxGeometry(0.44, 0.03, 0.18), beige, { y: 0.015, z: 0.38 }))
+  // Disquettes colorées.
+  for (let i = 0; i < 4; i++) g.add(mesh(new THREE.BoxGeometry(0.16, 0.012, 0.16), mat([0x2f6fd8, 0xe74c3c, 0xffd34f, 0x1d1d22][i]), { x: 0.5, y: 0.845 + i * 0.013, z: 0.12 }))
+  deskLamp(g, 0.55, 0.83, -0.2)
+  ctx.addCollider(x, z, 0.85, 1.5)
+}
+
+// Meuble télé et grand écran qui fait défiler les visuels de mes projets.
+function tvCorner(ctx, x, z) {
+  const g = new THREE.Group()
+  g.position.set(x, 0, z)
+  g.rotation.y = -Math.PI / 2
+  ctx.group.add(g)
+  const steel = mat(0x24242a, { metalness: 0.4, roughness: 0.5 })
+  g.add(mesh(new THREE.BoxGeometry(2.4, 0.5, 0.5), mat(0x6b4426, { roughness: 0.6 }), { y: 0.35, z: 0.25 }))
+  for (const s of [-1, 1]) g.add(mesh(new THREE.BoxGeometry(0.05, 0.1, 0.45), steel, { x: s * 1.1, y: 0.05, z: 0.25 }))
+  g.add(mesh(new THREE.BoxGeometry(0.3, 0.06, 0.25), mat(0xf4f1e8), { x: -0.8, y: 0.63, z: 0.25 }))
+  g.add(mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.2, 10), mat(0x3f9d5a), { x: 0.9, y: 0.7, z: 0.25 }))
+  g.add(mesh(new THREE.BoxGeometry(2.0, 1.15, 0.06), mat(0x111114), { y: 1.65, z: 0.06 }))
+  const canvas = document.createElement('canvas')
+  canvas.width = 600
+  canvas.height = 300
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.colorSpace = THREE.SRGBColorSpace
+  const screenMat = new THREE.MeshStandardMaterial({ map: tex, emissiveMap: tex, emissive: 0xffffff, emissiveIntensity: 0.9 })
+  g.add(mesh(new THREE.PlaneGeometry(1.92, 1.07), screenMat, { y: 1.65, z: 0.095, shadow: false }))
+  const list = showcases.flatMap((p) => p.projects).filter((p) => p.image)
+  const c2 = canvas.getContext('2d')
+  let index = 0
+  const draw = () => {
+    c2.clearRect(0, 0, 600, 300)
+    drawVisual(c2, list[index % list.length], 0, 0, 600, 300, draw)
+    tex.needsUpdate = true
+  }
+  draw()
+  let clock = 0
+  ctx.animated.push((dt) => {
+    clock += dt
+    if (clock > 5) {
+      clock = 0
+      index++
+      draw()
+    }
+  })
+  ctx.addCollider(x - 0.25, z, 0.7, 1)
+}
+
+// Lampadaire en arc au-dessus du canapé.
+function arcLamp(ctx, x, z) {
+  const g = new THREE.Group()
+  g.position.set(x, 0, z)
+  ctx.group.add(g)
+  const steel = mat(0x24242a, { metalness: 0.5, roughness: 0.4 })
+  g.add(mesh(new THREE.BoxGeometry(0.35, 0.12, 0.35), mat(0xe8e2d8), { y: 0.06 }))
+  const curve = new THREE.QuadraticBezierCurve3(new THREE.Vector3(0, 0.1, 0), new THREE.Vector3(0.2, 3.2, -0.2), new THREE.Vector3(1.4, 2.4, -1.4))
+  g.add(mesh(new THREE.TubeGeometry(curve, 20, 0.02, 5), steel))
+  g.add(mesh(new THREE.SphereGeometry(0.22, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x24242a, { side: THREE.DoubleSide }), { x: 1.4, y: 2.3, z: -1.4 }))
+  g.add(mesh(new THREE.SphereGeometry(0.07, 8, 6), new THREE.MeshBasicMaterial({ color: 0xfff1c8 }), { x: 1.4, y: 2.25, z: -1.4, shadow: false }))
+  ctx.addCollider(x, z, 0.25)
 }
 
 const DECOR = {
@@ -497,55 +580,229 @@ const DECOR = {
     C.npc(ctx, 'barbarian', 3.6, 3, { keep: ['1H_Axe', 'Barbarian_Hat'], path: [[3.6, 3], [3.6, -3], [5.5, 0]], walk: 1, pause: 2.5 })
   },
 
+  // Bureau industriel : mur de briques et grande verrière, poutre d'acier et suspensions,
+  // bureau en bois massif sur tréteaux noirs avec MacBook et grand écran, étagères en
+  // tubes noirs, coin rétro avec un vieux Mac, salon avec canapé en cuir, table basse
+  // (le téléphone des applis mobiles) et télé qui fait défiler mes projets.
   studio(ctx, w, d) {
     const { group } = ctx
-    // Grande baie vitrée avec la ville au crépuscule.
-    const sky = canvasTexture(512, 160, (g, W, H) => {
+    const steelMat = mat(0x24242a, { roughness: 0.5, metalness: 0.4 })
+    const oak = mat(0x9a6a3e, { roughness: 0.65 })
+    const walnut = mat(0x6b4426, { roughness: 0.6 })
+    // Briques sur le mur du fond, enduit sombre sur les côtés.
+    const brick = brickTexture()
+    brick.wrapS = brick.wrapT = THREE.RepeatWrapping
+    brick.repeat.set(w / 4, 1.2)
+    const bricks = mesh(new THREE.PlaneGeometry(w, 3.6), new THREE.MeshStandardMaterial({ map: brick, roughness: 0.95 }), { y: 1.8, z: -d / 2 + 0.01, shadow: false })
+    group.add(bricks)
+    for (const s of [-1, 1]) {
+      const side = mesh(new THREE.PlaneGeometry(d, 3.6), new THREE.MeshStandardMaterial({ map: brick, roughness: 0.95, color: 0xc8beb4 }), { x: s * (w / 2 - 0.01), y: 1.8, shadow: false })
+      side.rotation.y = -s * Math.PI / 2
+      group.add(side)
+    }
+    // Grande verrière à petits carreaux : la ville au crépuscule.
+    const sky = canvasTexture(512, 220, (g, W, H) => {
       const grad = g.createLinearGradient(0, 0, 0, H)
       grad.addColorStop(0, '#ff9a4a')
-      grad.addColorStop(1, '#6a3a7a')
+      grad.addColorStop(0.6, '#c0508a')
+      grad.addColorStop(1, '#4a2a6a')
       g.fillStyle = grad
       g.fillRect(0, 0, W, H)
-      for (let x = 0; x < W; x += 24 + Math.random() * 20) {
-        const bh = 40 + Math.random() * 90
+      let s = 5
+      const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647)
+      for (let x = 0; x < W; x += 20 + rnd() * 18) {
+        const bh = 50 + rnd() * 110
         g.fillStyle = '#2a1a3a'
-        g.fillRect(x, H - bh, 22, bh)
+        g.fillRect(x, H - bh, 20, bh)
         g.fillStyle = '#ffd27a'
-        for (let y = H - bh + 6; y < H - 6; y += 12) if (Math.random() > 0.4) g.fillRect(x + 5, y, 4, 5)
+        for (let y = H - bh + 6; y < H - 6; y += 11) if (rnd() > 0.45) g.fillRect(x + 4, y, 4, 5)
       }
     })
-    const win = mesh(new THREE.PlaneGeometry(7, 2), new THREE.MeshStandardMaterial({ map: sky, emissiveMap: sky, emissive: 0xffffff, emissiveIntensity: 0.9 }), { y: 2.1, z: -d / 2 + 0.02, shadow: false })
-    group.add(win)
-    for (const x of [-3.5, 0, 3.5]) box(ctx, 0.12, 2.2, 0.1, 0x333344, x, 2.1, -d / 2 + 0.05)
-    // Le setup : grand bureau en noyer sous la baie vitrée, iMac et second écran,
-    // clavier et souris, lampe d'architecte, enceintes, plante, casque et chaise ergonomique.
-    setupDesk(ctx, 0, -d / 2 + 1.05)
-    const dev = C.npc(ctx, 'rogue', 0, -d / 2 + 2.35, { rotY: Math.PI, anim: 'Sit_Chair_Idle', r: 0.5, greet: false })
-    dev.object.position.y = 0.2
-    // Étagères murales de part et d'autre de la fenêtre.
-    for (const x of [-5.1, 5.1]) wallShelves(ctx, x, -d / 2 + 0.2)
-    // Grande plante dans l'angle et lampadaire près du canapé.
-    monstera(ctx, -w / 2 + 0.9, -d / 2 + 0.9)
-    floorLamp(ctx, w / 2 - 0.8, 1.6)
-    // Canapé, tapis et table basse.
-    box(ctx, 3, 0.5, 1, 0x4f6fd8, 3.5, 0.25, 2.6)
-    box(ctx, 3, 0.8, 0.3, 0x3f5fc8, 3.5, 0.6, 3.05)
-    ctx.addCollider(3.5, 2.7, 1.6, 1.2)
-    group.add(mesh(new THREE.CylinderGeometry(1.8, 1.8, 0.02, 24), mat(0xff9a4a), { x: 3.5, y: 0.01, z: 0.8, shadow: false }))
-    C.npc(ctx, 'mage', 2.6, 2.5, { keep: [], anim: 'Sit_Chair_Idle', rotY: Math.PI, r: 0, greet: false }).object.position.y = 0.4
-    // Plantes près de l'entrée.
-    for (const [x, z] of [[-w / 2 + 0.8, 3.5], [w / 2 - 0.8, 3.8]]) monstera(ctx, x, z, 0.7)
-    // Affiches de projets.
-    for (const [x, t, bg, fg] of [[-w / 2 + 0.06, 'VELQORA', '#1a1530', '#ffb347'], [-w / 2 + 0.06, 'Remembeyes', '#ff7ab6', '#ffffff']].map((p, i) => [p[0], p[1], p[2], p[3], i])) {
-      const z = t === 'VELQORA' ? -1.5 : 1
-      const p = mesh(new THREE.PlaneGeometry(1.1, 1.45), poster(t, bg, fg), { x, y: 2, z, shadow: false })
-      p.rotation.y = Math.PI / 2
-      group.add(p)
+    const winX = -1.6
+    group.add(mesh(new THREE.PlaneGeometry(5.6, 2.3), new THREE.MeshStandardMaterial({ map: sky, emissiveMap: sky, emissive: 0xffffff, emissiveIntensity: 0.9 }), { x: winX, y: 2.05, z: -d / 2 + 0.03, shadow: false }))
+    for (let i = 0; i <= 7; i++) box(ctx, 0.07, 2.4, 0.08, 0x1d1d22, winX - 2.8 + i * 0.8, 2.05, -d / 2 + 0.06)
+    for (let j = 0; j <= 3; j++) box(ctx, 5.7, 0.07, 0.08, 0x1d1d22, winX, 0.9 + j * 0.767, -d / 2 + 0.06)
+    // Suspensions industrielles, accrochées à des tringles fixées au mur de briques.
+    for (const [x0, x1] of [[-5.6, -1.2], [4.6, 7.0]]) {
+      box(ctx, x1 - x0, 0.05, 0.05, 0x1d1d22, (x0 + x1) / 2, 3.62, -d / 2 + 1.3)
+      for (const ax of [x0 + 0.1, x1 - 0.1]) box(ctx, 0.05, 0.05, 1.3, 0x1d1d22, ax, 3.62, -d / 2 + 0.65)
     }
-    // Néon « Code · Café · Commit » au-dessus du coin café.
-    const neon = mesh(new THREE.PlaneGeometry(3, 0.6), new THREE.MeshBasicMaterial({ map: textTexture('Code · Café · Commit', { bg: '#1a1530', fg: '#ff9ad9', font: 'bold 46px "Inter Variable", system-ui, sans-serif' }) }), { x: w / 2 - 0.05, y: 2.6, z: 0.8, shadow: false })
-    neon.rotation.y = -Math.PI / 2
-    group.add(neon)
+    for (const lx of [-4.8, -2.0, 5.8]) pendant(ctx, lx, -d / 2 + 1.3, 1.15)
+    // Néon « </> » sur les briques.
+    const neon = canvasTexture(256, 128, (g, W, H) => {
+      g.fillStyle = 'rgba(0,0,0,0)'
+      g.clearRect(0, 0, W, H)
+      g.shadowColor = '#ff7ad9'
+      g.shadowBlur = 18
+      g.fillStyle = '#ffd0f0'
+      g.font = 'bold 88px "Outfit Variable", "Inter Variable", sans-serif'
+      g.textAlign = 'center'
+      g.textBaseline = 'middle'
+      g.fillText('</>', W / 2, H / 2)
+    })
+    const neonSign = mesh(new THREE.PlaneGeometry(1.6, 0.8), new THREE.MeshBasicMaterial({ map: neon, transparent: true, depthWrite: false }), { x: 4.4, y: 2.6, z: -d / 2 + 0.04, shadow: false })
+    group.add(neonSign)
+
+    // ---- Le bureau ----
+    const desk = new THREE.Group()
+    desk.position.set(-3.4, 0, -d / 2 + 1.15)
+    desk.scale.setScalar(1.25)
+    group.add(desk)
+    desk.add(mesh(new THREE.BoxGeometry(3.4, 0.09, 1.0), oak, { y: 0.78 }))
+    // Tréteaux en acier noir.
+    for (const s of [-1, 1]) {
+      desk.add(mesh(new THREE.BoxGeometry(0.06, 0.06, 0.86), steelMat, { x: s * 1.45, y: 0.72 }))
+      desk.add(mesh(new THREE.BoxGeometry(0.06, 0.06, 0.86), steelMat, { x: s * 1.45, y: 0.03 }))
+      for (const dz of [-0.4, 0.4]) desk.add(mesh(new THREE.BoxGeometry(0.06, 0.72, 0.06), steelMat, { x: s * 1.45, y: 0.38, z: dz }))
+      const cross = mesh(new THREE.BoxGeometry(0.04, 0.95, 0.04), steelMat, { x: s * 1.45, y: 0.38 })
+      cross.rotation.x = 0.9
+      desk.add(cross)
+    }
+    // MacBook Pro ouvert sur un support, écran vers l'utilisateur.
+    const mb = new THREE.Group()
+    mb.position.set(-0.75, 0.83, 0.02)
+    mb.rotation.y = 0.18
+    desk.add(mb)
+    const alu = mat(0xb8bcc8, { metalness: 0.7, roughness: 0.3, flatShading: false })
+    const standA = mesh(new THREE.BoxGeometry(0.34, 0.015, 0.3), alu, { y: 0.1, z: 0 })
+    standA.rotation.x = 0.28
+    mb.add(standA)
+    mb.add(mesh(new THREE.BoxGeometry(0.04, 0.12, 0.04), alu, { y: 0.05, z: -0.1 }))
+    mb.add(mesh(new THREE.BoxGeometry(0.46, 0.018, 0.32), mat(0x5a5d66, { metalness: 0.7, roughness: 0.3 }), { y: 0.13, z: 0.01 }).rotateX(0.28))
+    const lid = new THREE.Group()
+    lid.position.set(0, 0.17, -0.14)
+    lid.rotation.x = -0.15
+    mb.add(lid)
+    lid.add(mesh(new THREE.BoxGeometry(0.46, 0.31, 0.012), mat(0x5a5d66, { metalness: 0.7, roughness: 0.3 }), { y: 0.155 }))
+    const macTex = macScreen()
+    lid.add(mesh(new THREE.PlaneGeometry(0.43, 0.28), new THREE.MeshStandardMaterial({ map: macTex, emissiveMap: macTex, emissive: 0xffffff, emissiveIntensity: 1.1 }), { y: 0.155, z: 0.007, shadow: false }))
+    // Grand écran sur bras.
+    const disp = new THREE.Group()
+    disp.position.set(0.35, 0.83, -0.25)
+    disp.rotation.y = -0.12
+    desk.add(disp)
+    disp.add(mesh(new THREE.BoxGeometry(1.3, 0.76, 0.035), alu, { y: 0.62 }))
+    disp.add(mesh(new THREE.PlaneGeometry(1.26, 0.72), new THREE.MeshBasicMaterial({ color: 0x0c0c10 }), { y: 0.62, z: 0.018, shadow: false }))
+    const des = designScreen()
+    disp.add(mesh(new THREE.PlaneGeometry(1.2, 0.67), new THREE.MeshStandardMaterial({ map: des, emissiveMap: des, emissive: 0xffffff, emissiveIntensity: 1.1 }), { y: 0.62, z: 0.019, shadow: false }))
+    disp.add(mesh(new THREE.BoxGeometry(0.06, 0.32, 0.04), alu, { y: 0.18, z: -0.08 }))
+    disp.add(mesh(new THREE.BoxGeometry(0.28, 0.012, 0.22), alu, { y: 0.006, z: -0.06 }))
+    // Clavier, trackpad, carnet, tasse, lampe et petite plante.
+    desk.add(mesh(new THREE.BoxGeometry(0.44, 0.014, 0.14), mat(0xe8e8ee, { flatShading: false }), { x: 0.3, y: 0.83, z: 0.26 }))
+    desk.add(mesh(new THREE.BoxGeometry(0.16, 0.008, 0.12), mat(0xd8d8e0), { x: 0.65, y: 0.83, z: 0.26 }))
+    desk.add(mesh(new THREE.BoxGeometry(0.22, 0.02, 0.3), mat(0x2f3a5a), { x: -1.3, y: 0.835, z: 0.2 }))
+    desk.add(mesh(new THREE.CylinderGeometry(0.045, 0.04, 0.1, 12), mat(0xf4f1e8), { x: 1.0, y: 0.87, z: 0.25 }))
+    deskLamp(desk, 1.35, 0.83, -0.3)
+    for (let i = 0; i < 6; i++) {
+      const leaf = mesh(new THREE.SphereGeometry(0.07, 6, 4), mat(0x3f9d5a), { x: -1.45 + Math.cos(i * 1.2) * 0.05, y: 0.98 + (i % 2) * 0.05, z: -0.3 + Math.sin(i * 1.2) * 0.05 })
+      leaf.scale.set(0.6, 1.4, 0.3)
+      leaf.rotation.set(Math.sin(i) * 0.6, i, Math.cos(i) * 0.6)
+      desk.add(leaf)
+    }
+    desk.add(mesh(new THREE.CylinderGeometry(0.08, 0.06, 0.13, 10), mat(0xb46a3e), { x: -1.45, y: 0.89, z: -0.3 }))
+    // Chaise en cuir et acier.
+    const chair = new THREE.Group()
+    chair.position.set(-0.2, 0, 0.85)
+    chair.rotation.y = Math.PI + 0.1
+    desk.add(chair)
+    chair.add(mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.38, 8), steelMat, { y: 0.25 }))
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2
+      const leg = mesh(new THREE.BoxGeometry(0.34, 0.03, 0.05), steelMat, { x: Math.cos(a) * 0.17, y: 0.06, z: Math.sin(a) * 0.17 })
+      leg.rotation.y = -a
+      chair.add(leg)
+    }
+    chair.add(mesh(new THREE.BoxGeometry(0.52, 0.09, 0.5), mat(0x8a4a24, { roughness: 0.55 }), { y: 0.46 }))
+    const back = mesh(new THREE.BoxGeometry(0.5, 0.62, 0.07), mat(0x8a4a24, { roughness: 0.55 }), { y: 0.85, z: -0.26 })
+    back.rotation.x = 0.12
+    chair.add(back)
+    for (const dx of [-1.5, 0, 1.5]) ctx.addCollider(desk.position.x + dx * 1.25, desk.position.z, 0.8, 2)
+    const dev = C.npc(ctx, 'rogue', desk.position.x - 0.25, desk.position.z + 1.2, { rotY: Math.PI, anim: 'Sit_Chair_Idle', r: 0.5, greet: false })
+    dev.object.position.y = 0.2
+
+    // ---- Étagères en tubes noirs et planches, contre le mur de gauche ----
+    pipeShelves(ctx, -w / 2 + 0.35, -1.4, Math.PI / 2)
+    pipeShelves(ctx, -w / 2 + 0.35, 1.6, Math.PI / 2)
+    monstera(ctx, -w / 2 + 0.9, -d / 2 + 0.9)
+    snakePlant(ctx, -0.4, -d / 2 + 0.6)
+
+    // ---- Coin rétro : vieux Mac sur une petite table ----
+    retroCorner(ctx, w / 2 - 1.6, -d / 2 + 1.0)
+    monstera(ctx, w / 2 - 0.7, -d / 2 + 0.8, 0.8)
+
+    // ---- Salon ----
+    const rugTex = canvasTexture(256, 160, (g, W, H) => {
+      g.fillStyle = '#c7b49a'
+      g.fillRect(0, 0, W, H)
+      g.strokeStyle = '#8a5a3a'
+      g.lineWidth = 6
+      g.strokeRect(10, 10, W - 20, H - 20)
+      g.fillStyle = 'rgba(138, 90, 58, 0.35)'
+      for (let i = 0; i < 6; i++) g.fillRect(30 + i * 36, 30, 14, H - 60)
+    })
+    const rug = mesh(new THREE.BoxGeometry(4.2, 0.02, 3), new THREE.MeshStandardMaterial({ map: rugTex, roughness: 1 }), { x: 4.4, y: 0.01, z: 1.6, shadow: false })
+    rug.receiveShadow = true
+    group.add(rug)
+    // Canapé en cuir cognac, tourné vers la télé (mur de droite).
+    const sofa = new THREE.Group()
+    sofa.position.set(2.6, 0, 1.6)
+    sofa.rotation.y = Math.PI / 2
+    group.add(sofa)
+    const leather = mat(0x9a4f22, { roughness: 0.5 })
+    sofa.add(mesh(new THREE.BoxGeometry(2.6, 0.42, 0.95), leather, { y: 0.33 }))
+    sofa.add(mesh(new THREE.BoxGeometry(2.6, 0.7, 0.25), leather, { y: 0.75, z: -0.38 }))
+    for (const s of [-1, 1]) sofa.add(mesh(new THREE.BoxGeometry(0.22, 0.6, 0.95), leather, { x: s * 1.25, y: 0.5 }))
+    for (const s of [-0.62, 0.62]) sofa.add(mesh(new THREE.BoxGeometry(1.15, 0.12, 0.7), mat(0xa85a2a, { roughness: 0.5 }), { x: s, y: 0.6, z: 0.05 }))
+    for (const [dx, dz] of [[-1.2, -0.4], [1.2, -0.4], [-1.2, 0.4], [1.2, 0.4]]) sofa.add(mesh(new THREE.BoxGeometry(0.05, 0.12, 0.05), steelMat, { x: dx, y: 0.06, z: dz }))
+    sofa.add(mesh(new THREE.BoxGeometry(0.42, 0.36, 0.14), mat(0x3f6f6a), { x: -0.8, y: 0.85, z: -0.18 }))
+    ctx.addCollider(2.6, 1.0, 0.7, 1.2)
+    ctx.addCollider(2.6, 2.2, 0.7, 1.2)
+    C.npc(ctx, 'mage', 2.75, 2.2, { keep: [], anim: 'Sit_Chair_Idle', rotY: Math.PI / 2, r: 0, greet: false }).object.position.y = 0.32
+    // Table basse bois et acier, avec le téléphone.
+    const table = new THREE.Group()
+    table.position.set(4.5, 0, 1.6)
+    group.add(table)
+    table.add(mesh(new THREE.BoxGeometry(1.0, 0.07, 1.5), walnut, { y: 0.42 }))
+    for (const s of [-1, 1]) {
+      table.add(mesh(new THREE.BoxGeometry(0.9, 0.04, 0.04), steelMat, { y: 0.36, z: s * 0.68 }))
+      table.add(mesh(new THREE.BoxGeometry(0.04, 0.38, 0.04), steelMat, { x: 0.43, y: 0.19, z: s * 0.68 }))
+      table.add(mesh(new THREE.BoxGeometry(0.04, 0.38, 0.04), steelMat, { x: -0.43, y: 0.19, z: s * 0.68 }))
+    }
+    const phone = new THREE.Group()
+    phone.position.set(0.05, 0.465, -0.1)
+    phone.rotation.y = 0.4
+    table.add(phone)
+    phone.add(mesh(new THREE.BoxGeometry(0.16, 0.015, 0.32), mat(0x2b2b33, { metalness: 0.5, roughness: 0.3 }), {}))
+    const appTex = canvasTexture(96, 192, (g, W, H) => {
+      const grad = g.createLinearGradient(0, 0, 0, H)
+      grad.addColorStop(0, '#ff6fb1')
+      grad.addColorStop(1, '#6a3aa8')
+      g.fillStyle = grad
+      g.fillRect(0, 0, W, H)
+      const icons = ['#ffffff', '#3fd6a8', '#ffb347', '#8fbf6f', '#58d0ff', '#ff5f56', '#b48cff', '#ffd34f']
+      icons.forEach((c, i) => {
+        g.fillStyle = c
+        g.beginPath()
+        g.roundRect(12 + (i % 3) * 26, 26 + Math.floor(i / 3) * 30, 20, 20, 5)
+        g.fill()
+      })
+    })
+    const appScreen = mesh(new THREE.PlaneGeometry(0.14, 0.29), new THREE.MeshStandardMaterial({ map: appTex, emissiveMap: appTex, emissive: 0xffffff, emissiveIntensity: 1 }), { y: 0.009, shadow: false })
+    appScreen.rotation.x = -Math.PI / 2
+    phone.add(appScreen)
+    table.add(mesh(new THREE.CylinderGeometry(0.05, 0.045, 0.1, 10), mat(0xf4f1e8), { x: -0.25, y: 0.5, z: 0.45 }))
+    for (let i = 0; i < 3; i++) table.add(mesh(new THREE.BoxGeometry(0.3, 0.035, 0.22), mat([0x2f6fd8, 0xe8743b, 0x1d1d22][i]), { x: -0.2, y: 0.475 + i * 0.035, z: -0.45 }))
+    ctx.addCollider(4.5, 1.6, 0.75, 0.6)
+    // Télé sur meuble en bois et acier, contre le mur de droite : diaporama de mes projets.
+    tvCorner(ctx, w / 2 - 0.45, 1.6)
+    // Lampe arc au-dessus du canapé et plantes.
+    arcLamp(ctx, 1.6, 3.4)
+    monstera(ctx, w / 2 - 0.8, 4.0, 0.75)
+    monstera(ctx, -w / 2 + 0.8, 4.0, 0.7)
+    // Douce lumière chaude d'ensemble.
+    const fill = new THREE.PointLight(0xffc98a, 6, 9, 1.6)
+    fill.position.set(4, 2.6, 1.2)
+    group.add(fill)
   },
 
   library(ctx, w, d) {

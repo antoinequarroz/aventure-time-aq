@@ -356,48 +356,216 @@ const BUILDERS = {
 const TABLE_PROPS = new Set(['camera', 'laptop', 'phone', 'trophy', 'coffee'])
 const hex = (c) => `#${new THREE.Color(c).getHexString()}`
 
-// Étiquette en forme de carte : pastille avec l'icône, titre, bordure aux couleurs de l'île.
-export function labelTexture(title, icon, accent) {
-  return canvasTexture(640, 180, (g, w, h) => {
-    const r = 46
-    const bh = 132
-    g.beginPath()
-    g.roundRect(8, 8, w - 16, bh, r)
-    const grad = g.createLinearGradient(0, 0, 0, bh)
-    grad.addColorStop(0, 'rgba(34, 26, 70, 0.96)')
-    grad.addColorStop(1, 'rgba(16, 12, 36, 0.96)')
-    g.fillStyle = grad
+// Étiquette flottante au-dessus de chaque point, dans le style de l'époque :
+// plaque de bois cloutée au Passé, plaque émaillée façon panneau de rue au Présent,
+// verre holographique au Futur. Pastille d'icône, titre et petite pointe vers l'objet.
+export function labelTexture(title, icon, accent, era = 'present') {
+  return canvasTexture(800, 225, (g, w, h) => {
+    const x0 = 14
+    const y0 = 12
+    const bw = w - 28
+    const bh = 160
+    const r = era === 'future' ? 18 : era === 'past' ? 22 : 40
+    const cy = y0 + bh / 2
+    const card = () => {
+      g.beginPath()
+      g.roundRect(x0, y0, bw, bh, r)
+    }
+    const pointer = (fill) => {
+      g.beginPath()
+      g.moveTo(w / 2 - 26, y0 + bh - 2)
+      g.lineTo(w / 2, h - 8)
+      g.lineTo(w / 2 + 26, y0 + bh - 2)
+      g.closePath()
+      g.fillStyle = fill
+      g.fill()
+    }
+    // Ombre portée douce sous la plaque.
+    g.save()
+    g.shadowColor = era === 'future' ? accent : 'rgba(0, 0, 0, 0.55)'
+    g.shadowBlur = era === 'future' ? 26 : 18
+    g.shadowOffsetY = era === 'future' ? 0 : 6
+    card()
+    if (era === 'past') {
+      const wood = g.createLinearGradient(0, y0, 0, y0 + bh)
+      wood.addColorStop(0, '#9a6638')
+      wood.addColorStop(1, '#5e3a20')
+      g.fillStyle = wood
+    } else if (era === 'future') {
+      g.fillStyle = 'rgba(8, 12, 38, 0.82)'
+    } else {
+      const enamel = g.createLinearGradient(0, y0, 0, y0 + bh)
+      enamel.addColorStop(0, '#26336e')
+      enamel.addColorStop(1, '#151c45')
+      g.fillStyle = enamel
+    }
     g.fill()
-    g.lineWidth = 6
-    g.strokeStyle = accent
-    g.stroke()
-    // Petite pointe vers l'objet.
-    g.beginPath()
-    g.moveTo(w / 2 - 22, bh + 6)
-    g.lineTo(w / 2, h - 6)
-    g.lineTo(w / 2 + 22, bh + 6)
-    g.closePath()
-    g.fillStyle = accent
-    g.fill()
+    g.restore()
+
+    g.save()
+    card()
+    g.clip()
+    if (era === 'past') {
+      // Veines du bois.
+      g.strokeStyle = 'rgba(40, 20, 8, 0.28)'
+      g.lineWidth = 2
+      for (let i = 0; i < 9; i++) {
+        const y = y0 + 10 + i * 18 + Math.sin(i * 2.3) * 4
+        g.beginPath()
+        g.moveTo(x0, y)
+        g.bezierCurveTo(w * 0.3, y + 7, w * 0.6, y - 7, w, y + 3)
+        g.stroke()
+      }
+    } else if (era === 'future') {
+      // Lignes de balayage et reflet.
+      g.fillStyle = 'rgba(160, 240, 255, 0.05)'
+      for (let y = y0; y < y0 + bh; y += 6) g.fillRect(x0, y, bw, 2)
+      const sheen = g.createLinearGradient(0, y0, w, y0 + bh)
+      sheen.addColorStop(0, 'rgba(125, 249, 255, 0.16)')
+      sheen.addColorStop(0.5, 'rgba(125, 249, 255, 0)')
+      g.fillStyle = sheen
+      g.fillRect(x0, y0, bw, bh)
+    } else {
+      // Reflet de l'émail sur le haut de la plaque.
+      const gloss = g.createLinearGradient(0, y0, 0, y0 + bh * 0.55)
+      gloss.addColorStop(0, 'rgba(255, 255, 255, 0.16)')
+      gloss.addColorStop(1, 'rgba(255, 255, 255, 0)')
+      g.fillStyle = gloss
+      g.fillRect(x0, y0, bw, bh * 0.55)
+    }
+    g.restore()
+
+    // Bordures et ornements.
+    if (era === 'past') {
+      g.lineWidth = 6
+      g.strokeStyle = '#3e2412'
+      card()
+      g.stroke()
+      g.lineWidth = 3
+      g.strokeStyle = 'rgba(243, 217, 164, 0.75)'
+      g.beginPath()
+      g.roundRect(x0 + 14, y0 + 14, bw - 28, bh - 28, 12)
+      g.stroke()
+      for (const [nx, ny] of [[x0 + 26, y0 + 26], [x0 + bw - 26, y0 + 26], [x0 + 26, y0 + bh - 26], [x0 + bw - 26, y0 + bh - 26]]) {
+        const nail = g.createRadialGradient(nx - 2, ny - 2, 1, nx, ny, 8)
+        nail.addColorStop(0, '#fff3c4')
+        nail.addColorStop(1, '#a8782a')
+        g.fillStyle = nail
+        g.beginPath()
+        g.arc(nx, ny, 7, 0, Math.PI * 2)
+        g.fill()
+      }
+      pointer('#5e3a20')
+    } else if (era === 'future') {
+      g.save()
+      g.shadowColor = accent
+      g.shadowBlur = 14
+      g.lineWidth = 3
+      g.strokeStyle = accent
+      card()
+      g.stroke()
+      // Équerres lumineuses dans les coins.
+      g.lineWidth = 6
+      const L = 34
+      for (const [cx, cy2, sx, sy] of [[x0 + 8, y0 + 8, 1, 1], [x0 + bw - 8, y0 + 8, -1, 1], [x0 + 8, y0 + bh - 8, 1, -1], [x0 + bw - 8, y0 + bh - 8, -1, -1]]) {
+        g.beginPath()
+        g.moveTo(cx, cy2 + sy * L)
+        g.lineTo(cx, cy2)
+        g.lineTo(cx + sx * L, cy2)
+        g.stroke()
+      }
+      g.restore()
+      pointer(accent)
+    } else {
+      g.lineWidth = 5
+      g.strokeStyle = '#f4f1ff'
+      g.beginPath()
+      g.roundRect(x0 + 10, y0 + 10, bw - 20, bh - 20, r - 10)
+      g.stroke()
+      pointer('#151c45')
+      g.lineWidth = 4
+      g.strokeStyle = '#f4f1ff'
+      g.beginPath()
+      g.moveTo(w / 2 - 20, y0 + bh + 2)
+      g.lineTo(w / 2, h - 16)
+      g.lineTo(w / 2 + 20, y0 + bh + 2)
+      g.stroke()
+    }
+
     // Pastille de l'icône.
-    g.beginPath()
-    g.arc(78, 8 + bh / 2, 46, 0, Math.PI * 2)
-    g.fillStyle = accent
-    g.globalAlpha = 0.25
-    g.fill()
-    g.globalAlpha = 1
-    g.font = '58px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif'
+    const ix = x0 + 92
+    if (era === 'past') {
+      const ring = g.createLinearGradient(ix - 56, cy - 56, ix + 56, cy + 56)
+      ring.addColorStop(0, '#f5d27a')
+      ring.addColorStop(1, '#a8782a')
+      g.fillStyle = ring
+      g.beginPath()
+      g.arc(ix, cy, 56, 0, Math.PI * 2)
+      g.fill()
+      g.fillStyle = '#3a2414'
+      g.beginPath()
+      g.arc(ix, cy, 46, 0, Math.PI * 2)
+      g.fill()
+    } else if (era === 'future') {
+      g.save()
+      g.shadowColor = accent
+      g.shadowBlur = 16
+      g.strokeStyle = accent
+      g.lineWidth = 4
+      g.beginPath()
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + Math.PI / 6
+        g[i ? 'lineTo' : 'moveTo'](ix + Math.cos(a) * 56, cy + Math.sin(a) * 56)
+      }
+      g.closePath()
+      g.fillStyle = 'rgba(125, 249, 255, 0.12)'
+      g.fill()
+      g.stroke()
+      g.restore()
+    } else {
+      g.fillStyle = '#f4f1ff'
+      g.beginPath()
+      g.arc(ix, cy, 54, 0, Math.PI * 2)
+      g.fill()
+      g.lineWidth = 6
+      g.strokeStyle = accent
+      g.beginPath()
+      g.arc(ix, cy, 45, 0, Math.PI * 2)
+      g.stroke()
+    }
+    g.font = '64px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif'
     g.textAlign = 'center'
     g.textBaseline = 'middle'
-    g.fillText(icon || '✦', 78, 8 + bh / 2 + 3)
-    g.fillStyle = '#ffffff'
-    g.textAlign = 'left'
-    let size = 54
+    g.fillText(icon || '✦', ix, cy + 4)
+
+    // Titre.
+    const tx = ix + 82
+    const maxW = x0 + bw - tx - 36
+    let size = 68
     do {
-      g.font = `bold ${size}px "Outfit Variable", "Inter Variable", sans-serif`
+      g.font = `700 ${size}px "Outfit Variable", "Inter Variable", sans-serif`
       size -= 2
-    } while (g.measureText(title).width > w - 175 && size > 28)
-    g.fillText(title, 142, 8 + bh / 2 + 2)
+    } while (g.measureText(title).width > maxW && size > 30)
+    g.textAlign = 'left'
+    g.save()
+    if (era === 'future') {
+      g.shadowColor = accent
+      g.shadowBlur = 14
+      g.fillStyle = '#eafcff'
+    } else if (era === 'past') {
+      g.shadowColor = 'rgba(0, 0, 0, 0.6)'
+      g.shadowOffsetY = 3
+      g.fillStyle = '#fbe9c8'
+    } else {
+      g.fillStyle = '#ffffff'
+    }
+    g.fillText(title, tx, cy + 2)
+    g.restore()
+    // Petit trait aux couleurs de l'île sous le titre.
+    if (era !== 'past') {
+      g.fillStyle = accent
+      g.fillRect(tx, cy + 34, Math.min(90, g.measureText(title).width * 0.4), 5)
+    }
   })
 }
 
@@ -503,7 +671,7 @@ export function buildPoint(ctx, x, z, { prop, title, icon, accent, rotY = 0, col
   ctx.group.add(ring)
 
   // Étiquette flottante en forme de carte.
-  const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTexture(title, icon, hex(accent)), transparent: true, depthWrite: false }))
+  const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTexture(title, icon, hex(accent), era), transparent: true, depthWrite: false }))
   label.scale.set(2.9, 0.82, 1)
   const top = labelY + (outdoor && TABLE_PROPS.has(prop) ? 0.4 : 0)
   label.position.set(x, top, z)

@@ -205,7 +205,7 @@ export function createIslands(scene) {
   const C = (era) => THEMES[era].center
   const SIGNPOSTS = {
     past: { at: [3, 1], extra: [['Château', C('past').x, C('past').z - 10], ['Voiture ➜ Présent', C('past').x + 19, 0], ['Mes réseaux', C('past').x - 21, 21], ['Bibliothèque', C('past').x + 22, 16]] },
-    present: { at: [2, 8], extra: [['Studio', -12, 9.6], ['Voiture ➜ Passé', -19, 0], ['Fusée ➜ Futur', 17, 0], ['Atelier web', 0, 25]] },
+    present: { at: [2, 8], extra: [['Studio', -12, 9.6], ['Voiture ➜ Passé', -19, 0], ['Fusée ➜ Futur', 17, 0]] },
     future: { at: [2, 2], extra: [['Base lunaire', C('future').x, -10], ['Fusée ➜ Présent', C('future').x - 17, 0], ['Le Labo', C('future').x - 21, 18]] },
   }
   for (const [eraId, def] of Object.entries(SIGNPOSTS)) {
@@ -343,17 +343,43 @@ function armTexture(label, style) {
     g.bezierCurveTo(150, y + 6, 300, y - 6, 512, y + 3)
     g.stroke()
   }
+  // Liseré intérieur, clous et chevrons vers la destination.
+  g.strokeStyle = style.text
+  g.globalAlpha = 0.55
+  g.lineWidth = 3
+  g.strokeRect(10, 10, 492, 76)
+  g.globalAlpha = 1
+  for (const nx of [24, 488]) {
+    const nail = g.createRadialGradient(nx - 2, 46, 1, nx, 48, 7)
+    nail.addColorStop(0, '#ffffff')
+    nail.addColorStop(1, '#8a8478')
+    g.fillStyle = nail
+    g.beginPath()
+    g.arc(nx, 48, 6, 0, Math.PI * 2)
+    g.fill()
+  }
   g.fillStyle = style.text
+  g.globalAlpha = 0.7
+  for (const cx of [452, 468]) {
+    g.beginPath()
+    g.moveTo(cx - 6, 34)
+    g.lineTo(cx + 6, 48)
+    g.lineTo(cx - 6, 62)
+    g.lineTo(cx - 1, 48)
+    g.closePath()
+    g.fill()
+  }
+  g.globalAlpha = 1
   g.textAlign = 'center'
   g.textBaseline = 'middle'
   let size = 50
   do {
     g.font = `bold ${size}px ${style.font}`
     size -= 2
-  } while (g.measureText(label).width > 440 && size > 24)
+  } while (g.measureText(label).width > 380 && size > 24)
   g.shadowColor = 'rgba(0,0,0,0.5)'
   g.shadowOffsetY = 3
-  g.fillText(label, 256, 50)
+  g.fillText(label, 236, 50)
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
   return texture

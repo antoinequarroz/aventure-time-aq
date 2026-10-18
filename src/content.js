@@ -85,7 +85,8 @@ export const showcases = [
   {
     id: 'workshop',
     era: 'present',
-    at: [0, 25],
+    sat: 'rooftops',
+    at: [-18, 4],
     theme: 'workshop',
     icon: '💻',
     title: 'L\'Atelier web',
@@ -235,13 +236,14 @@ export const islands = [
     name: 'L\'île du Présent',
     tagline: 'Le village du développeur',
     satellites: [
-      { id: 'rooftops', name: 'Les Toits', tagline: 'Parcours urbain', game: { title: 'Course sur les toits', intro: 'Grimpe de caisse en toit jusqu\'au drapeau.' } },
-      { id: 'park', name: 'Le Parc', tagline: 'Chasse aux bugs', game: { title: 'Chasse aux bugs', intro: 'Des bugs se sont échappés du code ! Attrape-les tous avant la fin du temps.' } },
-      { id: 'stadium', name: 'Le Stade', tagline: 'Tour de terrain', game: { title: 'Tour du stade', intro: 'Fais le tour du terrain en passant dans les anneaux.' } },
+      { id: 'rooftops', name: 'Les Toits', tagline: 'Parcours urbain · GitHub Café · Atelier web', game: { title: 'Course sur les toits', intro: 'Grimpe de caisse en toit jusqu\'au drapeau.' } },
+      { id: 'park', name: 'Le Parc', tagline: 'Chasse aux bugs · Studio photo', game: { title: 'Chasse aux bugs', intro: 'Des bugs se sont échappés du code ! Attrape-les tous avant la fin du temps.' } },
+      { id: 'stadium', name: 'Le Stade', tagline: 'Tour de terrain · Studio vidéo', game: { title: 'Tour du stade', intro: 'Fais le tour du terrain en passant dans les anneaux.' } },
     ],
     signs: [
       {
-        pos: [0, -10.4],
+        room: 'studio',
+        pos: [-5.3, -2.3],
         icon: '👨‍💻',
         title: 'Développeur',
         text: [
@@ -253,30 +255,29 @@ export const islands = [
       },
       {
         room: 'studio',
-        pos: [-4.3, -1.7],
+        pos: [-1.5, -2.3],
         icon: '💻',
-        prop: 'laptop',
         title: 'Projets web',
         text: [
-          'Sur cet écran, mes produits web : VELQORA, Orion, STAQ et mon portfolio 3D.',
-          'Ils sont exposés en grand à l\'Atelier web, au sud de la place du Présent : un écran, des flèches au sol, et chaque projet en détail.',
+          'Sur ce grand écran, mes produits web : VELQORA, Orion, STAQ et mon portfolio 3D.',
+          'Ils sont exposés en grand à l\'Atelier web, sur l\'île des Toits, à côté du GitHub Café : un écran, des flèches au sol, et chaque projet en détail.',
         ],
         links: [{ label: 'Tous les projets', url: site('/#portfolio') }],
       },
       {
         room: 'studio',
-        pos: [-4, 1.5],
+        pos: [4.5, 3.3],
         icon: '📱',
-        prop: 'phone',
         title: 'Applis mobiles',
         text: [
-          'Mes applis iOS et Android : Remembeyes, LifXp et Respire, testées sur ce téléphone.',
+          'Mes applis iOS et Android : Remembeyes, LifXp et Respire, testées sur ce téléphone posé sur la table du salon.',
           'Elles sont présentées en grand au Labo, sur l\'île du Futur, avec mes logiciels.',
         ],
         links: [{ label: 'Tous les projets', url: site('/#portfolio') }],
       },
       {
-        pos: [-5.5, -16.8],
+        room: 'studio',
+        pos: [5.4, -2.9],
         icon: '🌐',
         title: 'antoinequarroz.ch',
         text: [
@@ -290,10 +291,9 @@ export const islands = [
         ],
       },
       {
-        room: 'studio',
-        pos: [5.6, -1.6],
+        sat: 'rooftops',
+        pos: [-13, 16.4],
         icon: '☕',
-        prop: 'coffee',
         title: 'Code · Café · Commit',
         text: [
           'Ma routine de développeur : un café, du code propre, et un commit qui raconte clairement ce qui a changé.',
@@ -322,16 +322,16 @@ export const islands = [
         text: 'Le foot fait partie de ma vie depuis longtemps. [à compléter : ton club, ton poste, tes meilleurs souvenirs]',
       },
       {
-        pos: [-11, 2],
+        sat: 'park',
+        pos: [20, -3.4],
         icon: '📷',
-        prop: 'camera',
         title: 'Photo',
         text: 'La photo est une de mes passions. [à compléter : ton matériel, tes sujets préférés ; une galerie viendra ici]',
       },
       {
-        pos: [11, 2],
+        sat: 'stadium',
+        pos: [-19.4, 0.2],
         icon: '🎬',
-        prop: 'videocam',
         title: 'Vidéo',
         text: 'Médiamaticien, je tourne et monte aussi des vidéos. [à compléter : tes projets vidéo, tes logiciels]',
       },
