@@ -52,11 +52,53 @@ export function decorateMain(ctx) {
   addCollider(-8, -14, 0.6)
   animated.push((dt) => { dish.rotation.z += dt * 0.3 })
 
-  // Télescope (astronomie).
-  const scope = mesh(new THREE.CylinderGeometry(0.22, 0.3, 2, 10), mat(0xeeeeee), { x: -13, y: 1.8, z: -4 })
-  scope.rotation.z = 0.8
-  group.add(mesh(new THREE.ConeGeometry(0.6, 1.4, 3), mat(0x444444), { x: -13, y: 0.7, z: -4 }), scope)
-  addCollider(-13, -4, 0.7)
+  // Télescope (astronomie) : lunette blanche sur trépied. Marcher sur l'anneau lumineux fait entrer dedans.
+  const scopeRig = new THREE.Group()
+  scopeRig.position.set(-13, 0, -4)
+  const white = mat(0xf2f4f8, { roughness: 0.35 })
+  const dark = mat(0x2a2f3a, { roughness: 0.5 })
+  const glow = mat(0x8fe3ff, { emissive: 0x6fd3ff, emissiveIntensity: 2.2 })
+  scopeRig.add(mesh(new THREE.CylinderGeometry(0.9, 1.05, 0.3, 20), mat(0x9aa3b4), { y: 0.15 }))
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2 + 0.4
+    const leg = mesh(new THREE.CylinderGeometry(0.05, 0.07, 1.9, 6), dark, { x: Math.cos(a) * 0.45, y: 1.1, z: Math.sin(a) * 0.45 })
+    leg.lookAt(0, 3.6, 0)
+    leg.rotateX(Math.PI / 2)
+    scopeRig.add(leg)
+  }
+  scopeRig.add(mesh(new THREE.CylinderGeometry(0.14, 0.18, 0.5, 10), dark, { y: 2 }))
+  scopeRig.add(mesh(new THREE.SphereGeometry(0.22, 12, 8), white, { y: 2.3 }))
+  // Tube incliné vers le ciel, oculaire tourné vers l'anneau d'entrée.
+  const tubeG = new THREE.Group()
+  tubeG.position.set(0, 2.35, 0)
+  tubeG.rotation.y = Math.atan2(-1.4, 1.8)
+  const tilt = new THREE.Group()
+  tilt.rotation.x = 0.7
+  tubeG.add(tilt)
+  tilt.add(mesh(new THREE.CylinderGeometry(0.26, 0.2, 2.6, 16), white, { rotX: Math.PI / 2, z: -0.5 }))
+  tilt.add(mesh(new THREE.CylinderGeometry(0.31, 0.31, 0.35, 16), dark, { rotX: Math.PI / 2, z: -1.75 }))
+  tilt.add(mesh(new THREE.CircleGeometry(0.25, 16), mat(0x1b3a6b, { emissive: 0x3b7bff, emissiveIntensity: 0.8, roughness: 0.1 }), { z: -1.93, rotY: Math.PI, shadow: false }))
+  for (const zz of [-1.2, 0.2]) tilt.add(mesh(new THREE.TorusGeometry(0.25, 0.035, 6, 18), glow, { z: zz, shadow: false }))
+  tilt.add(mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.9, 8), white, { rotX: Math.PI / 2, x: 0.3, y: 0.18, z: -0.9 }))
+  tilt.add(mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.35, 10), dark, { rotX: Math.PI / 2, z: 0.9 }))
+  scopeRig.add(tubeG)
+  group.add(scopeRig)
+  addCollider(-13, -4, 1.1)
+  // Anneau d'entrée au sol.
+  const pad = new THREE.Group()
+  pad.position.set(-14.4, 0.04, -2.2)
+  pad.add(mesh(new THREE.CircleGeometry(0.85, 28), mat(0x16233d, { roughness: 0.6 }), { rotX: -Math.PI / 2, shadow: false }))
+  const padRing = mesh(new THREE.RingGeometry(0.72, 0.9, 32), glow, { rotX: -Math.PI / 2, y: 0.01, shadow: false })
+  pad.add(padRing)
+  const padStar = mesh(new THREE.OctahedronGeometry(0.22, 0), glow, { y: 1.3, shadow: false })
+  pad.add(padStar)
+  pad.userData.dynamic = true
+  group.add(pad)
+  animated.push((dt, t) => {
+    padRing.scale.setScalar(1 + Math.sin(t * 3) * 0.06)
+    padStar.rotation.y += dt * 1.5
+    padStar.position.y = 1.3 + Math.sin(t * 2) * 0.12
+  })
 
   // Cosmonaute qui flotte.
   const astro = C.npc(ctx, 'rogue', -4, 3, { anim: 'Cheer', speed: 0.6, r: 0.8 })

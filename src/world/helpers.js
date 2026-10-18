@@ -4,9 +4,10 @@ export function mat(color, extra = {}) {
   return new THREE.MeshStandardMaterial({ color, flatShading: true, roughness: 0.9, ...extra })
 }
 
-export function mesh(geometry, material, { x = 0, y = 0, z = 0, shadow = true } = {}) {
+export function mesh(geometry, material, { x = 0, y = 0, z = 0, rotX = 0, rotY = 0, rotZ = 0, shadow = true } = {}) {
   const m = new THREE.Mesh(geometry, material)
   m.position.set(x, y, z)
+  m.rotation.set(rotX, rotY, rotZ)
   m.castShadow = shadow
   m.receiveShadow = true
   return m

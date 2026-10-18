@@ -27,6 +27,7 @@ export const ACHIEVEMENTS = [
   { id: 'night', icon: '🌌', title: 'Oiseau de nuit', text: 'Rester jusqu\'à la nuit.' },
   { id: 'secrets', icon: '✨', title: 'Chasseur de secrets', text: 'Trouver les trois étoiles cachées au bord des îles.' },
   { id: 'konami', icon: '🕹️', title: 'Vieille école', text: 'Taper un code bien connu des joueurs.' },
+  { id: 'astronomer', icon: '🔭', title: 'Astronome', text: 'Observer les huit planètes au télescope du Futur.' },
 ]
 
 function load(key, fallback) {

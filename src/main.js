@@ -33,6 +33,7 @@ import { createGamepad } from './gamepad.js'
 import { createSecrets } from './secrets.js'
 import { createShowcases } from './world/showcases.js'
 import { THEMES } from './world/islands.js'
+import { createSolarSystem } from './solarSystem.js'
 
 const ui = createUI()
 const sfx = createAudio()
@@ -197,6 +198,27 @@ const eraOf = (x) => (x < -75 ? 'past' : x > 75 ? 'future' : 'present')
 let guideTarget = null
 const minimap = createMinimap({ world, player, interactables, eraOf, isDone: (it) => discovered.has(it.title), getTarget: () => guideTarget, onToggle: (big) => big && tutorial.did('map'), onPick: (item) => goTo(item) })
 const rewards = createRewards(ui, sfx)
+// Télescope du Futur : on « entre » dans la lunette et on navigue dans le système solaire.
+const TELESCOPE = { type: 'telescope', x: THEMES.future.center.x - 14.4, z: THEMES.future.center.z - 2.2, r: 1.1, title: 'Regarder dans le télescope' }
+interactables.unshift(TELESCOPE)
+let telescopeArmed = true
+const solar = createSolarSystem({
+  renderer,
+  onPlanet: (id, n, total) => {
+    sfx.blip('tick')
+    if (n >= total) rewards.unlock('astronomer')
+  },
+  onExit: (done) => {
+    sfx.blip('close')
+    ui.fade(() => done())
+  },
+})
+function openTelescope() {
+  telescopeArmed = false
+  tutorial.did('interact')
+  sfx.blip('open')
+  ui.fade(() => solar.open())
+}
 const games = createGames(scene, ui, player, sfx, rewards, () => world.games)
 const weather = createWeather(scene)
 const pushables = createPushables(scene, world, world.pushables, {
@@ -314,7 +336,7 @@ const controls = createControls({
   scene,
   player,
   onInteract: () => interact(),
-  isActive: () => started && !vehicles.traveling && !vehicles.driving && !ui.panelOpen() && !tour.active,
+  isActive: () => started && !vehicles.traveling && !vehicles.driving && !ui.panelOpen() && !tour.active && !solar.active,
 })
 let introBlend = 0
 const isTouch = matchMedia('(pointer: coarse)').matches
@@ -471,7 +493,7 @@ ui.on('tourStop', () => {
 })
 
 window.addEventListener('keydown', (e) => {
-  if (!started || vehicles.traveling || listOpen()) return
+  if (!started || vehicles.traveling || listOpen() || solar.active) return
   if (e.code === 'Escape') {
     if (tour.active) tour.stop()
     if (ui.panelOpen()) ui.closePanel()
@@ -488,6 +510,7 @@ function interact() {
   if (vehicles.driving) return vehicles.exit(player)
   if (ui.panelOpen()) return ui.closePanel()
   if (!nearby) return
+  if (nearby.type === 'telescope') return openTelescope()
   tutorial.did('interact')
   if (nearby.showcase) {
     discover(nearby)
@@ -779,6 +802,14 @@ function tick() {
   const dt = Math.min(timer.getDelta(), 0.05)
   const t = timer.getElapsed()
 
+  // Vue du système solaire : le monde est en pause, seule la scène des planètes est rendue.
+  if (solar.active) {
+    solar.update(dt, t)
+    solar.render()
+    requestAnimationFrame(tick)
+    return
+  }
+
   const canMove = started && !ui.panelOpen() && !games.frozen && !tour.active && !listOpen()
   if (!vehicles.traveling && !vehicles.driving) player.update(dt, canMove)
   gamepad.update(canMove)
@@ -828,8 +859,10 @@ function tick() {
 
   nearby = started && !vehicles.traveling && !vehicles.driving ? findNearby() : null
   doorCooldown -= dt
+  if (nearby?.type === 'telescope' && telescopeArmed && !ui.panelOpen() && !tour.active) openTelescope()
+  if (!telescopeArmed && Math.hypot(player.position.x - TELESCOPE.x, player.position.z - TELESCOPE.z) > 1.8) telescopeArmed = true
   if (nearby?.type === 'door' && nearby.auto && doorCooldown <= 0 && !ui.panelOpen() && Math.hypot(player.position.x - nearby.x, player.position.z - nearby.z) < 0.95) enterDoor(nearby)
-  ui.setPrompt(vehicles.driving ? vehicles.hint : nearby && !ui.panelOpen() && !tour.active ? ({ chest: quest.opened || discovered.size >= signs.length ? `E · Ouvrir « ${nearby.title} »` : `E · ${nearby.title} (${discovered.size} / ${signs.length})`, sign: nearby.showcase ? `E · Voir « ${nearby.showcase.project.title} » · marche sur les flèches pour changer` : `E · Lire « ${nearby.title} »`, vehicle: `E · ${nearby.id === 'car' ? nearby.title : `Monter : ${nearby.title}`}`, game: games.active ? null : `E · Jouer : ${nearby.title}`, door: `E · ${nearby.title}`, social: `E · ${nearby.title}` })[nearby.type] : null)
+  ui.setPrompt(vehicles.driving ? vehicles.hint : nearby && !ui.panelOpen() && !tour.active ? ({ chest: quest.opened || discovered.size >= signs.length ? `E · Ouvrir « ${nearby.title} »` : `E · ${nearby.title} (${discovered.size} / ${signs.length})`, sign: nearby.showcase ? `E · Voir « ${nearby.showcase.project.title} » · marche sur les flèches pour changer` : `E · Lire « ${nearby.title} »`, vehicle: `E · ${nearby.id === 'car' ? nearby.title : `Monter : ${nearby.title}`}`, game: games.active ? null : `E · Jouer : ${nearby.title}`, door: `E · ${nearby.title}`, telescope: `E · ${nearby.title}`, social: `E · ${nearby.title}` })[nearby.type] : null)
 
   const island = here
   applyMood(island?.era, 1 - Math.exp(-dt * 2), day)
@@ -869,4 +902,5 @@ window.addEventListener('resize', () => {
   fitCamera()
   renderer.setSize(window.innerWidth, window.innerHeight)
   composer.setSize(window.innerWidth, window.innerHeight)
+  solar.resize()
 })
