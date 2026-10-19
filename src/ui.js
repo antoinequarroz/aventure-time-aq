@@ -43,6 +43,7 @@ export function createUI() {
       <div class="hud-chip" id="day-chip"></div>
       <button class="hud-btn" id="btn-list" title="Version liste : projets, CV et contact" aria-label="Version liste">📄</button>
       <button class="hud-btn trophy-btn" id="btn-trophies" title="Trophées : succès et classements">🏆<i></i></button>
+      <button class="hud-btn" id="btn-photo" title="Mode photo (P)" aria-label="Mode photo">📷</button>
       <button class="hud-btn" id="btn-tour" title="Visite guidée">🧭</button>
       <button class="hud-btn off" id="btn-music" title="Activer la musique">🎵</button>
       <button class="hud-btn" id="btn-mute" title="Couper le son">🔊</button>
@@ -122,6 +123,7 @@ export function createUI() {
   $('start-list').addEventListener('click', () => handlers.list?.())
   $('btn-list').addEventListener('click', () => handlers.list?.())
   $('btn-settings').addEventListener('click', () => handlers.settings?.())
+  $('btn-photo').addEventListener('click', () => handlers.photo?.())
   // Écran de chargement (dans index.html, visible avant même le JavaScript).
   const loader = document.getElementById('loader')
   const loaderList = document.getElementById('loader-list')

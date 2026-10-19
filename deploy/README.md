@@ -79,3 +79,14 @@ Ensuite chaque push sur `main` met le site à jour. On peut aussi le lancer à l
 - `sudo nginx -t` indique l'erreur de config.
 - `sudo tail /var/log/nginx/error.log` montre les erreurs de chargement.
 - Page 403 : vérifie que `/var/www/aventuretime/index.html` existe et est lisible (`ls -la /var/www/aventuretime`).
+
+## Classement mondial (option)
+
+Le jeu envoie les scores à `/api/scores`. Sans serveur, il garde simplement le classement local : rien ne casse.
+
+Le serveur est un seul fichier sans dépendance, `server/leaderboard.mjs` (Node 20+). Les scores sont gardés dans un fichier JSON. Il vérifie le nom du jeu, des bornes plausibles, nettoie le pseudo et limite à 12 envois par minute et par adresse.
+
+- **VPS avec Caddy en Docker** (cas actuel) : `deploy/scores/docker-compose.yml` lance un conteneur `node:22-alpine`, et `deploy/scores/Caddyfile.snippet` montre le `handle /api/*` à ajouter au bloc du sous-domaine.
+- **VPS avec nginx** : le bloc `location /api/` est déjà dans `nginx-aventuretime.conf`, et `aventuretime-scores.service` lance le serveur avec systemd (fichier copié dans `/opt/aventuretime-server/`).
+
+Test : `curl https://aventuretime.antoinequarroz.ch/api/health` doit répondre `{"ok":true}`.

@@ -1,0 +1,90 @@
+/* Match de foot (voir football.js) : même habillage que la descente de ski. */
+.foot { position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: 0; transition: opacity 0.5s var(--ease); font-family: var(--font-ui); color: #f4f1ff; }
+.foot.visible { opacity: 1; }
+body.foot-open #ui { z-index: 60; }
+body.foot-open #ui > :not(#fade):not(#achievement) { display: none !important; }
+body.foot-open .dialog-box { display: none; }
+.foot-top { position: absolute; top: max(16px, env(safe-area-inset-top)); left: 16px; right: 16px; display: flex; justify-content: center; align-items: flex-start; }
+.foot-close { position: absolute; right: 0; top: 0; pointer-events: auto; background: rgba(20, 16, 44, 0.72); backdrop-filter: blur(6px); }
+
+/* Tableau d'affichage : « Toi 2 – 1 CPU » et l'horloge. */
+.foot-board { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 4px 12px; padding: 8px 16px 6px; border-radius: 16px; opacity: 0; transition: opacity 0.3s;
+  background: rgba(20, 16, 44, 0.78); box-shadow: inset 0 0 0 1px rgba(180, 140, 255, 0.4); backdrop-filter: blur(6px); }
+.foot.running .foot-board { opacity: 1; }
+.foot-team { display: flex; align-items: center; gap: 7px; font: 600 0.95rem var(--font-ui); }
+.foot-team.me { justify-content: flex-end; }
+.foot-team i { width: 12px; height: 12px; border-radius: 50%; }
+.foot-team.me i { background: var(--orange); box-shadow: 0 0 10px var(--orange); }
+.foot-team.cpu i { background: #9a6bff; box-shadow: 0 0 10px #9a6bff; }
+.foot-score { font: 600 1.6rem var(--font-title); font-variant-numeric: tabular-nums; color: var(--gold); min-width: 70px; text-align: center; }
+.foot-clock { grid-column: 1 / -1; justify-self: center; font: 600 0.75rem var(--font-ui); font-style: normal; font-variant-numeric: tabular-nums; letter-spacing: 0.08em; padding: 1px 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); }
+
+.foot-count { position: absolute; top: 34%; left: 50%; transform: translate(-50%, -50%); font: 600 clamp(2.6rem, 11vw, 6rem) var(--font-title); color: var(--gold); text-align: center; white-space: nowrap; text-shadow: 0 0 40px rgba(255, 179, 71, 0.7), 0 4px 0 #1a1530; pointer-events: none; }
+.foot-pop { position: absolute; top: 120px; left: 50%; transform: translate(-50%, 10px); padding: 8px 16px; border-radius: 999px; font: 700 1rem var(--font-ui); background: rgba(20, 16, 44, 0.8); opacity: 0; transition: opacity 0.2s, transform 0.3s var(--pop); white-space: nowrap; }
+.foot-pop.show { opacity: 1; transform: translate(-50%, 0); }
+.foot-pop.good { color: #6fd38a; box-shadow: inset 0 0 0 1px rgba(111, 211, 138, 0.6); }
+.foot-pop.bad { color: #ff6f9f; box-shadow: inset 0 0 0 1px rgba(255, 111, 159, 0.6); }
+
+/* Bandeau « BUT ! ». */
+.foot-goal { position: absolute; top: 36%; left: 50%; transform: translate(-50%, -50%) scale(0.6); opacity: 0; transition: opacity 0.25s, transform 0.45s var(--pop); text-align: center; pointer-events: none; }
+.foot-goal.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.foot-goal b { display: block; font: 700 clamp(4rem, 18vw, 9rem)/1 var(--font-title); letter-spacing: 0.04em; color: var(--gold); text-shadow: 0 0 50px rgba(255, 179, 71, 0.85), 0 6px 0 #1a1530; animation: foot-shake 0.5s var(--pop) infinite alternate; }
+.foot-goal.cpu b { color: #c9b0ff; text-shadow: 0 0 50px rgba(154, 107, 255, 0.85), 0 6px 0 #1a1530; }
+.foot-goal small { display: inline-block; margin-top: 10px; padding: 6px 16px; border-radius: 999px; font: 700 1rem var(--font-ui); background: rgba(20, 16, 44, 0.8); white-space: nowrap; }
+@keyframes foot-shake { from { transform: rotate(-3deg) scale(1); } to { transform: rotate(3deg) scale(1.06); } }
+
+/* Jauge de puissance du tir. */
+.foot-charge { position: absolute; left: 50%; bottom: max(28px, env(safe-area-inset-bottom)); width: min(260px, 50vw); height: 12px; transform: translateX(-50%); border-radius: 999px; overflow: hidden;
+  background: rgba(20, 16, 44, 0.75); box-shadow: inset 0 0 0 1px rgba(255, 210, 122, 0.5); opacity: 0; transition: opacity 0.15s; }
+.foot-charge.show { opacity: 1; }
+.foot-charge i { display: block; height: 100%; transform-origin: left; transform: scaleX(0); background: linear-gradient(90deg, var(--gold), #ff6f9f); }
+
+/* Cartes d'intro et de résultat. */
+.foot-card {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(480px, calc(100vw - 32px)); max-height: calc(100vh - 110px); overflow: auto;
+  padding: 22px 24px; border-radius: 22px; pointer-events: auto; background: linear-gradient(160deg, rgba(44, 31, 99, 0.95), rgba(20, 16, 44, 0.95));
+  box-shadow: inset 0 0 0 1px rgba(255, 210, 122, 0.4), 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+.foot-card[hidden] { display: none; }
+.foot-kicker { font: 600 0.72rem var(--font-ui); letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); }
+.foot-card h2 { margin: 4px 0 10px; font: 600 1.7rem var(--font-title); }
+.foot-text { margin: 0 0 10px; line-height: 1.5; opacity: 0.9; }
+.foot-text:empty { display: none; }
+.foot-card ul { margin: 0 0 12px; padding-left: 18px; line-height: 1.55; font-size: 0.9rem; }
+.foot-card .c-me { color: var(--orange); }
+.foot-card .c-cpu { color: #b48cff; }
+.foot-best { margin-bottom: 14px; color: var(--gold); font-size: 0.9rem; }
+.foot-go { width: 100%; }
+.foot-final { margin: 0 0 12px; font: 600 1.15rem var(--font-ui); }
+.foot-final b { color: var(--gold); font-family: var(--font-title); font-variant-numeric: tabular-nums; margin-left: 4px; }
+.foot-score-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 12px; }
+.foot-score-list div { padding: 8px 10px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); }
+.foot-score-list dt { font-size: 0.7rem; opacity: 0.65; }
+.foot-score-list dd { margin: 2px 0 0; font-weight: 600; font-size: 0.9rem; }
+.foot-board-lines { margin: 0 0 14px; font: 500 0.82rem/1.6 var(--font-ui); white-space: pre-wrap; opacity: 0.85; }
+.foot-board-lines:empty { display: none; }
+.foot-actions { display: flex; gap: 10px; }
+.foot-actions .btn { flex: 1; }
+
+/* Commandes tactiles : joystick sur la moitié gauche, gros bouton « Tirer » à droite. */
+.foot-stick, .foot-kick { display: none; pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; }
+.foot-stick { position: absolute; left: 0; top: 90px; bottom: 0; width: 55%; --sx: 90px; --sy: calc(100% - 110px); }
+.foot-stick::before, .foot-stick i { content: ''; position: absolute; border-radius: 50%; pointer-events: none; }
+.foot-stick::before { left: 70px; bottom: max(50px, env(safe-area-inset-bottom)); width: 120px; height: 120px; background: rgba(255, 255, 255, 0.07); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.2); }
+.foot-stick i { left: 105px; bottom: calc(max(50px, env(safe-area-inset-bottom)) + 35px); width: 50px; height: 50px; background: rgba(255, 210, 122, 0.55); box-shadow: 0 0 16px rgba(255, 179, 71, 0.5); }
+.foot-stick.on::before { left: calc(var(--sx) - 60px); top: calc(var(--sy) - 60px - 90px); bottom: auto; }
+.foot-stick.on i { left: calc(var(--sx) - 25px); top: calc(var(--sy) - 25px - 90px); bottom: auto; }
+.foot-kick { position: absolute; right: 24px; bottom: max(40px, env(safe-area-inset-bottom)); width: 104px; height: 104px; border: 0; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffd27a, #ff8a3d); color: #1a1530; font: 700 1.15rem var(--font-ui); box-shadow: 0 8px 26px rgba(255, 138, 61, 0.45), inset 0 0 0 3px rgba(255, 255, 255, 0.35); }
+.foot-kick:active { transform: scale(0.94); }
+.foot.running .foot-stick, .foot.running .foot-kick { display: block; }
+@media (hover: hover) and (pointer: fine) { .foot.running .foot-stick, .foot.running .foot-kick { display: none; } }
+@media (max-width: 700px) {
+  .foot-top { justify-content: flex-start; }
+  .foot-board { padding: 6px 12px 5px; gap: 2px 8px; }
+  .foot-team { font-size: 0.85rem; }
+  .foot-score { font-size: 1.3rem; min-width: 56px; }
+  .foot-pop { top: 100px; }
+  .foot-card { padding: 18px; }
+  .foot-card h2 { font-size: 1.4rem; }
+}

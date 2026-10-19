@@ -1,5 +1,7 @@
-// Succès à débloquer et classement local des mini-jeux.
-// Tout reste dans le navigateur du visiteur (localStorage) : rien n'est envoyé nulle part.
+// Succès à débloquer et classements des mini-jeux.
+// Les succès et le classement local restent dans le navigateur (localStorage). Les scores
+// partent aussi au classement mondial quand le serveur du site répond (src/leaderboard.js).
+import { globalLines } from './leaderboard.js'
 
 const ACH_KEY = 'aventure-time-aq:achievements'
 const BOARD_KEY = 'aventure-time-aq:board'
@@ -26,13 +28,20 @@ export const ACHIEVEMENTS = [
   { id: 'all-gold', icon: '👑', title: 'Légende', text: 'L\'or dans tous les mini-jeux.' },
   { id: 'night', icon: '🌌', title: 'Oiseau de nuit', text: 'Rester jusqu\'à la nuit.' },
   { id: 'secrets', icon: '✨', title: 'Chasseur de secrets', text: 'Trouver les trois étoiles cachées au bord des îles.' },
+  { id: 'relic', icon: '🗿', title: 'Fouineur', text: 'Trouver une relique cachée.' },
+  { id: 'relics', icon: '🏺', title: 'Archéologue du temps', text: 'Trouver les trois reliques cachées, une par époque.' },
   { id: 'konami', icon: '🕹️', title: 'Vieille école', text: 'Taper un code bien connu des joueurs.' },
   { id: 'chatty', icon: '💬', title: 'Bavard', text: 'Parler à un habitant des îles.' },
   { id: 'sociable', icon: '🤝', title: 'Ami de tous', text: 'Discuter avec huit habitants différents.' },
   { id: 'skier', icon: '⛷️', title: 'Skieur', text: 'Finir la descente de ski.' },
   { id: 'ski-gold', icon: '🏔️', title: 'Champion des pistes', text: 'Décrocher l\'or à la descente de ski (1900 points).' },
+  { id: 'footballer', icon: '⚽', title: 'Coup d\'envoi', text: 'Jouer un match de foot complet au stade.' },
+  { id: 'foot-win', icon: '🏆', title: 'Victoire !', text: 'Gagner un match de foot.' },
+  { id: 'hat-trick', icon: '🎩', title: 'Coup du chapeau', text: 'Marquer trois buts dans un même match.' },
   { id: 'arcade', icon: '🕹️', title: 'Insère une pièce', text: 'Jouer une partie à la borne d\'arcade du château.' },
-  { id: 'arcade-all', icon: '👾', title: 'Pilier d\'arcade', text: 'Jouer aux trois jeux de la borne d\'arcade.' },
+  { id: 'arcade-all', icon: '👾', title: 'Pilier d\'arcade', text: 'Jouer aux six jeux de la borne d\'arcade.' },
+  { id: 'photographer', icon: '📷', title: 'Photographe', text: 'Prendre une photo avec le mode photo.' },
+  { id: 'photo-album', icon: '🖼️', title: 'Album souvenir', text: 'Prendre cinq photos.' },
   { id: 'astronomer', icon: '🔭', title: 'Astronome', text: 'Observer les huit planètes au télescope du Futur.' },
 ]
 
@@ -52,14 +61,16 @@ function save(key, value) {
   }
 }
 
-export function createRewards(ui, sfx = null) {
+export function createRewards(ui, sfx = null, leaderboard = null) {
   const unlocked = load(ACH_KEY, {})
   const board = load(BOARD_KEY, {})
   const listeners = []
+  const sent = new Map() // game.id -> promesse du dernier envoi au classement mondial
 
   const api = {
     unlocked,
     board,
+    leaderboard,
     has: (id) => !!unlocked[id],
     count: () => ACHIEVEMENTS.filter((a) => unlocked[a.id]).length,
     onChange(cb) {
@@ -76,7 +87,8 @@ export function createRewards(ui, sfx = null) {
       return true
     },
     // Ajoute un résultat au classement local d'un jeu. Renvoie le rang (1 = premier) ou 0.
-    record(game, value, who) {
+    defaultName: null, // fonction : nom affiché quand le jeu n'en donne pas
+    record(game, value, who = api.defaultName?.()) {
       const list = board[game.id] ?? []
       const entry = { v: +value.toFixed(game.score ? 0 : 1), d: Date.now(), who }
       list.push(entry)
@@ -84,8 +96,18 @@ export function createRewards(ui, sfx = null) {
       board[game.id] = list.slice(0, BOARD_SIZE)
       save(BOARD_KEY, board)
       const rank = board[game.id].indexOf(entry) + 1
+      if (leaderboard && who !== 'Ancien record') sent.set(game.id, leaderboard.submit(game, entry.v, who))
       for (const cb of listeners) cb()
       return rank
+    },
+    // Classement mondial d'un jeu (après un envoi : avec « ← toi »). Promesse de lignes, ou null hors ligne.
+    async globalBoard(game) {
+      if (!leaderboard) return null
+      const pending = sent.get(game.id)
+      sent.delete(game.id)
+      const r = pending ? await pending : null
+      const top = r?.top ?? (await leaderboard.top(game.id))
+      return top ? globalLines(game, top, r?.rank ?? 0) : null
     },
     best(game) {
       return board[game.id]?.[0]?.v
@@ -127,6 +149,38 @@ export function trophiesView(rewards, games, medalFor) {
     row.append(h('span', 'board-medal', medal), h('strong', '', g.title), h('span', 'board-best', best === undefined ? 'à jouer' : g.score ? `${best} pts` : `${best.toFixed(1)} s`))
     table.append(row)
   }
-  root.append(table, h('p', 'board-note', 'Scores gardés sur cet appareil uniquement.'))
+  root.append(table)
+  const lb = rewards.leaderboard
+  if (!lb) {
+    root.append(h('p', 'board-note', 'Scores gardés sur cet appareil uniquement.'))
+    return root
+  }
+  // Classement mondial : pseudo et meilleurs joueurs, remplis dès que le serveur répond.
+  const world = h('div', 'board-world')
+  const note = h('p', 'board-note', 'Classement mondial : connexion…')
+  root.append(h('h3', '', 'Classement mondial'), note, world)
+  lb.ready.then((online) => {
+    if (!online) {
+      note.textContent = 'Classement mondial indisponible pour le moment : tes scores restent sur cet appareil.'
+      return
+    }
+    note.textContent = 'Tes meilleurs scores sont envoyés avec ce pseudo.'
+    const form = h('label', 'pseudo')
+    const input = document.createElement('input')
+    input.maxLength = 16
+    input.placeholder = 'Ton pseudo'
+    input.value = lb.name
+    input.addEventListener('keydown', (e) => e.stopPropagation())
+    input.addEventListener('change', () => (input.value = lb.setName(input.value)))
+    form.append(h('span', '', 'Pseudo'), input)
+    note.after(form)
+    for (const g of games) {
+      const block = h('div', 'board-row world-row')
+      const list = h('small', 'world-list', '…')
+      block.append(h('strong', '', g.title), list)
+      world.append(block)
+      lb.top(g.id).then((top) => (list.textContent = top?.length ? globalLines(g, top).slice(0, 3).join('   ') : 'Personne encore : à toi de jouer !'))
+    }
+  })
   return root
 }

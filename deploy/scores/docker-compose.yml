@@ -1,0 +1,23 @@
+# Classement mondial dans un petit conteneur Node, à côté de aventuretime-web.
+# Sur le VPS : copier ce dossier et server/leaderboard.mjs dans ~/aventuretime/scores, puis
+#   docker compose up -d
+# Le réseau doit être celui où tourne le Caddy principal (adapter « web » si besoin).
+services:
+  aventuretime-scores:
+    image: node:22-alpine
+    container_name: aventuretime-scores
+    restart: unless-stopped
+    command: ["node", "/app/leaderboard.mjs"]
+    environment:
+      PORT: "8787"
+      HOST: "0.0.0.0"
+      DATA_FILE: /data/scores.json
+    volumes:
+      - ./leaderboard.mjs:/app/leaderboard.mjs:ro
+      - ./data:/data
+    networks: [web]
+    mem_limit: 96m
+
+networks:
+  web:
+    external: true

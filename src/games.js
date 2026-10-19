@@ -125,7 +125,7 @@ export function createGames(scene, ui, player, sfx = null, rewards = null, allGa
     const fmt = (v) => (game.score ? `${v} points` : `${v.toFixed(1)} s`)
     const best = previous === undefined || (game.score ? value > previous : value < previous)
     if (rewards && previous !== undefined && !rewards.board[game.id]) rewards.record(game, previous, 'Ancien record')
-    const rank = rewards ? rewards.record(game, value, ({ rogue: 'Aventurier', knight: 'Chevalier', mage: 'Mage', barbarian: 'Barbare' })[player.character] ?? 'Toi') : 0
+    const rank = rewards ? rewards.record(game, value) : 0
     if (!rewards && best) {
       legacy[game.id] = value
       saveRecords(legacy)
@@ -154,6 +154,7 @@ export function createGames(scene, ui, player, sfx = null, rewards = null, allGa
         medal.rank === 3 ? 'Imbattable. Tu peux quand même essayer de faire encore mieux !' : game.score ? `Pour l'or, il faut au moins ${gold} points.` : `Pour l'or, il faut finir en moins de ${gold.toFixed(1)} s.`,
         ...(board.length ? ['Classement sur cet appareil :', ...board] : []),
       ],
+      extra: rewards ? globalBox(rewards, game) : null,
     })
   }
 
@@ -417,4 +418,21 @@ function createBurst(scene) {
       }
     },
   }
+}
+
+// Encadré « Classement mondial », rempli quand le serveur répond (sinon il reste caché).
+export function globalBox(rewards, game) {
+  const box = document.createElement('div')
+  box.className = 'world-board'
+  box.hidden = true
+  rewards.globalBoard(game).then((lines) => {
+    if (!lines?.length) return
+    const title = document.createElement('strong')
+    title.textContent = '🌍 Classement mondial'
+    const pre = document.createElement('pre')
+    pre.textContent = lines.join('\n')
+    box.append(title, pre)
+    box.hidden = false
+  })
+  return box
 }

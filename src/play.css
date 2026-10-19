@@ -70,3 +70,14 @@ body.ski-open #ui > :not(#fade):not(#achievement) { display: none !important; }
   .ski-card { padding: 18px; }
   .ski-card h2 { font-size: 1.4rem; }
 }
+
+/* Classement mondial */
+.world-board { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--a, #ffb347) 12%, transparent); border: 1px solid color-mix(in srgb, var(--a, #ffb347) 40%, transparent); }
+.world-board strong { display: block; font: 600 0.95rem var(--font-title); margin-bottom: 6px; }
+.world-board pre { margin: 0; font: 500 0.85rem/1.55 var(--font-ui); white-space: pre-wrap; font-variant-numeric: tabular-nums; }
+.board-world { display: flex; flex-direction: column; gap: 4px; }
+.world-row { grid-template-columns: minmax(120px, 0.6fr) 1fr; }
+.world-list { opacity: 0.8; font-variant-numeric: tabular-nums; }
+.pseudo { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; font-size: 0.85rem; }
+.pseudo input { flex: 1; max-width: 220px; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,0.07); color: inherit; font: 500 0.9rem var(--font-ui); }
+.pseudo input:focus { outline: 2px solid var(--gold); }

@@ -1,5 +1,5 @@
-// Borne d'arcade du château : un menu et trois petits jeux en pixel art (Serpent, Casse-briques,
-// Dragon volant), dessinés sur un canvas basse résolution agrandi sans lissage.
+// Borne d'arcade du château : un menu et six petits jeux en pixel art (Serpent, Casse-briques,
+// Dragon volant, Invasion de bugs, Blocs, Pong du château), dessinés sur un canvas basse résolution agrandi sans lissage.
 // Module autonome : il crée son overlay au premier `open()` et capture le clavier tant qu'il est ouvert.
 
 const W = 240
@@ -20,7 +20,13 @@ const GAMES = [
   { id: 'snake', name: 'Serpent', desc: 'Mange les gemmes', color: C.mint },
   { id: 'bricks', name: 'Casse-briques', desc: 'Brise tout le mur', color: C.pink },
   { id: 'dragon', name: 'Dragon volant', desc: 'Passe entre les tours', color: C.violet },
+  { id: 'invaders', name: 'Invasion de bugs', desc: 'Débugge la nuée', color: C.orange },
+  { id: 'blocks', name: 'Blocs', desc: 'Complète les lignes', color: C.cyan },
+  { id: 'pong', name: 'Pong du château', desc: 'Premier à 7 points', color: C.gold },
 ]
+
+// Liste publique des jeux, pour que l'hôte puisse les afficher (trophées, classements…)
+export const ARCADE_GAMES = GAMES.map(({ id, name }) => ({ id, title: name }))
 
 // --- Meilleurs scores (top 5 par jeu) ---
 function loadScores () {
@@ -171,6 +177,7 @@ function createBricks () {
   const serve = () => { stuck = true; ball = { x: paddle.x, y: PY - 4, vx: 0, vy: 0 } }
   return {
     id: 'bricks',
+    startAction: true,
     hint: '← → bouger · Espace lancer · Échap menu',
     get score () { return score },
     reset () {
@@ -273,6 +280,7 @@ function createDragon () {
   }
   return {
     id: 'dragon',
+    startAction: true,
     hint: 'Espace / ↑ battre des ailes · Échap menu',
     get score () { return score },
     reset () {
@@ -328,7 +336,290 @@ function createDragon () {
   }
 }
 
-const FACTORIES = { snake: createSnake, bricks: createBricks, dragon: createDragon }
+// --- Jeu 4 : Invasion de bugs ---
+function bugSprite (ctx, x, y, color, frame) {
+  rect(ctx, x - 4, y - 3, 8, 6, color) // carapace
+  rect(ctx, x - 3, y - 5, 6, 2, color) // tête
+  rect(ctx, x - 1, y - 4, 2, 7, 'rgba(0,0,0,0.3)') // ligne des élytres
+  rect(ctx, x - 2, y - 5, 1, 1, '#fff'); rect(ctx, x + 1, y - 5, 1, 1, '#fff') // yeux
+  rect(ctx, x - 4, y - 7, 1, 2, color); rect(ctx, x + 3, y - 7, 1, 2, color) // antennes
+  const l = frame ? 1 : 0 // pattes qui gigotent
+  rect(ctx, x - 6, y - 2 + l, 2, 1, color); rect(ctx, x + 4, y - 2 + l, 2, 1, color)
+  rect(ctx, x - 6, y + 2 - l, 2, 1, color); rect(ctx, x + 4, y + 2 - l, 2, 1, color)
+}
+function laptopSprite (ctx, x, y) {
+  rect(ctx, x - 7, y - 8, 14, 9, C.stone) // écran
+  rect(ctx, x - 6, y - 7, 12, 7, '#140f2e')
+  rect(ctx, x - 4, y - 5, 5, 1, C.mint); rect(ctx, x - 4, y - 3, 7, 1, C.cyan)
+  rect(ctx, x - 9, y + 1, 18, 3, C.violet) // clavier
+  rect(ctx, x - 1, y - 11, 2, 3, C.gold) // canon
+}
+function createInvaders () {
+  const COLS = 7; const ROWS = 4; const SX = 24; const SY = 18
+  const ROW_COL = [C.pink, C.orange, C.violet, C.mint]
+  const PY = H - 16
+  let ship, bugs, shots, enemyShots, dir, speed, stepT, score, lives, wave, cool, hurt, anim
+  const spawn = () => {
+    bugs = []
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) bugs.push({ x: 48 + c * SX, y: HUD + 26 + r * SY, color: ROW_COL[r], pts: (ROWS - r) * 10, alive: true })
+    }
+    dir = 1; speed = 14 + wave * 5; enemyShots = []; shots = []
+  }
+  return {
+    id: 'invaders',
+    hint: '← → bouger · Espace tirer · Échap menu',
+    get score () { return score },
+    reset () {
+      ship = { x: W / 2, target: null }
+      score = 0; lives = 3; wave = 1; cool = 0; hurt = 0; anim = 0; stepT = 0
+      spawn()
+    },
+    action (api) {
+      if (cool > 0 || shots.length >= 2) return
+      shots.push({ x: ship.x, y: PY - 12 }); cool = 0.28
+      api?.sfx('tick')
+    },
+    pointer (x) { ship.target = x },
+    update (dt, api) {
+      cool -= dt; hurt -= dt; anim += dt
+      const move = (api.held.right ? 1 : 0) - (api.held.left ? 1 : 0)
+      if (move) { ship.x += move * 130 * dt; ship.target = null }
+      else if (ship.target != null) ship.x += Math.max(-170 * dt, Math.min(170 * dt, ship.target - ship.x))
+      ship.x = Math.max(10, Math.min(W - 10, ship.x))
+      if (api.held.a) this.action(api)
+      // La nuée accélère quand elle s'amincit
+      const alive = bugs.filter((b) => b.alive)
+      const v = speed * (1 + (COLS * ROWS - alive.length) * 0.05)
+      let edge = false
+      for (const b of alive) {
+        b.x += dir * v * dt
+        if (b.x < 10 || b.x > W - 10) edge = true
+      }
+      if (edge) {
+        dir = -dir
+        for (const b of alive) { b.x += dir * 2; b.y += 6 }
+      }
+      // Tirs des bugs : seul le plus bas d'une colonne peut tirer
+      stepT -= dt
+      if (stepT <= 0 && alive.length) {
+        stepT = Math.max(0.35, 1.2 - wave * 0.12)
+        const shooter = alive[Math.floor(Math.random() * alive.length)]
+        enemyShots.push({ x: shooter.x, y: shooter.y + 6 })
+      }
+      for (const s of shots) s.y -= 220 * dt
+      for (const s of enemyShots) s.y += (80 + wave * 8) * dt
+      for (const s of shots) {
+        const hit = alive.find((b) => b.alive && Math.abs(b.x - s.x) < 6 && Math.abs(b.y - s.y) < 6)
+        if (hit) { hit.alive = false; s.y = -99; score += hit.pts; api.sfx('coin') }
+      }
+      shots = shots.filter((s) => s.y > HUD)
+      enemyShots = enemyShots.filter((s) => {
+        if (s.y > PY - 8 && s.y < PY + 4 && Math.abs(s.x - ship.x) < 9 && hurt <= 0) {
+          lives--; hurt = 1.2; api.sfx('locked')
+          return false
+        }
+        return s.y < H
+      })
+      if (lives <= 0) return api.over(true)
+      if (alive.some((b) => b.alive && b.y > PY - 16)) return api.over(true)
+      if (!bugs.some((b) => b.alive)) { wave++; score += 50; spawn(); api.sfx('achievement') }
+    },
+    draw (ctx) {
+      rect(ctx, 0, HUD, W, H - HUD, '#0d0a24')
+      for (let i = 0; i < 24; i++) rect(ctx, (i * 67) % W, HUD + ((i * 41) % (H - HUD)), 1, 1, '#3d3378')
+      const f = Math.floor(anim * 3) % 2
+      for (const b of bugs) if (b.alive) bugSprite(ctx, b.x, b.y, b.color, f)
+      for (const s of shots) { rect(ctx, s.x - 1, s.y - 4, 2, 5, C.gold); rect(ctx, s.x - 1, s.y - 4, 2, 1, '#fff') }
+      for (const s of enemyShots) rect(ctx, s.x - 1, s.y - 2, 3, 4, f ? C.pink : '#ff9fbf')
+      if (hurt <= 0 || Math.floor(hurt * 10) % 2) laptopSprite(ctx, ship.x, PY)
+      for (let i = 0; i < lives; i++) { rect(ctx, W - 12 - i * 10, H - 7, 6, 4, C.pink); rect(ctx, W - 11 - i * 10, H - 8, 4, 6, C.pink) }
+      text(ctx, `Vague ${wave}`, 6, H - 6, { size: 8, align: 'left', color: C.dim })
+    },
+  }
+}
+
+// --- Jeu 5 : Blocs (pièces qui tombent) ---
+function createBlocks () {
+  const COLS = 10; const ROWS = 18; const CELL = 12
+  const X0 = 14; const Y0 = HUD + 22
+  const SHAPES = [
+    { c: C.cyan, m: [[0, 1], [1, 1], [2, 1], [3, 1]] }, // I
+    { c: C.gold, o: true, m: [[1, 0], [2, 0], [1, 1], [2, 1]] }, // O
+    { c: C.violet, m: [[0, 1], [1, 1], [2, 1], [1, 0]] }, // T
+    { c: C.mint, m: [[1, 0], [2, 0], [0, 1], [1, 1]] }, // S
+    { c: C.pink, m: [[0, 0], [1, 0], [1, 1], [2, 1]] }, // Z
+    { c: C.orange, m: [[0, 0], [0, 1], [1, 1], [2, 1]] }, // J
+    { c: '#e0902e', m: [[2, 0], [0, 1], [1, 1], [2, 1]] }, // L
+  ]
+  let grid, cur, next, fallT, score, lines, level, rep, flash
+  const rand = () => SHAPES[Math.floor(Math.random() * SHAPES.length)]
+  const cells = (p) => p.m.map(([x, y]) => [p.x + x, p.y + y])
+  const fits = (p) => cells(p).every(([x, y]) => x >= 0 && x < COLS && y < ROWS && (y < 0 || !grid[y][x]))
+  const rotate = (m) => {
+    const size = Math.max(...m.flat()) + 1
+    return m.map(([x, y]) => [size - 1 - y, x])
+  }
+  const spawn = () => {
+    cur = { ...next, x: 3, y: -1 }
+    next = rand()
+    return fits(cur)
+  }
+  const gemCell = (ctx, x, y, color, s = CELL) => {
+    rect(ctx, x, y, s - 1, s - 1, color)
+    rect(ctx, x + 1, y + 1, s - 4, 2, 'rgba(255,255,255,0.45)')
+    rect(ctx, x, y + s - 3, s - 1, 2, 'rgba(0,0,0,0.25)')
+  }
+  const tryMove = (dx, dy) => {
+    const p = { ...cur, x: cur.x + dx, y: cur.y + dy }
+    if (!fits(p)) return false
+    cur = p; return true
+  }
+  return {
+    id: 'blocks',
+    hint: '← → bouger · ↑ / Espace tourner · ↓ descendre · Échap menu',
+    get score () { return score },
+    reset () {
+      grid = Array.from({ length: ROWS }, () => Array(COLS).fill(null))
+      score = 0; lines = 0; level = 1; fallT = 0; rep = { dir: 0, t: 0 }; flash = 0
+      next = rand(); spawn()
+    },
+    action (api) {
+      if (cur.o) return
+      const m = rotate(cur.m)
+      for (const dx of [0, -1, 1, -2, 2]) {
+        const p = { ...cur, m, x: cur.x + dx }
+        if (fits(p)) { cur = p; api?.sfx('tick'); return }
+      }
+    },
+    turn (d) {
+      if (d.y < 0) return this.action()
+      if (d.x) tryMove(d.x, 0)
+      if (d.y > 0 && tryMove(0, 1)) score += 1
+    },
+    update (dt, api) {
+      flash -= dt
+      // Répétition automatique quand on garde ← → enfoncé
+      const dir = (api.held.right ? 1 : 0) - (api.held.left ? 1 : 0)
+      if (dir !== rep.dir) rep = { dir, t: 0.17 }
+      else if (dir) { rep.t -= dt; if (rep.t <= 0) { tryMove(dir, 0); rep.t = 0.05 } }
+      const gravity = api.held.down ? 0.04 : Math.max(0.08, 0.5 - (level - 1) * 0.05)
+      fallT += dt
+      if (fallT < gravity) return
+      fallT = 0
+      if (tryMove(0, 1)) { if (api.held.down) score += 1; return }
+      // Pose de la pièce, puis lignes complètes
+      for (const [x, y] of cells(cur)) if (y >= 0) grid[y][x] = cur.c
+      if (cells(cur).some(([, y]) => y < 0)) return api.over(true)
+      const kept = grid.filter((row) => row.some((v) => !v))
+      const cleared = ROWS - kept.length
+      if (cleared) {
+        grid = [...Array.from({ length: cleared }, () => Array(COLS).fill(null)), ...kept]
+        lines += cleared; score += [0, 40, 100, 300, 800][cleared] * level
+        level = 1 + Math.floor(lines / 6); flash = 0.25
+        api.sfx(cleared >= 4 ? 'achievement' : 'coin')
+      } else api.sfx('tick')
+      if (!spawn()) return api.over(true)
+    },
+    draw (ctx) {
+      rect(ctx, 0, HUD, W, H - HUD, '#0d0a24')
+      rect(ctx, X0 - 3, Y0 - 3, COLS * CELL + 6, ROWS * CELL + 6, C.stoneDark)
+      rect(ctx, X0 - 1, Y0 - 1, COLS * CELL + 2, ROWS * CELL + 2, flash > 0 ? '#2c1f63' : '#110d2c')
+      for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+          if (grid[y][x]) gemCell(ctx, X0 + x * CELL, Y0 + y * CELL, grid[y][x])
+          else if ((x + y) % 2) rect(ctx, X0 + x * CELL + 5, Y0 + y * CELL + 5, 1, 1, '#2a2160')
+        }
+      }
+      // Ombre d'atterrissage
+      let ghost = { ...cur }
+      while (fits({ ...ghost, y: ghost.y + 1 })) ghost = { ...ghost, y: ghost.y + 1 }
+      for (const [x, y] of cells(ghost)) if (y >= 0) rect(ctx, X0 + x * CELL + 1, Y0 + y * CELL + 1, CELL - 3, CELL - 3, 'rgba(180,140,255,0.18)')
+      for (const [x, y] of cells(cur)) if (y >= 0) gemCell(ctx, X0 + x * CELL, Y0 + y * CELL, cur.c)
+      // Colonne d'infos à droite du puits
+      const px = X0 + COLS * CELL + 14
+      text(ctx, 'SUIVANT', px + 40, Y0 + 6, { size: 8, color: C.dim })
+      rect(ctx, px, Y0 + 14, 80, 40, '#1a1440')
+      for (const [x, y] of next.m) gemCell(ctx, px + 16 + x * 12, Y0 + 22 + y * 12, next.c)
+      text(ctx, 'LIGNES', px + 40, Y0 + 72, { size: 8, color: C.dim })
+      text(ctx, `${lines}`, px + 40, Y0 + 86, { size: 13, color: C.text })
+      text(ctx, 'NIVEAU', px + 40, Y0 + 108, { size: 8, color: C.dim })
+      text(ctx, `${level}`, px + 40, Y0 + 122, { size: 13, color: C.gold })
+      gem(ctx, px + 40, Y0 + 160, 2)
+    },
+  }
+}
+
+// --- Jeu 6 : Pong du château ---
+function createPong () {
+  const PW = 36; const PH = 5; const WIN = 7
+  const YP = H - 16; const YC = HUD + 10
+  let me, cpu, ball, pts, wait, serveDir, won
+  const serve = (toward) => {
+    ball = { x: W / 2, y: (YP + YC) / 2, vx: 0, vy: 0 }
+    wait = 0.8; serveDir = toward
+  }
+  return {
+    id: 'pong',
+    hint: '← → bouger · Échap menu',
+    get score () { return pts.me * 10 + (won ? 50 + (pts.me - pts.cpu) * 10 : 0) },
+    get overTitle () { return won ? 'VICTOIRE !' : 'DÉFAITE…' },
+    reset () {
+      me = { x: W / 2, target: null }; cpu = { x: W / 2 }
+      pts = { me: 0, cpu: 0 }; won = false
+      serve(1)
+    },
+    pointer (x) { me.target = x },
+    update (dt, api) {
+      const move = (api.held.right ? 1 : 0) - (api.held.left ? 1 : 0)
+      if (move) { me.x += move * 170 * dt; me.target = null }
+      else if (me.target != null) me.x += Math.max(-220 * dt, Math.min(220 * dt, me.target - me.x))
+      me.x = Math.max(PW / 2, Math.min(W - PW / 2, me.x))
+      // L'adversaire suit la balle, mais lentement et seulement quand elle arrive : il est battable
+      const aim = ball.vy < 0 ? ball.x : W / 2
+      const cpuSpeed = 78 + (pts.me + pts.cpu) * 4
+      cpu.x += Math.max(-cpuSpeed * dt, Math.min(cpuSpeed * dt, aim - cpu.x))
+      cpu.x = Math.max(PW / 2, Math.min(W - PW / 2, cpu.x))
+      if (wait > 0) {
+        wait -= dt
+        if (wait <= 0) {
+          const a = (Math.random() - 0.5) * 0.9
+          ball.vx = Math.sin(a) * 120; ball.vy = Math.cos(a) * 120 * serveDir
+        }
+        return
+      }
+      ball.x += ball.vx * dt; ball.y += ball.vy * dt
+      if (ball.x < 3 || ball.x > W - 3) { ball.vx = -ball.vx; ball.x = Math.max(3, Math.min(W - 3, ball.x)) }
+      const bounce = (px, y, dirY) => {
+        if (Math.abs(ball.x - px) > PW / 2 + 3) return
+        const speed = Math.min(240, Math.hypot(ball.vx, ball.vy) * 1.06)
+        const k = (ball.x - px) / (PW / 2)
+        ball.vx = Math.sin(k * 0.9) * speed; ball.vy = Math.cos(k * 0.9) * speed * dirY
+        ball.y = y; api.sfx('tick')
+      }
+      if (ball.vy > 0 && ball.y >= YP - 3 && ball.y <= YP + 10) bounce(me.x, YP - 3, -1)
+      if (ball.vy < 0 && ball.y <= YC + PH + 3 && ball.y >= YC - 8) bounce(cpu.x, YC + PH + 3, 1)
+      if (ball.y < HUD - 4) { pts.me++; api.sfx('coin'); serve(-1) }
+      if (ball.y > H + 4) { pts.cpu++; api.sfx('locked'); serve(1) }
+      if (pts.me >= WIN || pts.cpu >= WIN) { won = pts.me >= WIN; return api.over(!won) }
+    },
+    draw (ctx) {
+      rect(ctx, 0, HUD, W, H - HUD, '#0d0a24')
+      // Terrain : dalles du château et ligne médiane
+      for (let y = HUD; y < H; y += 16) rect(ctx, 0, y, W, 1, '#16113a')
+      for (let x = 4; x < W; x += 12) rect(ctx, x, (YP + YC) / 2, 6, 1, C.line)
+      text(ctx, `${pts.cpu}`, W / 2, (YP + YC) / 2 - 20, { size: 22, color: 'rgba(255,111,159,0.35)' })
+      text(ctx, `${pts.me}`, W / 2, (YP + YC) / 2 + 22, { size: 22, color: 'rgba(255,210,122,0.4)' })
+      text(ctx, 'CPU', 6, (YP + YC) / 2 - 8, { size: 7, align: 'left', color: C.dim })
+      text(ctx, 'TOI', 6, (YP + YC) / 2 + 9, { size: 7, align: 'left', color: C.dim })
+      rect(ctx, cpu.x - PW / 2, YC, PW, PH, C.pink); rect(ctx, cpu.x - PW / 2, YC + PH - 2, PW, 2, '#c94a7a')
+      rect(ctx, me.x - PW / 2, YP, PW, PH, C.orange); rect(ctx, me.x - PW / 2, YP, PW, 2, C.gold)
+      gem(ctx, ball.x, ball.y)
+    },
+  }
+}
+
+const FACTORIES = { snake: createSnake, bricks: createBricks, dragon: createDragon, invaders: createInvaders, blocks: createBlocks, pong: createPong }
 const DIRS = { up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 } }
 const KEYMAP = {
   ArrowUp: 'up', KeyW: 'up', KeyZ: 'up',
@@ -339,7 +630,7 @@ const KEYMAP = {
   Escape: 'b', KeyP: 'pause',
 }
 
-export function createArcade ({ sfx, onPlayed, onClose } = {}) {
+export function createArcade ({ sfx, onPlayed, onClose, getGlobalTop } = {}) {
   let root = null; let canvas = null; let ctx = null; let hintEl = null; let introEl = null
   let active = false; let raf = 0; let last = 0; let clock = 0; let openedAt = 0
   let screen = 'menu' // 'menu' ou id de jeu
@@ -348,7 +639,7 @@ export function createArcade ({ sfx, onPlayed, onClose } = {}) {
   let phase = 'ready' // ready | play | over | pause
   let result = null // { score, best, record }
   let overAt = 0
-  const held = { up: false, down: false, left: false, right: false }
+  const held = { up: false, down: false, left: false, right: false, a: false }
   const play = (kind) => sfx?.blip?.(kind)
   const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -360,11 +651,25 @@ export function createArcade ({ sfx, onPlayed, onClose } = {}) {
       const best = bestOf(game.id)
       const record = submitScore(game.id, score)
       result = { score, best: Math.max(best, score), record }
-      phase = 'over'; overAt = clock
+      phase = 'over'; overAt = performance.now()
       if (record) sfx?.jingle?.()
       else play('locked')
       onPlayed?.(game.id, score, record)
+      fetchWorld(game.id, result)
     },
+  }
+
+  // Classement mondial facultatif : jamais bloquant, abandonné après 2,5 s
+  function fetchWorld (id, target) {
+    if (typeof getGlobalTop !== 'function') return
+    let req
+    try { req = Promise.resolve(getGlobalTop(id)) } catch { return }
+    const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 2500))
+    Promise.race([req, timeout]).then((list) => {
+      if (result !== target || !Array.isArray(list)) return
+      target.world = list.filter((e) => e && Number.isFinite(Number(e.score))).slice(0, 3)
+        .map((e) => ({ name: String(e.name ?? '???').slice(0, 10), score: Number(e.score) }))
+    }).catch(() => {})
   }
 
   function build () {
@@ -432,7 +737,7 @@ export function createArcade ({ sfx, onPlayed, onClose } = {}) {
         if (i >= 0) { sel = i; start(GAMES[i].id) }
         return
       }
-      if (game.id === 'bricks' && phase === 'play') { dragging = true; game.pointer(p.x) }
+      if (game.pointer && phase === 'play') { dragging = true; game.pointer(p.x) }
       press('a')
     })
     canvas.addEventListener('pointermove', (e) => {
@@ -448,7 +753,8 @@ export function createArcade ({ sfx, onPlayed, onClose } = {}) {
   }
 
   // --- Navigation ---
-  const menuItem = (i) => ({ x: 16, y: 76 + i * 58, w: W - 32, h: 50 })
+  // Menu en grille de 2 colonnes
+  const menuItem = (i) => ({ x: 10 + (i % 2) * 112, y: HUD + 40 + Math.floor(i / 2) * 62, w: 108, h: 56 })
   function menuHit ({ x, y }) {
     return GAMES.findIndex((_, i) => {
       const r = menuItem(i)
@@ -457,7 +763,7 @@ export function createArcade ({ sfx, onPlayed, onClose } = {}) {
   }
   function setHint () {
     if (!hintEl) return
-    const hint = screen === 'menu' ? '↑↓ choisir · Espace jouer · Échap quitter' : game.hint
+    const hint = screen === 'menu' ? '←↑↓→ choisir · Espace jouer · Échap quitter' : game.hint
     // Sur écran tactile, on parle des boutons A / B de la borne
     hintEl.textContent = matchMedia('(pointer: coarse)').matches ? hint.replace(/Espace/g, 'A').replace(/Échap/g, 'B') : hint
   }
@@ -475,10 +781,11 @@ export function createArcade ({ sfx, onPlayed, onClose } = {}) {
 
   function press (key) {
     if (!active) return
-    if (clock - openedAt < 0.25 && key === 'a') return // évite le E qui vient d'ouvrir la borne
+    if (performance.now() - openedAt < 250 && key === 'a') return // évite le E qui vient d'ouvrir la borne
     if (screen === 'menu') {
-      if (key === 'up' || key === 'down') {
-        sel = (sel + (key === 'up' ? -1 : 1) + GAMES.length) % GAMES.length
+      const step = { up: -2, down: 2, left: -1, right: 1 }[key]
+      if (step) {
+        sel = (sel + step + GAMES.length) % GAMES.length
         play('tick')
       } else if (key === 'a') start(GAMES[sel].id)
       else if (key === 'b') api.close()
@@ -486,7 +793,7 @@ export function createArcade ({ sfx, onPlayed, onClose } = {}) {
     }
     if (key === 'b') return toMenu()
     if (phase === 'over') {
-      if (key === 'a' && clock - overAt > 0.45) { game.reset(); phase = 'ready'; result = null; play('tick') }
+      if (key === 'a' && performance.now() - overAt > 450) { game.reset(); phase = 'ready'; result = null; play('tick') }
       return
     }
     if (key === 'pause') {
@@ -498,7 +805,7 @@ export function createArcade ({ sfx, onPlayed, onClose } = {}) {
     if (phase === 'ready') {
       if (key === 'a' || (game.id === 'dragon' && key === 'up')) {
         phase = 'play'
-        if (game.id !== 'snake') game.action?.(gameApi)
+        if (game.startAction) game.action?.(gameApi)
       } else if (game.id === 'snake' && DIRS[key]) { game.turn(DIRS[key]); phase = 'play' }
       return
     }
@@ -543,31 +850,40 @@ export function createArcade ({ sfx, onPlayed, onClose } = {}) {
       const tw = reduced ? 1 : (Math.sin(clock * 2 + i * 1.7) + 1) / 2
       rect(ctx, (i * 71) % W, HUD + ((i * 43) % (H - HUD)), 1, 1, tw > 0.5 ? '#d8d0ff' : '#4a3f8a')
     }
-    text(ctx, 'CHOISIS TON JEU', W / 2, HUD + 26, { size: 14, color: C.text, glow: C.violetDark })
-    text(ctx, '★ ★ ★', W / 2, HUD + 42, { size: 8, color: C.gold })
+    text(ctx, 'CHOISIS TON JEU', W / 2, HUD + 18, { size: 13, color: C.text, glow: C.violetDark })
+    text(ctx, '★ ★ ★', W / 2, HUD + 31, { size: 7, color: C.gold })
+    const f = Math.sin(clock * 8) > 0 ? 1 : 0
     GAMES.forEach((g, i) => {
       const r = menuItem(i)
       const on = i === sel
-      rect(ctx, r.x, r.y, r.w, r.h, on ? C.deep : '#1a1440')
+      const lift = on && !reduced ? Math.round(Math.sin(clock * 5)) : 0
+      rect(ctx, r.x, r.y - lift, r.w, r.h, on ? C.deep : '#1a1440')
       const border = on ? g.color : C.line
-      rect(ctx, r.x, r.y, r.w, 1, border); rect(ctx, r.x, r.y + r.h - 1, r.w, 1, border)
-      rect(ctx, r.x, r.y, 1, r.h, border); rect(ctx, r.x + r.w - 1, r.y, 1, r.h, border)
+      const y = r.y - lift
+      rect(ctx, r.x, y, r.w, 1, border); rect(ctx, r.x, y + r.h - 1, r.w, 1, border)
+      rect(ctx, r.x, y, 1, r.h, border); rect(ctx, r.x + r.w - 1, y, 1, r.h, border)
+      if (on) rect(ctx, r.x + 1, y + 1, r.w - 2, 1, 'rgba(255,255,255,0.18)')
       // Petite icône
-      const ix = r.x + 22; const iy = r.y + r.h / 2
+      const ix = r.x + r.w / 2; const iy = y + 15
       if (g.id === 'snake') {
-        for (let k = 0; k < 4; k++) rect(ctx, ix - 14 + k * 6, iy - 2, 5, 5, k % 2 ? C.mintDark : C.mint)
+        for (let k = 0; k < 4; k++) rect(ctx, ix - 16 + k * 6, iy - 2, 5, 5, k % 2 ? C.mintDark : C.mint)
         gem(ctx, ix + 12, iy, 1)
       } else if (g.id === 'bricks') {
-        ;[C.pink, C.orange, C.cyan].forEach((col, k) => rect(ctx, ix - 13 + k * 9, iy - 9, 8, 5, col))
-        rect(ctx, ix - 1, iy + 1, 3, 3, '#fff'); rect(ctx, ix - 9, iy + 7, 18, 3, C.orange)
-      } else dragonSprite(ctx, ix, iy + 2, Math.sin(clock * 8) > 0 ? 1 : 0)
-      text(ctx, g.name, r.x + 48, r.y + 17, { size: 12, align: 'left', color: on ? '#fff' : C.text })
-      text(ctx, g.desc, r.x + 48, r.y + 33, { size: 8, align: 'left', weight: '500', color: C.dim })
-      text(ctx, `${bestOf(g.id)}`, r.x + r.w - 10, r.y + 17, { size: 11, align: 'right', color: C.gold })
-      text(ctx, 'record', r.x + r.w - 10, r.y + 33, { size: 7, align: 'right', weight: '500', color: C.dim })
-      if (on && (reduced || Math.sin(clock * 8) > -0.3)) text(ctx, '▶', r.x - 7, r.y + r.h / 2, { size: 9, color: g.color })
+        ;[C.pink, C.orange, C.cyan].forEach((col, k) => rect(ctx, ix - 13 + k * 9, iy - 8, 8, 5, col))
+        rect(ctx, ix - 1, iy, 3, 3, '#fff'); rect(ctx, ix - 9, iy + 6, 18, 3, C.orange)
+      } else if (g.id === 'dragon') dragonSprite(ctx, ix, iy + 2, f)
+      else if (g.id === 'invaders') { bugSprite(ctx, ix - 9, iy, C.orange, f); bugSprite(ctx, ix + 9, iy, C.pink, 1 - f) }
+      else if (g.id === 'blocks') {
+        ;[[0, 0, C.violet], [1, 0, C.violet], [2, 0, C.violet], [1, 1, C.violet], [3, 1, C.cyan], [3, 0, C.cyan]]
+          .forEach(([x, yy, col]) => { rect(ctx, ix - 12 + x * 6, iy - 6 + yy * 6, 5, 5, col); rect(ctx, ix - 12 + x * 6, iy - 6 + yy * 6, 5, 1, 'rgba(255,255,255,0.5)') })
+      } else {
+        rect(ctx, ix - 10, iy - 8, 20, 3, C.pink); rect(ctx, ix - 10, iy + 6, 20, 3, C.orange)
+        gem(ctx, ix + 6, iy, 1)
+      }
+      text(ctx, g.name, ix, y + 33, { size: 9, color: on ? '#fff' : C.text })
+      text(ctx, `Record ${bestOf(g.id)}`, ix, y + 45, { size: 7, weight: '600', color: on ? C.gold : C.dim })
     })
-    text(ctx, '↑↓ choisir · Espace jouer', W / 2, H - 14, { size: 8, weight: '500', color: C.dim })
+    text(ctx, matchMedia('(pointer: coarse)').matches ? 'Touche un jeu pour jouer' : '←↑↓→ choisir · Espace jouer', W / 2, H - 9, { size: 7, weight: '500', color: C.dim })
   }
 
   function panel (lines, h) {
@@ -575,7 +891,12 @@ export function createArcade ({ sfx, onPlayed, onClose } = {}) {
     rect(ctx, 20, y, W - 40, h, 'rgba(7,10,31,0.86)')
     rect(ctx, 20, y, W - 40, 1, C.violet); rect(ctx, 20, y + h - 1, W - 40, 1, C.violet)
     rect(ctx, 20, y, 1, h, C.violet); rect(ctx, W - 21, y, 1, h, C.violet)
-    lines.forEach(([str, opts], i) => text(ctx, str, W / 2, y + 16 + i * 17, opts))
+    let ly = y + 16
+    for (const [str, opts] of lines) {
+      const lh = opts.h || 17
+      text(ctx, str, W / 2, ly - (17 - lh) / 2, opts)
+      ly += lh
+    }
   }
 
   function drawOverlay () {
@@ -592,13 +913,17 @@ export function createArcade ({ sfx, onPlayed, onClose } = {}) {
       panel([['PAUSE', { size: 14, color: C.cyan }], ['P ou Espace : reprendre', { size: 8, color: C.dim }]], 46)
     } else if (phase === 'over') {
       const lines = [
-        ['PARTIE TERMINÉE', { size: 13, color: C.pink }],
+        [game.overTitle || 'PARTIE TERMINÉE', { size: 13, color: C.pink }],
         [`Score : ${result.score}`, { size: 11, color: C.text }],
         [`Meilleur : ${result.best}`, { size: 9, weight: '500', color: C.dim }],
       ]
       if (result.record) lines.push(['NOUVEAU RECORD !', { size: 11, color: blink ? C.gold : C.orange }])
+      if (result.world?.length) {
+        lines.push(['MONDE', { size: 8, color: C.violet, h: 12 }])
+        result.world.forEach((e, i) => lines.push([`${i + 1}. ${e.name}  ${e.score}`, { size: 8, weight: '500', color: C.text, h: 11 }]))
+      }
       lines.push([touch ? 'A : rejouer · B : menu' : 'Espace : rejouer · Échap : menu', { size: 8, weight: '500', color: C.cyan }])
-      panel(lines, lines.length * 17 + 14)
+      panel(lines, lines.reduce((n, [, o]) => n + (o.h || 17), 0) + 14)
     }
   }
 
@@ -619,7 +944,7 @@ export function createArcade ({ sfx, onPlayed, onClose } = {}) {
       if (active) return
       if (!root) build()
       active = true
-      openedAt = clock
+      openedAt = performance.now()
       introEl.textContent = intro?.text || ''
       introEl.hidden = !intro?.text
       screen = 'menu'; game = null; phase = 'ready'

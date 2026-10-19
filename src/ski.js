@@ -364,6 +364,9 @@ export function createSki({ renderer, sfx, rewards, getCharacter, onExit, onFini
       ['Chutes', st.crashes ? `${st.crashes} · −${st.crashes * 50} pts` : 'aucune'],
     ].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')
     $('.ski-board').textContent = rewards ? `Classement sur cet appareil\n${rewards.lines(SKI_GAME, rank).join('\n')}` : ''
+    rewards?.globalBoard?.(SKI_GAME).then((lines) => {
+      if (lines?.length) $('.ski-board').textContent += `\n\n🌍 Classement mondial\n${lines.join('\n')}`
+    })
     $('.ski-result').hidden = false
     if (rank === 1) sfx?.fanfare?.()
     else sfx?.jingle?.()

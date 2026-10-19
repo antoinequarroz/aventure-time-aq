@@ -7,4 +7,7 @@ const stamp = new Intl.DateTimeFormat('fr-CH', { timeZone: 'Europe/Zurich', day:
 export default defineConfig({
   base: './',
   define: { __BUILD__: JSON.stringify(stamp) },
+  // En local, `npm run scores` lance le classement mondial et Vite lui transmet /api.
+  server: { proxy: { '/api': 'http://127.0.0.1:8787' } },
+  preview: { proxy: { '/api': 'http://127.0.0.1:8787' } },
 })

@@ -14,6 +14,10 @@ import { createMinimap } from './minimap.js'
 import { focus as npcFocus, talkers } from './world/characters.js'
 import { createDialogue } from './dialogue.js'
 import './play.css'
+import './photo.css'
+import './football.css'
+import { createFootball, FOOT_GAME } from './football.js'
+import { createPhoto } from './photo.js'
 import { createPushables } from './world/pushables.js'
 import { loadModels } from './world/models.js'
 import { createPlayer } from './player.js'
@@ -23,6 +27,7 @@ import { createControls } from './controls.js'
 import { createAudio } from './audio.js'
 import { createQuest } from './quest.js'
 import { createRewards, trophiesView } from './rewards.js'
+import { createLeaderboard } from './leaderboard.js'
 import { createTour } from './tour.js'
 import { createWeather } from './weather.js'
 import { createSocialPlaza, createPortfolioBanner } from './world/socials.js'
@@ -36,8 +41,8 @@ import { createSecrets } from './secrets.js'
 import { createShowcases } from './world/showcases.js'
 import { THEMES } from './world/islands.js'
 import { createSolarSystem } from './solarSystem.js'
-import { createSki } from './ski.js'
-import { createArcade } from './arcade.js'
+import { createSki, SKI_GAME } from './ski.js'
+import { createArcade, ARCADE_GAMES } from './arcade.js'
 
 const ui = createUI()
 console.info(`Aventure Time AQ · version du ${__BUILD__}`)
@@ -202,7 +207,9 @@ const player = createPlayer(scene, world)
 const eraOf = (x) => (x < -75 ? 'past' : x > 75 ? 'future' : 'present')
 let guideTarget = null
 const minimap = createMinimap({ world, player, interactables, eraOf, isDone: (it) => discovered.has(it.title), getTarget: () => guideTarget, onToggle: (big) => big && tutorial.did('map'), onPick: (item) => goTo(item) })
-const rewards = createRewards(ui, sfx)
+const leaderboard = createLeaderboard()
+const rewards = createRewards(ui, sfx, leaderboard)
+rewards.defaultName = () => leaderboard.name || ({ rogue: 'Aventurier', knight: 'Chevalier', mage: 'Mage', barbarian: 'Barbare' })[player.character] || 'Aventurier'
 // Télescope du Futur : on « entre » dans la lunette et on navigue dans le système solaire.
 const TELESCOPE = { type: 'telescope', x: THEMES.future.center.x - 14.4, z: THEMES.future.center.z - 2.2, r: 1.1, title: 'Regarder dans le télescope' }
 interactables.unshift(TELESCOPE)
@@ -242,17 +249,48 @@ const ski = createSki({
   },
 })
 // Borne d'arcade : le panneau « Jeux vidéo » de la grande salle du château.
-const ARCADE_GAMES = ['snake', 'bricks', 'dragon']
 const arcadePlayed = new Set()
+const arcadeSent = new Map()
 const arcade = createArcade({
   sfx,
   onPlayed: (id, score) => {
     rewards.unlock('arcade')
     arcadePlayed.add(id)
-    if (ARCADE_GAMES.every((g) => arcadePlayed.has(g))) rewards.unlock('arcade-all')
-    void score
+    if (ARCADE_GAMES.every((g) => arcadePlayed.has(g.id))) rewards.unlock('arcade-all')
+    if (score > 0) arcadeSent.set(id, leaderboard.submit({ id, score: true }, score, rewards.defaultName()))
+  },
+  // Classement mondial affiché sur l'écran de fin de partie (rien si le serveur ne répond pas).
+  getGlobalTop: async (id) => {
+    const sent = await arcadeSent.get(id)
+    arcadeSent.delete(id)
+    const top = sent?.top ?? (await leaderboard.top(id))
+    return top?.map((e) => ({ name: e.name, score: e.v })) ?? null
   },
 })
+// Mode photo : 📷 ou touche P.
+const photo = createPhoto({
+  renderer,
+  camera,
+  sfx,
+  getFocus: () => player.position,
+  getPlace: () => {
+    const here = player.currentIsland()
+    return { name: here?.name, era: here?.interior ? 'interior' : here?.era }
+  },
+  onPose: () => player.cheer?.(),
+  onShot: (n) => {
+    rewards.unlock('photographer')
+    if (n >= 5) rewards.unlock('photo-album')
+  },
+})
+function openPhoto() {
+  if (!started || solar.active || ski.active || foot.active || arcade.active || listOpen()) return
+  if (ui.panelOpen()) ui.closePanel()
+  if (dialog.active) dialog.close()
+  if (tour.active) tour.stop()
+  photo.open()
+}
+ui.on('photo', openPhoto)
 const isArcade = (item) => item?.type === 'sign' && item.title === 'Jeux vidéo' && !item.showcase
 function openArcade() {
   const sign = interactables.find(isArcade)
@@ -267,6 +305,30 @@ function openSki() {
   sfx.blip('open')
   if (sign) discover(sign)
   ui.fade(() => ski.open(sign ? { text: [].concat(sign.text).join(' ') } : null))
+}
+// Match de foot : le panneau « Foot » du stade lance une vraie partie à 3 contre 3.
+const foot = createFootball({
+  renderer,
+  sfx,
+  rewards,
+  getCharacter: () => player.character,
+  onExit: (done) => {
+    sfx.blip('close')
+    ui.fade(() => done())
+  },
+  onFinish: (score, st, won) => {
+    rewards.unlock('footballer')
+    if (won) rewards.unlock('foot-win')
+    if (st?.me >= 3) rewards.unlock('hat-trick')
+  },
+})
+const isFoot = (item) => item?.type === 'sign' && item.title === 'Foot' && !item.showcase
+function openFoot() {
+  const sign = interactables.find(isFoot)
+  tutorial.did('interact')
+  sfx.blip('open')
+  if (sign) discover(sign)
+  ui.fade(() => foot.open(sign ? { text: [].concat(sign.text).join(' ') } : null))
 }
 const TALK_KEY = 'aventure-time-aq:talked'
 const talkedTo = new Set((() => {
@@ -355,6 +417,8 @@ if (new URLSearchParams(location.search).has('debug')) {
   window.__game = {
     player,
     ski,
+    foot,
+    photo,
     dialog,
     world,
     scene,
@@ -364,6 +428,7 @@ if (new URLSearchParams(location.search).has('debug')) {
     pushables,
     vehicles,
     places: projectPlaces,
+    items: () => interactables,
     near: () => interactables.filter((i) => Math.hypot(player.position.x - i.x, player.position.z - i.z) < i.r + 3).map((i) => [i.type, i.title, Math.hypot(player.position.x - i.x, player.position.z - i.z).toFixed(2)]),
     state: () => ({ nearby: nearby?.title, doorCooldown, doorBusy, panel: ui.panelOpen(), discovered: discovered.size, total: signs.length, tour: tour.active, day: weather.state.day, character: player.character }),
     quest: () => quest,
@@ -426,7 +491,7 @@ const controls = createControls({
   scene,
   player,
   onInteract: () => interact(),
-  isActive: () => started && !vehicles.traveling && !vehicles.driving && !ui.panelOpen() && !tour.active && !solar.active && !ski.active && !arcade.active,
+  isActive: () => started && !vehicles.traveling && !vehicles.driving && !ui.panelOpen() && !tour.active && !solar.active && !ski.active && !foot.active && !arcade.active && !photo.active,
 })
 let introBlend = 0
 const isTouch = matchMedia('(pointer: coarse)').matches
@@ -556,7 +621,7 @@ ui.on('trophies', () => {
   if (!started) return
   if (tour.active) tour.stop()
   sfx.blip('open')
-  ui.openPanel({ title: 'Trophées', icon: '🏆', kicker: 'Succès et classements', era: 'present', text: 'Débloque des succès en explorant les îles et bats tes records dans les mini-jeux.', extra: trophiesView(rewards, world.games, medalFor) })
+  ui.openPanel({ title: 'Trophées', icon: '🏆', kicker: 'Succès et classements', era: 'present', text: 'Débloque des succès en explorant les îles et bats tes records dans les mini-jeux.', extra: trophiesView(rewards, [...world.games, SKI_GAME, FOOT_GAME], medalFor) })
 })
 ui.setTrophies(rewards.count())
 rewards.onChange(() => ui.setTrophies(rewards.count()))
@@ -583,7 +648,9 @@ ui.on('tourStop', () => {
 })
 
 window.addEventListener('keydown', (e) => {
-  if (!started || vehicles.traveling || listOpen() || solar.active || ski.active || arcade.active) return
+  if (photo.active) return photo.key(e)
+  if (!started || vehicles.traveling || listOpen() || solar.active || ski.active || foot.active || arcade.active) return
+  if (e.code === 'KeyP' && !games.active && !vehicles.driving) return openPhoto()
   if (dialog.active && (e.code === 'Escape' || e.code === 'KeyE' || e.code === 'Space' || e.code === 'Enter')) {
     e.preventDefault()
     if (e.code === 'Escape') dialog.close()
@@ -609,6 +676,7 @@ function interact() {
   if (dialog.active) return dialog.next()
   if (nearby.type === 'telescope' || isAstronomy(nearby)) return openTelescope()
   if (isSki(nearby)) return openSki()
+  if (isFoot(nearby)) return openFoot()
   if (isArcade(nearby)) return openArcade()
   if (nearby.type === 'npc') {
     tutorial.did('interact')
@@ -682,6 +750,12 @@ const secrets = createSecrets(scene, world, {
     ui.toast(n < total ? `Étoile secrète trouvée (${n} / ${total}) ! Les autres se cachent au bord des îles.` : 'Les trois étoiles secrètes sont à toi. Bravo, explorateur !')
   },
   onAll: () => rewards.unlock('secrets'),
+  onRelic: (relic, n, total) => {
+    sfx.blip('secret')
+    rewards.unlock('relic')
+    if (n === total) rewards.unlock('relics')
+    ui.openPanel({ title: relic.title, icon: relic.icon, kicker: `Relique cachée · ${n} / ${total}`, era: relic.era, text: [...relic.text, n < total ? 'D\'autres reliques se cachent sur les autres îles.' : 'Tu as trouvé toutes les reliques. Rien ne t\'échappe !'] })
+  },
   onKonami: () => {
     if (!started) return
     sfx.fanfare()
@@ -922,13 +996,19 @@ function tick() {
     requestAnimationFrame(tick)
     return
   }
+  if (foot.active) {
+    foot.update(dt, t)
+    foot.render()
+    requestAnimationFrame(tick)
+    return
+  }
   // Borne d'arcade : elle dessine elle-même ses jeux, le monde 3D est en pause.
   if (arcade.active) {
     requestAnimationFrame(tick)
     return
   }
 
-  const canMove = started && !ui.panelOpen() && !games.frozen && !tour.active && !listOpen() && !dialog.active
+  const canMove = started && !photo.active && !ui.panelOpen() && !games.frozen && !tour.active && !listOpen() && !dialog.active
   if (!vehicles.traveling && !vehicles.driving) player.update(dt, canMove)
   gamepad.update(canMove)
   tutorial.update(dt)
@@ -951,6 +1031,7 @@ function tick() {
   tour.update(dt)
 
   updateCamera(dt)
+  photo.update(dt)
 
   // Météo et cycle jour/nuit ; ambiance sonore et bruits de pas.
   const here = player.currentIsland()
@@ -986,7 +1067,7 @@ function tick() {
   if (nearby?.type === 'telescope' && telescopeArmed && !ui.panelOpen() && !tour.active) openTelescope()
   if (!telescopeArmed && Math.hypot(player.position.x - TELESCOPE.x, player.position.z - TELESCOPE.z) > 1.8) telescopeArmed = true
   if (nearby?.type === 'door' && nearby.auto && doorCooldown <= 0 && !ui.panelOpen() && Math.hypot(player.position.x - nearby.x, player.position.z - nearby.z) < 0.95) enterDoor(nearby)
-  ui.setPrompt(vehicles.driving ? vehicles.hint : nearby && !ui.panelOpen() && !tour.active ? ({ chest: quest.opened || discovered.size >= signs.length ? `E · Ouvrir « ${nearby.title} »` : `E · ${nearby.title} (${discovered.size} / ${signs.length})`, sign: isAstronomy(nearby) ? '🔭 E · Astronomie : regarder dans le télescope' : isSki(nearby) ? '⛷️ E · Ski : faire la descente' : isArcade(nearby) ? '🕹️ E · Jeux vidéo : jouer à la borne d\'arcade' : nearby.showcase ? `E · Voir « ${nearby.showcase.project.title} » · marche sur les flèches pour changer` : `E · Lire « ${nearby.title} »`, vehicle: `E · ${nearby.id === 'car' ? nearby.title : `Monter : ${nearby.title}`}`, game: games.active ? null : `E · Jouer : ${nearby.title}`, door: `E · ${nearby.title}`, npc: dialog.active ? null : `💬 E · Parler · ${nearby.title}`, telescope: `E · ${nearby.title}`, social: `E · ${nearby.title}` })[nearby.type] : null)
+  ui.setPrompt(vehicles.driving ? vehicles.hint : nearby && !ui.panelOpen() && !tour.active ? ({ chest: quest.opened || discovered.size >= signs.length ? `E · Ouvrir « ${nearby.title} »` : `E · ${nearby.title} (${discovered.size} / ${signs.length})`, sign: isAstronomy(nearby) ? '🔭 E · Astronomie : regarder dans le télescope' : isSki(nearby) ? '⛷️ E · Ski : faire la descente' : isFoot(nearby) ? '⚽ E · Foot : jouer un match à 3 contre 3' : isArcade(nearby) ? '🕹️ E · Jeux vidéo : jouer à la borne d\'arcade' : nearby.showcase ? `E · Voir « ${nearby.showcase.project.title} » · marche sur les flèches pour changer` : `E · Lire « ${nearby.title} »`, vehicle: `E · ${nearby.id === 'car' ? nearby.title : `Monter : ${nearby.title}`}`, game: games.active ? null : `E · Jouer : ${nearby.title}`, door: `E · ${nearby.title}`, npc: dialog.active ? null : `💬 E · Parler · ${nearby.title}`, telescope: `E · ${nearby.title}`, social: `E · ${nearby.title}` })[nearby.type] : null)
 
   const island = here
   applyMood(island?.era, 1 - Math.exp(-dt * 2), day)
@@ -1009,6 +1090,7 @@ function tick() {
   if (quality >= 2 && ++shadowTick % 2 === 0) renderer.shadowMap.needsUpdate = true
   const tRender = performance.now()
   composer.render()
+  if (photo.wantsShot) photo.capture()
   if (debugPerf) {
     perf.frames++
     perf.calls += renderer.info.render.calls
@@ -1028,4 +1110,5 @@ window.addEventListener('resize', () => {
   composer.setSize(window.innerWidth, window.innerHeight)
   solar.resize()
   ski.resize()
+  foot.resize()
 })
