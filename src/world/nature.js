@@ -15,10 +15,10 @@ export function updateNature(t) {
 const grassMeshes = []
 const leafMeshes = []
 export function setNatureDetail(level) {
-  const share = [1, 0.65, 0.4, 0.25][level] ?? 1
+  const share = [1, 0.65, 0.4, 0.25, 0.12][level] ?? 1
   for (const m of grassMeshes) m.count = Math.max(1, Math.round(m.userData.fullCount * share))
   // Feuillages : moins de feuilles mais plus grandes, la silhouette des arbres reste pleine.
-  const leaves = [1, 0.7, 0.5, 0.38][level] ?? 1
+  const leaves = [1, 0.7, 0.5, 0.38, 0.3][level] ?? 1
   leafScale.value = 1 / Math.sqrt(leaves)
   for (const m of leafMeshes) {
     m.count = Math.max(1, Math.round(m.userData.fullCount * leaves))

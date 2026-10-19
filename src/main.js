@@ -948,11 +948,13 @@ const headPos = new THREE.Vector3()
 let frameAvg = 1 / 60
 let frameCount = 0
 // Téléphone : on démarre un cran plus bas (moins de pixels), l'adaptation fait le reste.
-let quality = params.has('q') ? +params.get('q') : params.has('lite') ? 2 : lowEnd ? 1 : 0
+// Petit téléphone (peu de mémoire ou de cœurs) : on part directement d'un réglage léger.
+const weakDevice = lowEnd && ((navigator.deviceMemory ?? 8) <= 4 || (navigator.hardwareConcurrency ?? 8) <= 4)
+let quality = params.has('q') ? +params.get('q') : params.has('lite') ? 2 : weakDevice ? 2 : lowEnd ? 1 : 0
 const fixedQuality = params.has('q')
 const applyQuality = () => {
   if (ao) ao.enabled = quality < 1
-  const ratio = [Math.min(devicePixelRatio, 1.5), Math.min(devicePixelRatio, 1.25), 1, 0.8][quality]
+  const ratio = [Math.min(devicePixelRatio, 1.5), Math.min(devicePixelRatio, 1.25), 1, 0.8, 0.65][quality]
   renderer.setPixelRatio(ratio)
   composer.setPixelRatio(ratio)
   setNatureDetail(quality)
@@ -961,11 +963,13 @@ const applyQuality = () => {
     sun.shadow.map?.dispose()
     sun.shadow.map = null
   }
+  // Dernier recours sur un appareil très lent : plus d'ombre portée du soleil.
+  sun.castShadow = quality < 4
 }
 function adaptQuality() {
   const frame = timer.getDelta()
   frameAvg += (Math.min(frame, 0.1) - frameAvg) * 0.05
-  if (fixedQuality || ++frameCount < 90 || quality >= 3 || frame <= 0) return
+  if (fixedQuality || ++frameCount < 90 || quality >= 4 || frame <= 0) return
   if (frameAvg > 1 / 45) {
     quality++
     frameCount = 0
