@@ -41,6 +41,7 @@ export function decorateMain(ctx) {
   // Habitants qui flânent autour de la fontaine.
   C.npc(ctx, 'mage', 4.2, 4.2, { keep: [], path: [[4.2, 4.2], [-4.2, 4.2], [-4.2, -4.2], [4.2, -4.2]], walk: 1.2, pause: 1.5, talk: 'villager' })
   C.npc(ctx, 'knight', -2, 11, { keep: [], path: [[-2, 11], [2, 10], [0, 6.5]], walk: 1, pause: 3, talk: 'gardener' })
+  C.npc(ctx, 'rogue', -7, -3, { keep: [], path: [[-7, -3], [-8, 3], [-5, 7], [-3, 1]], walk: 1, pause: 4, talk: 'tourist' })
   C.npc(ctx, 'barbarian', 9, -3, { keep: ['Mug'], anim: 'Cheer', speed: 0.4, talk: 'coffee-lover', path: [[9.5, -2.5], [10, 0]], walk: 0.8, pause: 5 })
   // Petit jardin au pied des escaliers, là où se trouvait le bureau en plein air.
   P.leafTree(ctx, -2.6, -13.6, { palette: 'yellow', size: 0.85, height: 3 })

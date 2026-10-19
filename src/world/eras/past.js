@@ -88,6 +88,7 @@ export function decorateMain(ctx) {
   C.npc(ctx, 'barbarian', 5.2, 13.5, { keep: ['Mug'], anim: 'Cheer', rotY: -Math.PI / 2, speed: 0.5, talk: 'innkeeper', path: [[5.2, 13.5], [3, 10.5], [5, 9]], walk: 0.9, pause: 4 })
   // Un chevalier qui se promène dans le village, et un voyageur sur le chemin.
   C.npc(ctx, 'knight', -2, 9, { keep: ['1H_Sword', 'Knight_Helmet', 'Knight_Cape'], talk: 'knight-past', path: [[-2, 9], [-2, 2], [2, 1], [3, 6]], walk: 1.2, pause: 2 })
+  C.npc(ctx, 'mage', -7, 3, { keep: [], talk: 'messenger', path: [[-7, 3], [-9, -2], [-5, -4], [-4, 1]], walk: 1.3, pause: 2 })
   C.npc(ctx, 'rogue', 10, 1, { keep: ['Rogue_Cape'], talk: 'rogue-past', path: [[12, 2], [12, 4], [6, 0.5]], walk: 1.4, pause: 3 })
   // Gardiens de pierre au pied de la rampe du château.
   S.useTheme('past')

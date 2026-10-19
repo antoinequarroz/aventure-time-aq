@@ -109,6 +109,9 @@ export function decorateMain(ctx) {
     const a = C.npc(ctx, 'knight', ax, az, { keep: [], path: route, walk: 0.9, pause: 3, talk: 'moonwalker' })
     C.spaceSuit(a.object)
   }
+  // Ingénieure qui fait sa ronde entre la base et la piste de la fusée.
+  const engineer = C.npc(ctx, 'mage', 2, 12, { keep: [], path: [[2, 12], [-4, 13], [-9, 9], [-3, 8]], walk: 1, pause: 2.5, talk: 'engineer' })
+  C.spaceSuit(engineer.object)
 
   // Robot compagnon (Quaternius) qui alterne coucou et danse.
   const robot = model('robot', { height: 2.6, x: 3, z: -3, rotY: -0.3 })
