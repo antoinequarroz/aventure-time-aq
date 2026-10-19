@@ -2,7 +2,6 @@
 // Chaque île a une liste de panneaux (`signs`). `pos` = position [x, z]
 // relative au centre de l'île (rayon jouable ~ 20).
 // `text` peut être une chaîne ou une liste de paragraphes ; `links` est optionnel.
-// Les textes marqués [à compléter] sont provisoires.
 
 const site = (path = '') => `https://www.antoinequarroz.ch${path}`
 const project = (slug) => site(`/projets/${slug}`)
@@ -132,7 +131,6 @@ export const quest = {
       '17 projets publiés, dont Remembeyes, LifXp, Respire, VELQORA, Orion, STAQ, LivreMatch, EnvVault, Hermes Cockpit, PhysioBaur, Carna\'dzons et le Rallye Team Quarroz.',
       'Clients : indépendants, PME et startups en Suisse et ailleurs. Site disponible en français, anglais et allemand.',
       'Passions : photo, vidéo, foot, ski, astronomie et jeux vidéo.',
-      '[à compléter : expériences avant 2026 (dates, entreprises), diplômes et école, langues parlées, et le lien vers ton CV en PDF : ces infos ne sont pas sur antoinequarroz.ch]',
     ],
     links: [
       { label: 'Me contacter', primary: true, url: 'mailto:info@antoinequarroz.ch?subject=Prise%20de%20contact%20depuis%20Aventure%20Time%20AQ' },
@@ -182,7 +180,6 @@ export const islands = [
         text: [
           'Tout commence à Saint-Martin, dans le Val d\'Hérens, en Valais : un village de montagne, le ski l\'hiver, le foot l\'été.',
           'C\'est là que je vis toujours, et c\'est pour ma région que j\'ai réalisé mes premiers sites (à voir à la Taverne du Val d\'Hérens).',
-          '[à compléter : ton enfance, ta famille, ce qui t\'a mené vers l\'informatique]',
         ],
       },
       {
@@ -195,7 +192,6 @@ export const islands = [
           'Médiamaticien de formation, j\'ai appris à mélanger design, communication et technique.',
           'C\'est là qu\'est née mon envie de créer des choses fiables, claires et mémorables.',
           'Ensuite, j\'ai travaillé comme médiamaticien à la HES-SO Valais-Wallis, où le développement web, la réalité virtuelle et la réalité augmentée sont devenus mes terrains de jeu.',
-          '[à compléter : ton école, l\'année du CFC, les dates à la HES-SO, le déclic pour le code]',
         ],
       },
       {
@@ -207,7 +203,6 @@ export const islands = [
         text: [
           'Aujourd\'hui, je suis développeur web et mobile freelance, technologue, créateur et formateur, basé en Valais et disponible à distance.',
           'Des sites vitrines aux applis iOS et Android, en passant par l\'IA au service des PME : la suite de l\'histoire s\'écrit sur l\'île du Présent.',
-          '[à compléter : tes premières missions, ce qui t\'a fait choisir le freelance]',
         ],
       },
       {
@@ -218,7 +213,6 @@ export const islands = [
         title: 'Jeux vidéo',
         text: [
           'Les jeux vidéo, et surtout World of Warcraft, ont nourri mon goût pour les mondes fantastiques et l\'aventure. Ce site en est un petit clin d\'œil.',
-          '[à compléter : ta classe préférée, tes souvenirs de raids, les jeux du moment]',
         ],
       },
       {
@@ -226,7 +220,7 @@ export const islands = [
         icon: '⛷️',
         prop: 'skis',
         title: 'Ski',
-        text: 'Grandir en Valais, c\'est grandir sur les skis. [à compléter : tes stations préférées, tes plus belles descentes]',
+        text: 'Grandir en Valais, c\'est grandir sur les skis.',
       },
     ],
   },
@@ -298,7 +292,6 @@ export const islands = [
         text: [
           'Ma routine de développeur : un café, du code propre, et un commit qui raconte clairement ce qui a changé.',
           'Petits pas, tests, revue : c\'est comme ça que les projets avancent sans casser.',
-          '[à compléter : ta boisson préférée, ta playlist de code, ton éditeur]',
         ],
       },
       {
@@ -310,7 +303,6 @@ export const islands = [
         text: [
           'J\'aime transmettre : expliquer simplement le web, le mobile et l\'IA, et faire monter des équipes en compétence.',
           'Ateliers, cours, accompagnement de projets et coaching de développeurs juniors.',
-          '[à compléter : où tu enseignes, tes formats de formation, les sujets que tu proposes]',
         ],
       },
       {
@@ -319,21 +311,21 @@ export const islands = [
         icon: '⚽',
         prop: 'ball',
         title: 'Foot',
-        text: 'Le foot fait partie de ma vie depuis longtemps. [à compléter : ton club, ton poste, tes meilleurs souvenirs]',
+        text: 'Le foot fait partie de ma vie depuis longtemps.',
       },
       {
         sat: 'park',
         pos: [20, -3.4],
         icon: '📷',
         title: 'Photo',
-        text: 'La photo est une de mes passions. [à compléter : ton matériel, tes sujets préférés ; une galerie viendra ici]',
+        text: 'La photo est une de mes passions.',
       },
       {
         sat: 'stadium',
         pos: [-19.4, 0.2],
         icon: '🎬',
         title: 'Vidéo',
-        text: 'Médiamaticien, je tourne et monte aussi des vidéos. [à compléter : tes projets vidéo, tes logiciels]',
+        text: 'Médiamaticien, je tourne et monte aussi des vidéos.',
       },
       {
         sat: 'park',
@@ -380,7 +372,7 @@ export const islands = [
         pos: [-11.6, -2.6],
         icon: '🔭',
         title: 'Astronomie',
-        text: 'Les étoiles me fascinent depuis toujours. [à compléter : ce qui te fascine dans l\'espace, ton matériel d\'observation, tes objets célestes préférés]',
+        text: 'Les étoiles me fascinent depuis toujours.',
       },
       {
         room: 'base',
