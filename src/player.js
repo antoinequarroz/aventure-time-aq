@@ -254,6 +254,9 @@ export function createPlayer(scene, world) {
   return {
     position,
     velocity,
+    get facing() {
+      return facing
+    },
     stick,
     update,
     setStick(x, y) {

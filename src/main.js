@@ -18,6 +18,7 @@ import './photo.css'
 import './football.css'
 import './travel.css'
 import { createTravel } from './travel.js'
+import { createCompanion } from './companion.js'
 import { createFootball, FOOT_GAME } from './football.js'
 import { createPhoto } from './photo.js'
 import { createPushables } from './world/pushables.js'
@@ -310,6 +311,7 @@ function openSki() {
 }
 // Scène de trajet : en voiture (Passé ↔ Présent) ou en fusée (Présent ↔ Futur).
 const travel = createTravel({ renderer, sfx })
+const companion = createCompanion(scene, world)
 const NEXT_ERA = { car: { past: 'present', present: 'past' }, rocket: { present: 'future', future: 'present' } }
 vehicles.onTrip = ({ kind, duration }) => {
   const from = player.currentIsland()?.era ?? (kind === 'car' ? 'past' : 'present')
@@ -387,6 +389,7 @@ const pushables = createPushables(scene, world, world.pushables, {
     rewards.unlock('strike')
   },
   onGoal: () => {
+    companion.cheer()
     ui.toast('BUUUT ! ⚽')
     sfx.goal()
     rewards.unlock('goal')
@@ -568,6 +571,7 @@ function discover(item, silent = false) {
   if (discovered.has(item.title)) return
   discovered.add(item.title)
   saveDiscovered()
+  if (!silent) companion.cheer()
   rewards.unlock('first-steps')
   const era = eraOf(item.x)
   if (signs.filter((s) => eraOf(s.x) === era).every((s) => discovered.has(s.title))) rewards.unlock(era)
@@ -1047,6 +1051,10 @@ function tick() {
 
   updateCamera(dt)
   photo.update(dt)
+  {
+    const isl = player.currentIsland()
+    companion.update(dt, t, player, isl?.era, !started || vehicles.traveling || vehicles.driving)
+  }
 
   // Météo et cycle jour/nuit ; ambiance sonore et bruits de pas.
   const here = player.currentIsland()
