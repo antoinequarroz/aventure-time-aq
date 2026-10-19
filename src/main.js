@@ -16,6 +16,8 @@ import { createDialogue } from './dialogue.js'
 import './play.css'
 import './photo.css'
 import './football.css'
+import './travel.css'
+import { createTravel } from './travel.js'
 import { createFootball, FOOT_GAME } from './football.js'
 import { createPhoto } from './photo.js'
 import { createPushables } from './world/pushables.js'
@@ -305,6 +307,15 @@ function openSki() {
   sfx.blip('open')
   if (sign) discover(sign)
   ui.fade(() => ski.open(sign ? { text: [].concat(sign.text).join(' ') } : null))
+}
+// Scène de trajet : en voiture (Passé ↔ Présent) ou en fusée (Présent ↔ Futur).
+const travel = createTravel({ renderer, sfx })
+const NEXT_ERA = { car: { past: 'present', present: 'past' }, rocket: { present: 'future', future: 'present' } }
+vehicles.onTrip = ({ kind, duration }) => {
+  const from = player.currentIsland()?.era ?? (kind === 'car' ? 'past' : 'present')
+  const to = NEXT_ERA[kind][from] ?? (kind === 'car' ? 'present' : 'future')
+  if (settings.state.reduceMotion) return
+  travel.start({ kind, from, to, duration })
 }
 // Match de foot : le panneau « Foot » du stade lance une vraie partie à 3 contre 3.
 const foot = createFootball({
@@ -1089,7 +1100,15 @@ function tick() {
   renderer.shadowMap.autoUpdate = quality < 2
   if (quality >= 2 && ++shadowTick % 2 === 0) renderer.shadowMap.needsUpdate = true
   const tRender = performance.now()
-  composer.render()
+  if (travel.active) {
+    // Trajet : la scène de voyage remplace le monde ; « Passer » termine aussi le voyage.
+    if (!vehicles.traveling) travel.skip()
+    if (travel.update(dt, t)) travel.render()
+    else {
+      if (vehicles.traveling) vehicles.finishTrip()
+      composer.render()
+    }
+  } else composer.render()
   if (photo.wantsShot) photo.capture()
   if (debugPerf) {
     perf.frames++
@@ -1111,4 +1130,5 @@ window.addEventListener('resize', () => {
   solar.resize()
   ski.resize()
   foot.resize()
+  travel.resize()
 })

@@ -15,7 +15,7 @@ export function createVehicles(scene, world) {
       { island: 'present', at: [17, 0], exit: [-3.5, 0] },
       { island: 'future', at: [-17, 0], exit: [3.5, 0] },
     ],
-    duration: 6,
+    duration: 8,
     height: 70,
     upright: true,
   })
@@ -24,7 +24,13 @@ export function createVehicles(scene, world) {
   const rocketCollider = { x: 0, z: 0, r: 1.5, top: 12, car: true }
   world.colliders.push(rocketCollider)
 
-  return {
+  const api = {
+    onTrip: null, // appelé au départ d'un voyage : { kind: 'car' | 'rocket', duration }
+    // Termine tout de suite le voyage en cours (scène de trajet passée).
+    finishTrip() {
+      if (trip) trip.t = 1
+      car.finishFlight()
+    },
     interactables: [car.interactable, rocket.interactable],
     // Vol en cours (fusée ou voiture qui saute d'une île à l'autre) : aucune commande.
     get traveling() {
@@ -42,12 +48,13 @@ export function createVehicles(scene, world) {
       if (interactable !== rocket.interactable || trip) return
       trip = { vehicle: rocket, t: 0, player }
       player.setVisible(false)
+      api.onTrip?.({ kind: 'rocket', duration: rocket.duration })
     },
     exit(player) {
       car.exit(player)
     },
     update(dt, t, player, enabled) {
-      car.update(dt, t, player, enabled)
+      if (car.update(dt, t, player, enabled) === 'flight') api.onTrip?.({ kind: 'car', duration: 6 })
       rocket.idle(t, trip !== null)
       rocketCollider.x = trip ? 1e6 : rocket.object.position.x
       rocketCollider.z = rocket.object.position.z
@@ -65,6 +72,7 @@ export function createVehicles(scene, world) {
       }
     },
   }
+  return api
 }
 
 function stationWorld(station) {
@@ -278,6 +286,9 @@ function makeCar(scene, world) {
     get driving() {
       return driving
     },
+    finishFlight() {
+      if (flight) flight.t = 0.999
+    },
     get flying() {
       return flight !== null
     },
@@ -311,7 +322,7 @@ function makeCar(scene, world) {
     update(dt, t, player, enabled) {
       if (flight) {
         // Saut d'une île à l'autre en grand arc.
-        flight.t = Math.min(1, flight.t + dt / 4.5)
+        flight.t = Math.min(1, flight.t + dt / 6)
         const k = flight.t
         const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2
         pos.lerpVectors(flight.from, flight.to, e)
@@ -411,6 +422,7 @@ function makeCar(scene, world) {
           flight = { t: 0, from: pos.clone(), to }
           heading = r.other.heading + Math.PI
           dust.puff(pos, 10)
+          return 'flight'
         }
       }
     },
