@@ -77,9 +77,9 @@ export function createWeather(scene, { seasons = 'cycle' } = {}) {
   scene.add(flies)
 
   // ---------- Particules de saison ----------
-  const petals = fallingPoints(scene, { count: 520, size: 0.24, texture: petalTexture(), colors: [0xffb7d5, 0xff8fc0, 0xffe0ee, 0xffc9e3], fall: [0.6, 1.2], sway: 1.3 })
-  const leaves = fallingPoints(scene, { count: 460, size: 0.34, texture: leafTexture(), colors: [0xe8722e, 0xd9452b, 0xf2b33d, 0xb0582a, 0xf09a3a], fall: [1, 1.8], sway: 1.8 })
-  const pollen = fallingPoints(scene, { count: 280, size: 0.14, texture: dotTexture(), colors: [0xfff2a0, 0xffe066, 0xffffff, 0xd8ffb0], float: true, additive: true, bright: 1.8 })
+  const petals = fallingPoints(scene, { count: 520, size: 0.42, texture: petalTexture(), colors: [0xffb7d5, 0xff8fc0, 0xffe0ee, 0xffc9e3], fall: [0.6, 1.2], sway: 1.3 })
+  const leaves = fallingPoints(scene, { count: 460, size: 0.55, texture: leafTexture(), colors: [0xe8722e, 0xd9452b, 0xf2b33d, 0xb0582a, 0xf09a3a], fall: [1, 1.8], sway: 1.8 })
+  const pollen = fallingPoints(scene, { count: 300, size: 0.22, texture: dotTexture(), colors: [0xfff2a0, 0xffe066, 0xffffff, 0xd8ffb0], float: true, additive: true, bright: 1.8 })
 
   // ---------- Pluie (traits) ----------
   const RAIN = 900
@@ -89,7 +89,7 @@ export function createWeather(scene, { seasons = 'cycle' } = {}) {
   const rainPos = new Float32Array(RAIN * 6)
   const rainGeo = new THREE.BufferGeometry()
   rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3))
-  const rainMat = new THREE.LineBasicMaterial({ color: 0xc4ccff, transparent: true, opacity: 0, depthWrite: false })
+  const rainMat = new THREE.LineBasicMaterial({ color: 0xdfe4ff, transparent: true, opacity: 0, depthWrite: false })
   const rain = new THREE.LineSegments(rainGeo, rainMat)
   rain.frustumCulled = false
   rain.visible = false
@@ -315,7 +315,8 @@ export function createWeather(scene, { seasons = 'cycle' } = {}) {
       const outdoor = era !== 'interior'
       const sky = outdoor && era !== 'future'
       const winter = seasonId() === 'winter'
-      const ease = (k, target, speed) => k + (target - k) * Math.min(1, dt * speed)
+      // En entrant dans un bâtiment, tout disparaît vite.
+      const ease = (k, target, speed) => k + (target - k) * Math.min(1, dt * (outdoor ? speed : 8))
 
       // Nuages, pluie et orage.
       cloudK = ease(cloudK, sky && w !== 'clear' ? (w === 'cloudy' ? 0.85 : 1) : 0, 0.4)
@@ -332,7 +333,7 @@ export function createWeather(scene, { seasons = 'cycle' } = {}) {
       }
 
       const wind = w === 'storm' ? 4 : 1.2
-      rainMat.opacity = rainK * 0.5 + state.flash * 0.3
+      rainMat.opacity = Math.min(1, rainK * 0.8 + state.flash * 0.3)
       rain.visible = rainK > 0.02
       if (rain.visible) {
         rain.position.set(center.x, center.y - 3, center.z - 6)
@@ -351,7 +352,7 @@ export function createWeather(scene, { seasons = 'cycle' } = {}) {
           rainPos[p + 1] = y
           rainPos[p + 2] = drops[o + 2]
           rainPos[p + 3] = x - wind * 0.04
-          rainPos[p + 4] = y + 0.9
+          rainPos[p + 4] = y + 1.3
           rainPos[p + 5] = drops[o + 2]
         }
         rainGeo.attributes.position.needsUpdate = true
@@ -388,6 +389,7 @@ export function createWeather(scene, { seasons = 'cycle' } = {}) {
       snowK = ease(snowK, snowTarget, 1.5)
       state.snow = snowK
       snowMat.opacity = snowK * 0.9
+      snowMat.size = snowing ? 0.3 : 0.22
       snow.visible = snowK > 0.01
       if (snow.visible) {
         snow.position.set(center.x, center.y - 4, center.z)
