@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://aventuretime.antoinequarroz.ch/sitemap.xml

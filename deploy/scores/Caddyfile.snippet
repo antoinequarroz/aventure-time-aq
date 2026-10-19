@@ -1,0 +1,5 @@
+# À ajouter dans le bloc aventuretime.antoinequarroz.ch du Caddyfile principal,
+# AVANT la ligne qui envoie le reste vers aventuretime-web :
+handle /api/* {
+	reverse_proxy aventuretime-scores:8787
+}

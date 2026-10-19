@@ -1,0 +1,27 @@
+/* Polices embarquées (OFL) : Inter pour le texte, Outfit pour les titres.
+   Seul l'alphabet latin est inclus (français et accents). */
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./assets/fonts/inter-latin-wght-normal.woff2') format('woff2-variations');
+}
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./assets/fonts/inter-latin-wght-italic.woff2') format('woff2-variations');
+}
+@font-face {
+  font-family: 'Outfit Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./assets/fonts/outfit-latin-wght-normal.woff2') format('woff2-variations');
+}
+:root {
+  --font-ui: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-title: 'Outfit Variable', 'Inter Variable', system-ui, sans-serif;
+}

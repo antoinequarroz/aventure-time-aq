@@ -1,0 +1,87 @@
+/* Bulle de dialogue des PNJ. */
+.dialog-box {
+  position: fixed; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); z-index: 22; width: min(620px, calc(100vw - 32px));
+  display: flex; gap: 14px; align-items: flex-start; padding: 16px 18px; border-radius: 20px; cursor: pointer;
+  background: linear-gradient(160deg, rgba(44, 31, 99, 0.94), rgba(20, 16, 44, 0.94)); color: #f4f1ff; font-family: var(--font-ui);
+  box-shadow: inset 0 0 0 1px rgba(255, 210, 122, 0.45), 0 18px 50px rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px);
+  opacity: 0; transform: translate(-50%, 16px) scale(0.97); pointer-events: none; transition: opacity 0.25s, transform 0.35s var(--pop);
+}
+.dialog-box.visible { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.dialog-box::after { content: ''; position: absolute; left: 46px; top: -9px; width: 18px; height: 18px; transform: rotate(45deg); background: #2c1f63; box-shadow: inset 1px 1px 0 rgba(255, 210, 122, 0.45); }
+.dialog-portrait { flex: none; width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; font-size: 1.9rem; background: radial-gradient(circle at 35% 30%, rgba(255, 210, 122, 0.35), rgba(180, 140, 255, 0.15)); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18); }
+.dialog-body { flex: 1; min-width: 0; }
+.dialog-name { display: block; font: 600 1.05rem var(--font-title); color: var(--gold); letter-spacing: 0.02em; }
+.dialog-text { margin: 4px 0 8px; min-height: 3em; font-size: 1rem; line-height: 1.5; }
+.dialog-foot { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; opacity: 0.85; }
+.dialog-step { opacity: 0.6; }
+.dialog-next { border: 0; border-radius: 999px; padding: 6px 12px; cursor: pointer; font: 700 0.8rem var(--font-ui); color: var(--ink); background: linear-gradient(135deg, var(--orange), var(--violet)); }
+body.solar-open .dialog-box, body.arcade-open .dialog-box, body.ski-open .dialog-box { display: none; }
+@media (max-width: 700px) {
+  .dialog-box { bottom: calc(max(16px, env(safe-area-inset-bottom)) + 150px); padding: 12px 14px; gap: 10px; }
+  .dialog-portrait { width: 44px; height: 44px; font-size: 1.5rem; border-radius: 12px; }
+  .dialog-text { font-size: 0.92rem; }
+}
+
+/* Descente de ski. */
+.ski { position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: 0; transition: opacity 0.5s var(--ease); font-family: var(--font-ui); color: #f4f1ff; }
+.ski.visible { opacity: 1; }
+body.ski-open #ui { z-index: 60; }
+body.ski-open #ui > :not(#fade):not(#achievement) { display: none !important; }
+.ski-top { position: absolute; top: max(16px, env(safe-area-inset-top)); left: 16px; right: 16px; display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.ski-hud { display: flex; gap: 8px; flex-wrap: wrap; opacity: 0; transition: opacity 0.3s; }
+.ski.running .ski-hud { opacity: 1; }
+.ski-hud span { padding: 7px 12px; border-radius: 14px; background: rgba(20, 16, 44, 0.72); box-shadow: inset 0 0 0 1px rgba(180, 140, 255, 0.4); backdrop-filter: blur(6px); min-width: 74px; }
+.ski-hud small { display: block; font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.65; }
+.ski-hud b { font: 600 1.1rem var(--font-title); font-variant-numeric: tabular-nums; }
+.ski-close { pointer-events: auto; background: rgba(20, 16, 44, 0.72); backdrop-filter: blur(6px); flex: none; }
+.ski-count { position: absolute; top: 34%; left: 50%; transform: translate(-50%, -50%); font: 600 clamp(4rem, 16vw, 8rem) var(--font-title); color: var(--gold); text-shadow: 0 0 40px rgba(255, 179, 71, 0.7), 0 4px 0 #1a1530; }
+.ski-pop { position: absolute; top: 22%; left: 50%; transform: translate(-50%, 10px); padding: 8px 16px; border-radius: 999px; font: 700 1rem var(--font-ui); background: rgba(20, 16, 44, 0.8); opacity: 0; transition: opacity 0.2s, transform 0.3s var(--pop); white-space: nowrap; }
+.ski-pop.show { opacity: 1; transform: translate(-50%, 0); }
+.ski-pop.good { color: #6fd38a; box-shadow: inset 0 0 0 1px rgba(111, 211, 138, 0.6); }
+.ski-pop.bad { color: #ff6f9f; box-shadow: inset 0 0 0 1px rgba(255, 111, 159, 0.6); }
+.ski-card {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(480px, calc(100vw - 32px)); max-height: calc(100vh - 110px); overflow: auto;
+  padding: 22px 24px; border-radius: 22px; pointer-events: auto; background: linear-gradient(160deg, rgba(44, 31, 99, 0.95), rgba(20, 16, 44, 0.95));
+  box-shadow: inset 0 0 0 1px rgba(255, 210, 122, 0.4), 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+.ski-card[hidden] { display: none; }
+.ski-kicker { font: 600 0.72rem var(--font-ui); letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); }
+.ski-card h2 { margin: 4px 0 10px; font: 600 1.7rem var(--font-title); }
+.ski-text { margin: 0 0 10px; line-height: 1.5; opacity: 0.9; }
+.ski-card ul { margin: 0 0 12px; padding-left: 18px; line-height: 1.55; font-size: 0.9rem; }
+.ski-best { margin-bottom: 14px; color: var(--gold); font-size: 0.9rem; }
+.ski-go { width: 100%; }
+.ski-score { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 12px; }
+.ski-score div { padding: 8px 10px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); }
+.ski-score dt { font-size: 0.7rem; opacity: 0.65; }
+.ski-score dd { margin: 2px 0 0; font-weight: 600; font-size: 0.9rem; }
+.ski-board { margin: 0 0 14px; font: 500 0.82rem/1.6 var(--font-ui); white-space: pre-wrap; opacity: 0.85; }
+.ski-actions { display: flex; gap: 10px; }
+.ski-actions .btn { flex: 1; }
+.ski-touch { display: none; position: absolute; bottom: max(20px, env(safe-area-inset-bottom)); width: 42vw; height: 34vh; border: 0; border-radius: 24px; pointer-events: auto; touch-action: none;
+  background: rgba(255, 255, 255, 0.06); color: rgba(255, 255, 255, 0.6); font-size: 2rem; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15); }
+.ski-touch.left { left: 16px; }
+.ski-touch.right { right: 16px; }
+.ski.running .ski-touch { display: block; }
+@media (hover: hover) and (pointer: fine) { .ski.running .ski-touch { display: none; } }
+@media (max-width: 700px) {
+  .ski-hud span { min-width: 0; padding: 5px 9px; }
+  .ski-hud b { font-size: 0.95rem; }
+  .ski-card { padding: 18px; }
+  .ski-card h2 { font-size: 1.4rem; }
+}
+
+/* Classement mondial */
+.world-board { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--a, #ffb347) 12%, transparent); border: 1px solid color-mix(in srgb, var(--a, #ffb347) 40%, transparent); }
+.world-board strong { display: block; font: 600 0.95rem var(--font-title); margin-bottom: 6px; }
+.world-board pre { margin: 0; font: 500 0.85rem/1.55 var(--font-ui); white-space: pre-wrap; font-variant-numeric: tabular-nums; }
+.board-world { display: flex; flex-direction: column; gap: 4px; }
+.world-row { grid-template-columns: minmax(120px, 0.6fr) 1fr; }
+.world-list { opacity: 0.8; font-variant-numeric: tabular-nums; }
+.pseudo { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; font-size: 0.85rem; }
+.pseudo input { flex: 1; max-width: 220px; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,0.07); color: inherit; font: 500 0.9rem var(--font-ui); }
+.pseudo input:focus { outline: 2px solid var(--gold); }
+
+/* Puce météo : sur écran moyen, seulement l'icône (le texte reste en info-bulle). */
+#day-chip b { font-weight: 400; }
+@media (max-width: 1360px) { #day-chip span { display: none; } }

@@ -1,0 +1,20 @@
+# Service systemd du classement mondial (server/leaderboard.mjs).
+# À copier dans /etc/systemd/system/, puis : sudo systemctl enable --now aventuretime-scores
+[Unit]
+Description=Aventure Time AQ - classement mondial
+After=network.target
+
+[Service]
+Environment=PORT=8787
+Environment=HOST=127.0.0.1
+Environment=DATA_FILE=/var/lib/aventuretime/scores.json
+ExecStart=/usr/bin/node /opt/aventuretime-server/leaderboard.mjs
+DynamicUser=yes
+StateDirectory=aventuretime
+Restart=on-failure
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target
