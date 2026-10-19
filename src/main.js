@@ -33,6 +33,7 @@ import { createRewards, trophiesView } from './rewards.js'
 import { createLeaderboard } from './leaderboard.js'
 import { createTour } from './tour.js'
 import { createWeather } from './weather.js'
+import { createFauna } from './world/fauna.js'
 import { createSocialPlaza, createPortfolioBanner } from './world/socials.js'
 import { socials, about, showcases, islands as eraContent, dialogues } from './content.js'
 import { createListView } from './listView.js'
@@ -141,6 +142,7 @@ const NIGHT = new THREE.Color(0x6a78ff)
 const NIGHT_FOG = new THREE.Color(0x0d0a26)
 const tmpColor = new THREE.Color()
 let lastMood = 'past'
+let overcast = 0 // nuages et orage : le soleil faiblit (mis à jour par la météo)
 function applyMood(era, k, day = 1) {
   const m = MOODS[era] ?? MOODS[lastMood]
   if (MOODS[era]) lastMood = era
@@ -149,7 +151,7 @@ function applyMood(era, k, day = 1) {
   hemi.color.lerp(m.sky, k)
   hemi.groundColor.lerp(m.ground, k)
   rim.color.lerp(m.rim, k)
-  sun.intensity += (m.sunI * (0.25 + 0.95 * day) - sun.intensity) * k
+  sun.intensity += (m.sunI * (0.25 + 0.95 * day) * (1 - overcast) - sun.intensity) * k
   hemi.intensity += (m.hemiI * (0.5 + 0.6 * day) - hemi.intensity) * k
   rim.intensity += ((1.4 + night * 0.8) - rim.intensity) * k
   renderer.toneMappingExposure += ((0.82 + 0.38 * day) - renderer.toneMappingExposure) * k
@@ -382,6 +384,13 @@ function openTelescope() {
 }
 const games = createGames(scene, ui, player, sfx, rewards, () => world.games)
 const weather = createWeather(scene)
+// Animaux des trois îles (lapins, pigeons, méduses de l'espace…).
+const fauna = createFauna(scene, world)
+// Orage : éclair (lumière blanche brève) et tonnerre.
+const flashLight = new THREE.DirectionalLight(0xdfe6ff, 0)
+flashLight.position.set(-20, 40, 10)
+scene.add(flashLight)
+weather.onThunder?.(({ intensity }) => sfx.thunder(intensity))
 const pushables = createPushables(scene, world, world.pushables, {
   onStrike: () => {
     ui.toast('STRIKE ! Toutes les quilles sont tombées 🎳')
@@ -969,6 +978,8 @@ const applyQuality = () => {
   }
   // Dernier recours sur un appareil très lent : plus d'ombre portée du soleil.
   sun.castShadow = quality < 4
+  fauna.setDetail(quality)
+  weather.setDetail?.(quality)
 }
 function adaptQuality() {
   const frame = timer.getDelta()
@@ -1040,6 +1051,7 @@ function tick() {
   controls.update(dt)
   if (started) minimap.update(dt)
   world.update(dt, t, cameraTarget)
+  fauna.update(dt, t, cameraTarget)
   games.update(dt, t)
   space.update(dt, t)
   quest.update(dt, t)
@@ -1060,10 +1072,12 @@ function tick() {
   const here = player.currentIsland()
   weather.setEra(here?.interior ? 'interior' : here?.era)
   const { day } = weather.update(dt, t, cameraTarget)
+  flashLight.intensity = (weather.state.flash ?? 0) * 4
+  overcast = weather.state.overcast ?? 0
   space.setDay(day)
   if (started && ((t * 2) | 0) !== dayTick) {
     dayTick = (t * 2) | 0
-    ui.setDay(weather.label())
+    ui.setDay(weather.fullLabel?.() ?? weather.label())
   }
   sfx.setEra(here?.era)
   const walkSpeed = player.grounded && !vehicles.driving && !vehicles.traveling ? Math.hypot(player.velocity.x, player.velocity.z) : 0

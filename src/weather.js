@@ -77,13 +77,13 @@ export function createWeather(scene, { seasons = 'cycle' } = {}) {
   scene.add(flies)
 
   // ---------- Particules de saison ----------
-  const petals = fallingPoints(scene, { count: 520, size: 0.42, texture: petalTexture(), colors: [0xffb7d5, 0xff8fc0, 0xffe0ee, 0xffc9e3], fall: [0.6, 1.2], sway: 1.3 })
-  const leaves = fallingPoints(scene, { count: 460, size: 0.55, texture: leafTexture(), colors: [0xe8722e, 0xd9452b, 0xf2b33d, 0xb0582a, 0xf09a3a], fall: [1, 1.8], sway: 1.8 })
+  const petals = fallingPoints(scene, { count: 650, size: 0.42, texture: petalTexture(), colors: [0xffb7d5, 0xff8fc0, 0xffe0ee, 0xffc9e3], fall: [0.6, 1.2], sway: 1.3 })
+  const leaves = fallingPoints(scene, { count: 600, size: 0.55, texture: leafTexture(), colors: [0xe8722e, 0xd9452b, 0xf2b33d, 0xb0582a, 0xf09a3a], fall: [1, 1.8], sway: 1.8 })
   const pollen = fallingPoints(scene, { count: 300, size: 0.22, texture: dotTexture(), colors: [0xfff2a0, 0xffe066, 0xffffff, 0xd8ffb0], float: true, additive: true, bright: 1.8 })
 
   // ---------- Pluie (traits) ----------
-  const RAIN = 900
-  const RBOX = { x: 56, y: 26, z: 50 }
+  const RAIN = 1100
+  const RBOX = { x: 44, y: 20, z: 38 }
   const drops = new Float32Array(RAIN * 4)
   for (let i = 0; i < RAIN; i++) drops.set([(Math.random() - 0.5) * RBOX.x, Math.random() * RBOX.y, (Math.random() - 0.5) * RBOX.z, 20 + Math.random() * 8], i * 4)
   const rainPos = new Float32Array(RAIN * 6)
@@ -336,7 +336,7 @@ export function createWeather(scene, { seasons = 'cycle' } = {}) {
       rainMat.opacity = Math.min(1, rainK * 0.8 + state.flash * 0.3)
       rain.visible = rainK > 0.02
       if (rain.visible) {
-        rain.position.set(center.x, center.y - 3, center.z - 6)
+        rain.position.set(center.x, center.y - 2, center.z - 3)
         const n = Math.round(RAIN * share * Math.min(1, rainK * 1.05))
         rainGeo.setDrawRange(0, n * 2)
         for (let i = 0; i < n; i++) {
@@ -389,7 +389,7 @@ export function createWeather(scene, { seasons = 'cycle' } = {}) {
       snowK = ease(snowK, snowTarget, 1.5)
       state.snow = snowK
       snowMat.opacity = snowK * 0.9
-      snowMat.size = snowing ? 0.3 : 0.22
+      snowMat.size = snowing ? 0.34 : 0.22
       snow.visible = snowK > 0.01
       if (snow.visible) {
         snow.position.set(center.x, center.y - 4, center.z)
@@ -493,7 +493,7 @@ export function createWeather(scene, { seasons = 'cycle' } = {}) {
 // Particules qui tombent en tournoyant (pétales, feuilles) ou flottent (pollen), dans une
 // boîte qui suit le joueur.
 function fallingPoints(scene, { count, size, texture, colors, fall = [1, 1.5], sway = 1, float = false, additive = false, bright = 1 }) {
-  const BOX = float ? { x: 50, y: 6, z: 44 } : { x: 54, y: 16, z: 46 }
+  const BOX = float ? { x: 40, y: 6, z: 34 } : { x: 42, y: 12, z: 34 }
   const pos = new Float32Array(count * 3)
   const base = new Float32Array(count * 3)
   const seed = new Float32Array(count * 2)

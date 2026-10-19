@@ -174,7 +174,9 @@ export function createUI() {
       chip.classList.toggle('ready', ready && !opened)
     },
     setDay({ icon, text }) {
-      $('day-chip').textContent = `${icon} ${text}`
+      const chip = $('day-chip')
+      chip.title = text
+      chip.replaceChildren(Object.assign(document.createElement('b'), { textContent: icon }), Object.assign(document.createElement('span'), { textContent: ` ${text}` }))
     },
     setTour(state) {
       const bar = $('tour-bar')

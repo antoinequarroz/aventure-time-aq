@@ -81,3 +81,7 @@ body.ski-open #ui > :not(#fade):not(#achievement) { display: none !important; }
 .pseudo { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; font-size: 0.85rem; }
 .pseudo input { flex: 1; max-width: 220px; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,0.07); color: inherit; font: 500 0.9rem var(--font-ui); }
 .pseudo input:focus { outline: 2px solid var(--gold); }
+
+/* Puce météo : sur écran moyen, seulement l'icône (le texte reste en info-bulle). */
+#day-chip b { font-weight: 400; }
+@media (max-width: 1360px) { #day-chip span { display: none; } }

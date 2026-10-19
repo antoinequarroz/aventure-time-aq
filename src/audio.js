@@ -330,6 +330,29 @@ export function createAudio() {
       ;[72, 76, 79, 84].forEach((n, i) => note(hz(n), t + i * 0.1, { type: 'triangle', vol: 0.08, decay: 0.6, bus: sfxBus }))
       for (const n of [72, 76, 79, 84]) note(hz(n), t + 0.45, { type: 'sine', vol: 0.05, attack: 0.02, decay: 1.6, bus: sfxBus })
     },
+    // Tonnerre lointain : grondement de bruit filtré, plus fort si l'éclair est proche.
+    thunder(intensity = 1) {
+      if (!ctx) return
+      const t = ctx.currentTime + 0.02
+      const src = ctx.createBufferSource()
+      src.buffer = noiseBuffer
+      src.loop = true
+      const f = ctx.createBiquadFilter()
+      f.type = 'lowpass'
+      f.frequency.setValueAtTime(420, t)
+      f.frequency.exponentialRampToValueAtTime(90, t + 2.6)
+      const g = ctx.createGain()
+      const vol = 0.18 * Math.min(1, Math.max(0.3, intensity))
+      g.gain.setValueAtTime(0.0001, t)
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.08)
+      g.gain.setValueAtTime(vol * 0.6, t + 0.5)
+      g.gain.linearRampToValueAtTime(vol * 0.8, t + 0.9)
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 3)
+      src.connect(f).connect(g).connect(ambBus)
+      src.start(t, Math.random())
+      src.stop(t + 3.1)
+      say('tonnerre au loin')
+    },
     // But ! Coup de sifflet de l'arbitre, clameur de la foule qui monte puis retombe, petite fanfare.
     goal() {
       if (!ctx) return
